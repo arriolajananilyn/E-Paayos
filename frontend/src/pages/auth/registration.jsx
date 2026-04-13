@@ -205,7 +205,7 @@ const Register = () => {
     },
     {
       value: 'independent-mechanic-technician',
-      label: 'Independent Mechanical / Technician',
+      label: 'Independent Mechanic / Technician',
       description: 'No shop of your own—work independently and offer services like a shop owner.',
       Icon: HardHat,
       iconColor: '#b45309',
