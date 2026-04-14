@@ -1,6 +1,15 @@
 import mongoose from "mongoose"
 import bcrypt from "bcryptjs"
 
+/** Stored in DB so admin previews work even when disk uploads are missing or on another machine. */
+const embeddedFileSchema = new mongoose.Schema(
+  {
+    data: { type: Buffer, required: true },
+    contentType: { type: String, default: "application/octet-stream" },
+  },
+  { _id: false }
+)
+
 const userSchema = new mongoose.Schema(
   {
     role: {
@@ -294,12 +303,8 @@ const userSchema = new mongoose.Schema(
       },
     },
     tinNumber: { type: String },
-    businessPermitCertificatePath: {
-      type: String,
-      required: function () {
-        return this.role === "shop-owner"
-      },
-    },
+    /** Legacy disk path; shop owners may use businessPermitCertificateImage instead. */
+    businessPermitCertificatePath: { type: String },
 
     // Mechanic/Technician work experience
     workCompanyName: {
@@ -383,8 +388,11 @@ const userSchema = new mongoose.Schema(
     approvalRejectionReason: { type: String, default: "" },
 
     idType: { type: String, required: true },
-    validIdPath: { type: String }, // stored file path
-    selfiePath: { type: String }, // optional stored file path
+    validIdPath: { type: String }, // legacy disk path
+    selfiePath: { type: String },
+    validIdImage: embeddedFileSchema,
+    selfieImage: embeddedFileSchema,
+    businessPermitCertificateImage: embeddedFileSchema,
   },
   { timestamps: true }
 )

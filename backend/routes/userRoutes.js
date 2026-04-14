@@ -1,7 +1,5 @@
 import express from "express"
 import multer from "multer"
-import path from "path"
-import fs from "fs"
 import {
   registerUser,
   loginUser,
@@ -17,30 +15,17 @@ import { protect, adminOnly } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
 
-// ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), "uploads")
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true })
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir)
-  },
-  filename: function (req, file, cb) {
-    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9)
-    const ext = path.extname(file.originalname)
-    cb(null, file.fieldname + "-" + unique + ext)
-  },
+/** Registration files are kept in memory and saved to MongoDB (see userModel embedded images). */
+const registerUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
 })
-
-const upload = multer({ storage })
 
 router.get("/register/shop-owners", listShopOwnersForRegistration)
 
 router.post(
   "/register",
-  upload.fields([
+  registerUpload.fields([
     { name: "validId", maxCount: 1 },
     { name: "selfie", maxCount: 1 },
     { name: "businessPermitCertificate", maxCount: 1 },
@@ -56,4 +41,3 @@ router.patch("/admin/:id/reject", protect, adminOnly, rejectUserForAdmin)
 router.get("/admin/:id", protect, adminOnly, getUserForAdmin)
 
 export default router
-

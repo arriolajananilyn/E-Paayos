@@ -6,6 +6,61 @@ import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 
 const trimStr = (value) => (typeof value === "string" ? value.trim() : value)
 
+function embeddedFromField(req, field) {
+  const f = req.files?.[field]?.[0]
+  if (!f?.buffer?.length) return undefined
+  return {
+    data: f.buffer,
+    contentType: f.mimetype || "application/octet-stream",
+  }
+}
+
+function normalizeBuffer(raw) {
+  if (!raw) return null
+  if (Buffer.isBuffer(raw)) return raw
+  if (raw?.type === "Buffer" && Array.isArray(raw.data)) return Buffer.from(raw.data)
+  if (typeof raw.buffer !== "undefined" && raw.buffer?.byteLength != null) {
+    try {
+      return Buffer.from(raw.buffer)
+    } catch {
+      /* fall through */
+    }
+  }
+  try {
+    return Buffer.from(raw)
+  } catch {
+    return null
+  }
+}
+
+function bufferToDataUrl(raw, contentType) {
+  const buf = normalizeBuffer(raw)
+  if (!buf) return undefined
+  const ct = contentType || "application/octet-stream"
+  return `data:${ct};base64,${buf.toString("base64")}`
+}
+
+/** Strip binary fields from admin JSON; add data URLs for the admin UI. */
+function shapeAdminUserPayload(user) {
+  const u = { ...user }
+  if (u.validIdImage?.data) {
+    u.validIdDataUrl = bufferToDataUrl(u.validIdImage.data, u.validIdImage.contentType)
+  }
+  if (u.selfieImage?.data) {
+    u.selfieDataUrl = bufferToDataUrl(u.selfieImage.data, u.selfieImage.contentType)
+  }
+  if (u.businessPermitCertificateImage?.data) {
+    u.businessPermitCertificateDataUrl = bufferToDataUrl(
+      u.businessPermitCertificateImage.data,
+      u.businessPermitCertificateImage.contentType
+    )
+  }
+  delete u.validIdImage
+  delete u.selfieImage
+  delete u.businessPermitCertificateImage
+  return u
+}
+
 /** Registration / Shop Info UI labels → User schema enum */
 function toStoredBusinessType(value) {
   const n = trimStr(value)
@@ -213,15 +268,20 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   const normalizedEmail = String(email || "").trim().toLowerCase()
-  const userExists = await User.findOne({ email: normalizedEmail })
+  const userExists = await User.findOne({ email: normalizedEmail }).select("_id").lean()
   if (userExists) {
     res.status(409)
     throw new Error("User already exists")
   }
 
-  const validIdPath = req.files?.validId?.[0]?.path || undefined
-  const selfiePath = req.files?.selfie?.[0]?.path || undefined
-  const businessPermitCertificatePath = req.files?.businessPermitCertificate?.[0]?.path || undefined
+  const validIdImage = embeddedFromField(req, "validId")
+  const selfieImage = embeddedFromField(req, "selfie")
+  const businessPermitCertificateImage = embeddedFromField(req, "businessPermitCertificate")
+
+  if (!validIdImage) {
+    res.status(400)
+    throw new Error("Please upload valid ID")
+  }
 
   const parseJsonArray = (val) => {
     if (!val) return []
@@ -262,7 +322,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   if (isShopOwner) {
-    if (!businessPermitCertificatePath) {
+    if (!businessPermitCertificateImage) {
       res.status(400)
       throw new Error("Please upload business permit/certificate")
     }
@@ -325,7 +385,8 @@ export const registerUser = asyncHandler(async (req, res) => {
       dtiSecRegistrationNumber: isIndependentMechanicTechnician ? "" : clean(dtiSecRegistrationNumber),
       businessPermitNumber: isIndependentMechanicTechnician ? "" : clean(businessPermitNumber),
       tinNumber: clean(tinNumber),
-      businessPermitCertificatePath: isIndependentMechanicTechnician ? undefined : businessPermitCertificatePath,
+      businessPermitCertificatePath: undefined,
+      businessPermitCertificateImage: isIndependentMechanicTechnician ? undefined : businessPermitCertificateImage,
       workCompanyName: clean(workCompanyName),
       workCompanyAddress: clean(workCompanyAddress),
       workPositionHeld: clean(workPositionHeld),
@@ -338,8 +399,10 @@ export const registerUser = asyncHandler(async (req, res) => {
       email: normalizedEmail,
       password,
       idType: clean(idType),
-      validIdPath,
-      selfiePath,
+      validIdPath: undefined,
+      selfiePath: undefined,
+      validIdImage,
+      selfieImage,
       accountApprovalStatus: "pending",
       approvalRejectionReason: "",
     })
@@ -368,7 +431,9 @@ export const registerUser = asyncHandler(async (req, res) => {
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body
   const normalizedEmail = String(email || "").trim().toLowerCase()
-  const user = await User.findOne({ email: normalizedEmail })
+  const user = await User.findOne({ email: normalizedEmail }).select(
+    "-validIdImage -selfieImage -businessPermitCertificateImage"
+  )
   if (!user || !(await user.matchPassword(password))) {
     res.status(401)
     throw new Error("Invalid email or password")
@@ -507,7 +572,9 @@ export const updateShopOwnerShopInfo = asyncHandler(async (req, res) => {
 
   await user.save()
 
-  const updated = await User.findById(req.user._id).select("-password")
+  const updated = await User.findById(req.user._id).select(
+    "-password -validIdImage -selfieImage -businessPermitCertificateImage"
+  )
   return res.json(updated)
 })
 
@@ -545,7 +612,7 @@ export const getUserForAdmin = asyncHandler(async (req, res) => {
     throw new Error("Cannot view this account")
   }
 
-  return res.json(user)
+  return res.json(shapeAdminUserPayload(user))
 })
 
 export const approveUserForAdmin = asyncHandler(async (req, res) => {

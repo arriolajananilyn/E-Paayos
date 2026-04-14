@@ -26,7 +26,9 @@ export const protect = asyncHandler(async (req, res, next) => {
     throw new Error("Not authorized, token invalid")
   }
 
-  const user = await User.findById(decoded.id).select("-password")
+  const user = await User.findById(decoded.id).select(
+    "-password -validIdImage -selfieImage -businessPermitCertificateImage"
+  )
   if (!user) {
     res.status(401)
     throw new Error("Not authorized, user not found")
