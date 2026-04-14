@@ -17,7 +17,19 @@ export function buildAdminFileUrl(storedPath, apiBaseUrl) {
     path = file ? `uploads/${file}` : ''
   }
   if (!path) return ''
-  return `${base}/${path.replace(/^\/+/, '')}`
+  const segments = path
+    .replace(/^\/+/, '')
+    .split('/')
+    .filter(Boolean)
+    .map((seg) => encodeURIComponent(seg))
+    .join('/')
+
+  // Vite dev: same origin as the UI (e.g. :5173) with proxy `/uploads` → API (vite.config.js).
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    return `/${segments}`
+  }
+
+  return `${base}/${segments}`
 }
 
 export function uploadsBasename(storedPath) {

@@ -117,10 +117,12 @@ function Line({ label, value }) {
   )
 }
 
-function DocumentCard({ title, subtitle, storedPath, apiBaseUrl }) {
-  const name = uploadsBasename(storedPath)
-  const url = buildAdminFileUrl(storedPath, apiBaseUrl)
-  const isImage = name && isLikelyImageFilename(name)
+function DocumentCard({ title, subtitle, storedPath, dataUrl, apiBaseUrl }) {
+  const name = uploadsBasename(storedPath) || (dataUrl ? 'Uploaded document' : '')
+  const url = dataUrl || buildAdminFileUrl(storedPath, apiBaseUrl)
+  const isImage =
+    (typeof dataUrl === 'string' && /^data:image\//i.test(dataUrl)) ||
+    (!dataUrl && Boolean(name) && isLikelyImageFilename(name))
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-gray-950/40">
@@ -254,8 +256,20 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl }) {
         <Section title="ID Verification">
           <Line label="ID type" value={profile.idType} />
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <DocumentCard title={idTypeLabel} subtitle="Valid ID" storedPath={profile.validIdPath} apiBaseUrl={apiBaseUrl} />
-            <DocumentCard title="Selfie" subtitle="Verification photo" storedPath={profile.selfiePath} apiBaseUrl={apiBaseUrl} />
+            <DocumentCard
+              title={idTypeLabel}
+              subtitle="Valid ID"
+              storedPath={profile.validIdPath}
+              dataUrl={profile.validIdDataUrl}
+              apiBaseUrl={apiBaseUrl}
+            />
+            <DocumentCard
+              title="Selfie"
+              subtitle="Verification photo"
+              storedPath={profile.selfiePath}
+              dataUrl={profile.selfieDataUrl}
+              apiBaseUrl={apiBaseUrl}
+            />
           </div>
         </Section>
       </div>
@@ -301,8 +315,20 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl }) {
     <Section title="ID Verification">
       <Line label="ID type" value={profile.idType} />
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <DocumentCard title={idTypeLabel} subtitle="Valid ID" storedPath={profile.validIdPath} apiBaseUrl={apiBaseUrl} />
-        <DocumentCard title="Selfie" subtitle="Verification photo" storedPath={profile.selfiePath} apiBaseUrl={apiBaseUrl} />
+        <DocumentCard
+          title={idTypeLabel}
+          subtitle="Valid ID"
+          storedPath={profile.validIdPath}
+          dataUrl={profile.validIdDataUrl}
+          apiBaseUrl={apiBaseUrl}
+        />
+        <DocumentCard
+          title="Selfie"
+          subtitle="Verification photo"
+          storedPath={profile.selfiePath}
+          dataUrl={profile.selfieDataUrl}
+          apiBaseUrl={apiBaseUrl}
+        />
       </div>
     </Section>
   )
@@ -400,6 +426,7 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl }) {
               title="Business permit / certificate"
               subtitle="From registration step 4"
               storedPath={profile.businessPermitCertificatePath}
+              dataUrl={profile.businessPermitCertificateDataUrl}
               apiBaseUrl={apiBaseUrl}
             />
           </div>

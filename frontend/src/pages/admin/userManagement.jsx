@@ -26,6 +26,7 @@ import {
   PaginationEllipsis,
   PaginationItem,
 } from '@/components/ui/pagination'
+import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 import { AdminRegistrationDetailView } from '@/pages/admin/AdminUserRegistrationDetail.jsx'
 import {
   Building2,
@@ -43,7 +44,7 @@ import {
   XCircle,
 } from 'lucide-react'
 
-const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+const API_URL = getApiBaseUrl()
 
 const ROLE_LABELS = {
   customer: 'Customer',

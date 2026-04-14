@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { getApiBaseUrl } from '@/lib/apiBaseUrl';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -387,7 +388,7 @@ const Register = () => {
       setLoadingShopOwners(true);
       setShopOwnersLoadError('');
       try {
-        const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000';
+        const API_URL = getApiBaseUrl();
         const res = await fetch(`${API_URL}/api/users/register/shop-owners`);
         if (!res.ok) throw new Error('Could not load registered shops');
         const data = await res.json();
@@ -770,7 +771,7 @@ const Register = () => {
     if (!allValid) return;
     setIsLoading(true);
     try {
-      const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000';
+      const API_URL = getApiBaseUrl();
       const body = new FormData();
       const computedFullName = isExtendedRegistration
         ? [formData.lastName, formData.firstName, formData.middleName].map(x => (x || '').trim()).filter(Boolean).join(', ')

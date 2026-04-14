@@ -40,6 +40,7 @@ import {
   Users,
 } from 'lucide-react'
 import Elogo from '@/assets/Elogo.png'
+import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -55,7 +56,7 @@ const SECTIONS = {
   reportedUsers: { title: 'Reported User', description: 'Review users that have been reported.' },
 }
 
-const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+const API_URL = getApiBaseUrl()
 
 let adminSidebarOpenState = false
 
