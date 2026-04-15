@@ -65,6 +65,52 @@ function getReadAt(conv, userId) {
   return hit?.lastReadAt ? new Date(hit.lastReadAt) : new Date(0)
 }
 
+function toDataUrl(mimetype, fileBuffer) {
+  if (!fileBuffer?.length) return ""
+  const safeMime =
+    typeof mimetype === "string" && mimetype.trim() ? mimetype.trim() : "application/octet-stream"
+  return `data:${safeMime};base64,${fileBuffer.toString("base64")}`
+}
+
+async function persistMessageAttachment(file) {
+  const orig = typeof file?.originalname === "string" ? file.originalname : "file"
+  const ext = path.extname(orig) || ""
+  const fileBuffer = Buffer.isBuffer(file?.buffer) ? file.buffer : null
+
+  if (!fileBuffer) {
+    return {
+      url: "",
+      mimetype: file?.mimetype || "application/octet-stream",
+      originalName: orig,
+      size: file?.size || 0,
+    }
+  }
+
+  try {
+    await fs.mkdir(MESSAGE_UPLOAD_DIR, { recursive: true })
+    const fileName = `msg-${Date.now()}-${crypto.randomUUID()}${ext}`
+    const dest = path.join(MESSAGE_UPLOAD_DIR, fileName)
+    await fs.writeFile(dest, fileBuffer)
+    return {
+      url: `/uploads/messages/${fileName}`,
+      mimetype: file.mimetype || "application/octet-stream",
+      originalName: orig,
+      size: file.size || 0,
+    }
+  } catch (error) {
+    // Vercel serverless filesystem is read-only; keep attachment as portable data URL.
+    if (error?.code === "EROFS" || error?.code === "EACCES") {
+      return {
+        url: toDataUrl(file.mimetype, fileBuffer),
+        mimetype: file.mimetype || "application/octet-stream",
+        originalName: orig,
+        size: file.size || 0,
+      }
+    }
+    throw error
+  }
+}
+
 async function unreadCountFor(conversationId, userId, lastReadAt) {
   return Message.countDocuments({
     conversation: conversationId,
@@ -258,26 +304,11 @@ export const sendMessage = asyncHandler(async (req, res) => {
     throw new Error("Message content or file is required")
   }
 
-  await fs.mkdir(MESSAGE_UPLOAD_DIR, { recursive: true })
   const attachments = []
 
   for (const f of files) {
-    const orig = typeof f.originalname === "string" ? f.originalname : "file"
-    const ext = path.extname(orig) || ""
-    const fileName = `msg-${Date.now()}-${crypto.randomUUID()}${ext}`
-    const dest = path.join(MESSAGE_UPLOAD_DIR, fileName)
-    if (f.path) {
-      await fs.rename(f.path, dest)
-    } else if (f.buffer) {
-      await fs.writeFile(dest, f.buffer)
-    }
-    const rel = `/uploads/messages/${fileName}`
-    attachments.push({
-      url: rel,
-      mimetype: f.mimetype || "application/octet-stream",
-      originalName: orig,
-      size: f.size || 0,
-    })
+    const stored = await persistMessageAttachment(f)
+    if (stored.url) attachments.push(stored)
   }
 
   const preview = content || (attachments.length ? `Sent ${attachments.length} file(s)` : "")
