@@ -228,6 +228,45 @@ function serviceModeLabel(mode) {
   return mode === 'home' ? 'Home service' : 'In-shop'
 }
 
+function resolveIssuePhotoSrc(src) {
+  const value = String(src ?? '').trim()
+  if (!value) return ''
+  if (/^(https?:\/\/|data:|blob:)/i.test(value)) return value
+  if (value.startsWith('/uploads/')) return `${API_URL}${value}`
+  return value
+}
+
+function IssuePhotoThumb({ src, label }) {
+  const [failed, setFailed] = useState(false)
+  const resolvedSrc = resolveIssuePhotoSrc(src)
+
+  return (
+    <a
+      href={resolvedSrc || '#'}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group block"
+      title={label}
+    >
+      <div className="relative h-16 w-16 overflow-hidden rounded-md border border-[#081F5C]/20 bg-slate-100 dark:border-white/15 dark:bg-slate-800/60">
+        {!failed ? (
+          <img
+            src={resolvedSrc}
+            alt={label}
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.05]"
+            loading="lazy"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-medium text-slate-600 dark:text-slate-300">
+            No preview
+          </div>
+        )}
+      </div>
+    </a>
+  )
+}
+
 function mapBookingFromApi(row) {
   if (!row || !row.id) return null
   return {
@@ -241,6 +280,7 @@ function mapBookingFromApi(row) {
     serviceAddress: row.serviceAddress || '',
     serviceLatitude: row.serviceLatitude,
     serviceLongitude: row.serviceLongitude,
+    issuePhotos: Array.isArray(row.issuePhotos) ? row.issuePhotos.filter(Boolean) : [],
     problemDescription: row.problemDescription || '',
     notes: row.notes || '',
     rejectionReason: row.rejectionReason || '',
@@ -593,6 +633,22 @@ function ServiceRequestPage() {
                           </div>
 
                           <p className="line-clamp-3 text-sm leading-relaxed text-foreground/90">{b.problemDescription || '—'}</p>
+                          {Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0 ? (
+                            <div className="space-y-1.5">
+                              <p className="text-xs font-semibold text-[#081F5C] dark:text-slate-100">
+                                Attached issue photo{b.issuePhotos.length === 1 ? '' : 's'}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {b.issuePhotos.slice(0, 6).map((src, photoIndex) => (
+                                  <IssuePhotoThumb
+                                    key={`${b.id}-issue-photo-${photoIndex}`}
+                                    src={src}
+                                    label={`Issue photo ${photoIndex + 1}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
 
                           <div className="flex flex-wrap items-center gap-1.5">
                             {b.shopService?.category ? categoryBadge(b.shopService.category) : null}

@@ -1,28 +1,54 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
-import { Bell } from 'lucide-react'
 import ShopOwnerDashboard from './dashboard.jsx'
+import { NotificationFeedContent } from '../../components/notifications/NotificationFeed.jsx'
+
+const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+
+const PROVIDER_NOTIF_ROUTES = {
+  bookings: '#/provider/service-request',
+  messages: '#/provider/messages',
+  dashboard: '#/provider/dashboard',
+}
 
 function NotificationPage() {
   return (
     <ShopOwnerDashboard
       activeSection="notification"
-      pageMeta={{ title: 'Notification', description: 'View your latest updates and alerts.' }}
+      pageMeta={{
+        title: 'Notifications',
+        description: 'Stay updated with booking requests and service status.',
+      }}
     >
-      <Card className="border-border/80 shadow-sm">
-        <CardHeader className="pb-2">
-          <div className="mb-1 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
-            <Bell className="h-5 w-5 text-blue-700" />
-          </div>
-          <CardTitle className="text-base">Notification</CardTitle>
-          <CardDescription>Coming soon</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Dito lalabas ang mga updates at important alerts para sa shop mo.
-          </p>
-        </CardContent>
-      </Card>
+      <ShopOwnerNotificationBody />
     </ShopOwnerDashboard>
+  )
+}
+
+function ShopOwnerNotificationBody() {
+  const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('user') : null
+  let user = null
+  try {
+    const parsed = raw ? JSON.parse(raw) : null
+    if (parsed?.role === 'shop-owner') user = parsed
+  } catch {
+    user = null
+  }
+
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-border/80 bg-white/90 p-8 text-center text-sm text-muted-foreground dark:bg-white/5">
+        Loading…
+      </div>
+    )
+  }
+
+  return (
+    <NotificationFeedContent
+      user={user}
+      readScope="shop_owner"
+      bookingsUrl={`${API_URL}/api/shop/bookings`}
+      routes={PROVIDER_NOTIF_ROUTES}
+      variant="shopOwner"
+    />
   )
 }
 

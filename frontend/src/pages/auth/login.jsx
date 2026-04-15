@@ -73,8 +73,10 @@ function Login() {
     if (!validateForm()) return
     setIsLoading(true)
     try {
-      const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
-      const res = await fetch(`${API_URL}/api/users/login`, {
+      const rawApiUrl = import.meta?.env?.VITE_API_URL
+      const baseApiUrl = rawApiUrl ? rawApiUrl.replace(/\/$/, '') : ''
+      const loginUrl = `${baseApiUrl}/api/users/login`
+      const res = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email, password: formData.password })
@@ -119,7 +121,10 @@ function Login() {
         window.location.hash = '#/'
       }
     } catch (error) {
-      const errorMessage = error?.message || 'Invalid email or password'
+      const isNetworkError = error instanceof TypeError && /fetch/i.test(error?.message || '')
+      const errorMessage = isNetworkError
+        ? 'Cannot connect to server. Make sure backend is running and VITE_API_URL is correct.'
+        : (error?.message || 'Invalid email or password')
       const lower = errorMessage.toLowerCase()
       const isRejection = lower.includes('not approved') || lower.includes('rejected')
       const isPendingApproval = lower.includes('waiting for admin approval') || lower.includes('admin approval')

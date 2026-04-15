@@ -431,12 +431,19 @@ export const registerUser = asyncHandler(async (req, res) => {
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body
   const normalizedEmail = String(email || "").trim().toLowerCase()
+  const enteredPassword = String(password || "")
   const user = await User.findOne({ email: normalizedEmail }).select(
     "-validIdImage -selfieImage -businessPermitCertificateImage"
   )
-  if (!user || !(await user.matchPassword(password))) {
+  if (!user || !(await user.matchPassword(enteredPassword))) {
     res.status(401)
     throw new Error("Invalid email or password")
+  }
+
+  // If this account is still using a legacy plain-text password, migrate to bcrypt now.
+  if (typeof user.password === "string" && !user.password.startsWith("$2")) {
+    user.password = enteredPassword
+    await user.save()
   }
 
   if (user.role !== "admin") {
@@ -582,7 +589,7 @@ export const updateShopOwnerShopInfo = asyncHandler(async (req, res) => {
 export const listUsersForAdmin = asyncHandler(async (_req, res) => {
   const users = await User.find({ role: { $ne: "admin" } })
     .select(
-      "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason"
+      "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus barangay cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason"
     )
     .sort({ createdAt: -1 })
     .lean()

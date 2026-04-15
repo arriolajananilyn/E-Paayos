@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
+import {
+  NotificationBellIndicator,
+  NotificationFeedContent,
+} from '../../../components/notifications/NotificationFeed.jsx'
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +22,14 @@ import { TooltipProvider } from '../../../components/ui/tooltip'
 import { Bell, Briefcase, ClipboardList, History, LayoutDashboard, LogOut, MessageSquare, Settings, Star } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
 
+const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+
+const MECHANIC_NOTIF_ROUTES = {
+  bookings: '#/mechanic/technician/assigned-request',
+  messages: '#/mechanic/technician/messages',
+  dashboard: '#/mechanic/technician/dashboard',
+}
+
 const navyDeep = '#04133d'
 const navy = '#081F5C'
 const navyMuted = '#0b2b73'
@@ -27,7 +38,7 @@ const pageBaseNavyGradient = `linear-gradient(145deg, ${navyDeep} 0%, ${navy} 35
 
 const NOTIFICATION_META = {
   title: 'Notifications',
-  description: 'Important updates on assigned jobs, schedule, and customer messages.',
+  description: 'Stay updated with assigned bookings and service status.',
 }
 let mechanicTechnicianSidebarOpenState = false
 
@@ -48,30 +59,29 @@ function MechanicMobileNav() {
   )
 }
 
+function readMechanicTechnicianSession() {
+  const raw = localStorage.getItem('user')
+  const token = localStorage.getItem('token')
+  if (!token || !raw) return null
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed.role !== 'mechanic-technician') return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
 function MechanicTechnicianNotification() {
-  const [user, setUser] = useState(null)
+  const [user] = useState(readMechanicTechnicianSession)
+  const [headerUnread, setHeaderUnread] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(mechanicTechnicianSidebarOpenState)
   const [profileOpen, setProfileOpen] = useState(false)
   const profileMenuRef = useRef(null)
 
   useEffect(() => {
-    const raw = localStorage.getItem('user')
-    const token = localStorage.getItem('token')
-    if (!token || !raw) {
-      window.location.hash = '#/login'
-      return
-    }
-    try {
-      const parsed = JSON.parse(raw)
-      if (parsed.role !== 'mechanic-technician') {
-        window.location.hash = '#/login'
-        return
-      }
-      setUser(parsed)
-    } catch {
-      window.location.hash = '#/login'
-    }
-  }, [])
+    if (!user) window.location.hash = '#/login'
+  }, [user])
 
   useEffect(() => {
     mechanicTechnicianSidebarOpenState = sidebarOpen
@@ -248,7 +258,9 @@ function MechanicTechnicianNotification() {
                   }}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-blue-50 text-blue-700 transition-colors hover:bg-blue-100"
                 >
-                  <Bell className="h-5 w-5" />
+                  <NotificationBellIndicator unreadCount={headerUnread}>
+                    <Bell className="h-5 w-5" />
+                  </NotificationBellIndicator>
                 </button>
 
                 <div ref={profileMenuRef} className="relative">
@@ -298,24 +310,18 @@ function MechanicTechnicianNotification() {
 
             <div
               id="mechanic-main-scroll"
-              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-6 overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
             >
-              <Card className="border-border/80 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base">Recent Notifications</CardTitle>
-                  <CardDescription>Sample notifications until real-time integration is available.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="rounded-lg border border-border/80 p-3">
-                    <p className="text-sm font-medium text-foreground">New assigned request received</p>
-                    <p className="text-xs text-muted-foreground">You have a new request for Engine Diagnostics.</p>
-                  </div>
-                  <div className="rounded-lg border border-border/80 p-3">
-                    <p className="text-sm font-medium text-foreground">Schedule update</p>
-                    <p className="text-xs text-muted-foreground">Customer moved appointment to 2:00 PM.</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="space-y-2 sm:space-y-3.5 pr-2 md:pr-4">
+                <NotificationFeedContent
+                  user={user}
+                  readScope="mechanic_shop"
+                  bookingsUrl={`${API_URL}/api/mechanic/bookings`}
+                  routes={MECHANIC_NOTIF_ROUTES}
+                  variant="technician"
+                  onUnreadCountChange={setHeaderUnread}
+                />
+              </div>
             </div>
           </SidebarInset>
         </SidebarProvider>

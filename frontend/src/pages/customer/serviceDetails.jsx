@@ -51,6 +51,10 @@ import { Label } from '../../components/ui/label'
 import { NativeSelect } from '../../components/ui/native-select'
 import { Textarea } from '../../components/ui/textarea'
 import logoEpaayos from '../../assets/epaayos_logo.png'
+import {
+  NotificationBellIndicator,
+  useCustomerNotificationUnreadCount,
+} from '../../components/notifications/NotificationFeed.jsx'
 import { resolveProfilePsgcLabels } from '../../lib/psgcResolve'
 import { SERVICE_TYPES, staffAssignedLabel } from './findServices.jsx'
 
@@ -167,11 +171,12 @@ const SHOP_TABLE_ICON = 'h-3.5 w-3.5 shrink-0 text-[#081F5C]/75 dark:text-sky-30
 const SHOP_TABLE_ICON_ON_STRIP =
   'h-3.5 w-3.5 shrink-0 text-zinc-600 dark:text-zinc-400'
 
-function ShopTableLabel({ icon: Icon, children, variant = 'default' }) {
+function ShopTableLabel({ icon, children, variant = 'default' }) {
   const onStrip = variant === 'dark'
+  const IconComponent = icon
   return (
     <span className="inline-flex items-center gap-1.5">
-      <Icon className={onStrip ? SHOP_TABLE_ICON_ON_STRIP : SHOP_TABLE_ICON} aria-hidden />
+      <IconComponent className={onStrip ? SHOP_TABLE_ICON_ON_STRIP : SHOP_TABLE_ICON} aria-hidden />
       <span className={onStrip ? 'text-zinc-800 dark:text-zinc-200' : undefined}>{children}</span>
     </span>
   )
@@ -192,6 +197,14 @@ function isLikelyMongoId(id) {
 function reviewRatingValue(review) {
   const n = Number(review?.overallRating ?? review?.rating ?? 0)
   return Number.isFinite(n) ? n : 0
+}
+
+function resolveReviewMediaSrc(src) {
+  const value = String(src ?? '').trim()
+  if (!value) return ''
+  if (/^(https?:\/\/|data:|blob:)/i.test(value)) return value
+  if (value.startsWith('/uploads/')) return `${API_URL}${value}`
+  return value
 }
 
 function initialsFromName(name) {
@@ -220,6 +233,15 @@ function categoryIcon(category) {
   if (normalized === 'gadget') return Smartphone
   if (normalized === 'appliance') return WashingMachine
   return Wrench
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => reject(new Error('Failed to read image file.'))
+    reader.readAsDataURL(file)
+  })
 }
 
 function categoryBadgeClass(category) {
@@ -294,7 +316,7 @@ function shouldShowProviderNote(value) {
   const lower = t.toLowerCase()
   if (lower === 'n/a' || lower === 'na' || lower === 'n.a.' || lower === 'n.a' || lower === 'none' || lower === 'null')
     return false
-  if (/^[\-—–]+$/.test(t)) return false
+  if (/^[-—–]+$/.test(t)) return false
   return true
 }
 
@@ -310,6 +332,7 @@ export default function CustomerServiceDetails({ serviceId }) {
   const [mapPartsResolving, setMapPartsResolving] = useState(false)
   const [shopContext, setShopContext] = useState(null)
   const [serviceReviewFilter, setServiceReviewFilter] = useState('all')
+  const [serviceReviews, setServiceReviews] = useState([])
 
   const [bookDialogOpen, setBookDialogOpen] = useState(false)
   const [bookingConfirmOpen, setBookingConfirmOpen] = useState(false)
@@ -330,6 +353,16 @@ export default function CustomerServiceDetails({ serviceId }) {
   })
   const [locationCaptureLoading, setLocationCaptureLoading] = useState(false)
   const [locationCaptureError, setLocationCaptureError] = useState('')
+  const [issuePhotos, setIssuePhotos] = useState([])
+  const issuePhotoPreviews = useMemo(
+    () =>
+      issuePhotos.map((file, index) => ({
+        id: `${file.name}-${file.lastModified}-${index}`,
+        name: file.name,
+        url: URL.createObjectURL(file),
+      })),
+    [issuePhotos]
+  )
 
   /** Customer GPS from booking form — shown as second pin on header map (home service). */
   const headerBookingLocationPin = useMemo(() => {
@@ -349,7 +382,10 @@ export default function CustomerServiceDetails({ serviceId }) {
     }
   }, [bookForm.serviceMode, bookForm.serviceLatitude, bookForm.serviceLongitude])
 
-  const serviceReviewsList = useMemo(() => MOCK_SERVICE_REVIEWS, [])
+  const serviceReviewsList = useMemo(
+    () => serviceReviews.map((rv) => ({ ...rv, images: (rv.images || []).map(resolveReviewMediaSrc).filter(Boolean) })),
+    [serviceReviews],
+  )
 
   const serviceReviewStats = useMemo(() => {
     const base = { stars: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, withComments: 0, withMedia: 0 }
@@ -393,6 +429,30 @@ export default function CustomerServiceDetails({ serviceId }) {
   useEffect(() => {
     setServiceReviewFilter('all')
   }, [serviceId])
+
+  useEffect(() => {
+    if (!user || !serviceId || !isLikelyMongoId(serviceId)) {
+      setServiceReviews([])
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/catalog/shop-services/${encodeURIComponent(serviceId)}/reviews`, {
+          headers: authHeaders(),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.message || 'Could not load reviews.')
+        const list = Array.isArray(data?.reviews) ? data.reviews : []
+        if (!cancelled) setServiceReviews(list)
+      } catch {
+        if (!cancelled) setServiceReviews([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [user, serviceId])
 
   useEffect(() => {
     const raw = localStorage.getItem('user')
@@ -531,6 +591,12 @@ export default function CustomerServiceDetails({ serviceId }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [profileOpen])
 
+  useEffect(() => {
+    return () => {
+      issuePhotoPreviews.forEach((photo) => URL.revokeObjectURL(photo.url))
+    }
+  }, [issuePhotoPreviews])
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -556,6 +622,7 @@ export default function CustomerServiceDetails({ serviceId }) {
       problemDescription: '',
       notes: '',
     })
+    setIssuePhotos([])
     setBookDialogOpen(true)
   }
 
@@ -629,6 +696,10 @@ export default function CustomerServiceDetails({ serviceId }) {
         payload.serviceLatitude = bookForm.serviceLatitude
         payload.serviceLongitude = bookForm.serviceLongitude
       }
+      if (issuePhotos.length > 0) {
+        const encodedPhotos = await Promise.all(issuePhotos.slice(0, 6).map((file) => fileToDataUrl(file)))
+        payload.issuePhotos = encodedPhotos.filter(Boolean)
+      }
 
       const res = await fetch(`${API_URL}/api/catalog/bookings`, {
         method: 'POST',
@@ -646,6 +717,8 @@ export default function CustomerServiceDetails({ serviceId }) {
       setBookSubmitting(false)
     }
   }
+
+  const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
 
   if (!user) {
     return (
@@ -716,7 +789,9 @@ export default function CustomerServiceDetails({ serviceId }) {
               }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10"
             >
-              <Bell className="h-5 w-5" />
+              <NotificationBellIndicator unreadCount={customerNotifUnread} countOnDarkBg>
+                <Bell className="h-5 w-5" />
+              </NotificationBellIndicator>
             </button>
 
             <div ref={profileMenuRef} className="relative">
@@ -903,6 +978,24 @@ export default function CustomerServiceDetails({ serviceId }) {
                           aria-label="Open messages to contact this shop"
                           className="h-9 w-full gap-2 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] text-xs font-medium text-white shadow-sm hover:opacity-95 sm:h-10 sm:text-sm"
                           onClick={() => {
+                            const ownerId = detail?.shopOwnerId
+                            if (ownerId) {
+                              try {
+                                sessionStorage.setItem(
+                                  'epaayos_message_recipient',
+                                  JSON.stringify({
+                                    fullName: detail.shopName?.trim() || 'Shop',
+                                    shopName: detail.shopName?.trim() || '',
+                                    ownerName: detail.shopOwner?.trim() || '',
+                                    role: 'Shop',
+                                    isOnline: false,
+                                    otherUserId: String(ownerId),
+                                  }),
+                                )
+                              } catch {
+                                /* ignore */
+                              }
+                            }
                             window.location.hash = '#/customer/messages'
                           }}
                         >
@@ -1374,7 +1467,7 @@ export default function CustomerServiceDetails({ serviceId }) {
         }}
       >
         <DialogContent
-          className="fixed top-1/2 left-1/2 z-50 flex max-h-[min(84dvh,calc(100dvh-2rem))] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl p-0 sm:max-w-xl lg:max-w-2xl"
+          className="fixed top-1/2 left-1/2 z-50 mt-6 flex max-h-[min(84dvh,calc(100dvh-2rem))] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl p-0 sm:mt-8 sm:max-w-xl lg:max-w-2xl"
           showCloseButton={!bookSubmitting}
         >
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-5 pt-3 [scrollbar-gutter:stable] sm:px-5 sm:pb-6 sm:pt-4">
@@ -1628,6 +1721,56 @@ export default function CustomerServiceDetails({ serviceId }) {
                   </div>
                 </div>
               ) : null}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="book-issue-photos">Upload photos of the item to be repaired (optional)</Label>
+                <Input
+                  id="book-issue-photos"
+                  name="issuePhotos"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(ev) => {
+                    const files = Array.from(ev.target.files || [])
+                    setIssuePhotos(files)
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Add clear photos so the service provider can better assess the issue before your schedule.
+                </p>
+                {issuePhotoPreviews.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs text-foreground">
+                      {issuePhotoPreviews.length} photo{issuePhotoPreviews.length === 1 ? '' : 's'} selected
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {issuePhotoPreviews.map((photo, photoIndex) => (
+                        <div
+                          key={photo.id}
+                          className="group relative overflow-hidden rounded-md border border-[#081F5C]/20 bg-white/90 dark:border-white/15 dark:bg-white/5"
+                        >
+                          <button
+                            type="button"
+                            aria-label={`Remove ${photo.name}`}
+                            onClick={() => {
+                              setIssuePhotos((prev) => prev.filter((_, idx) => idx !== photoIndex))
+                            }}
+                            className="absolute right-1.5 top-1.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-sm font-bold leading-none text-white opacity-0 shadow-sm transition-opacity hover:bg-black/80 group-hover:opacity-100 focus-visible:opacity-100"
+                          >
+                            ×
+                          </button>
+                          <div className="aspect-square w-full bg-muted/40">
+                            <img src={photo.url} alt={photo.name} className="h-full w-full object-cover" />
+                          </div>
+                          <p className="truncate border-t border-[#081F5C]/10 px-2 py-1 text-[10px] text-muted-foreground dark:border-white/10">
+                            {photo.name}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="book-problem">Issue or service description</Label>

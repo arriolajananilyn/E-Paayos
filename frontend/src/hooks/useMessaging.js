@@ -2,200 +2,32 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const RECIPIENT_KEY = 'epaayos_message_recipient'
 
-const initialConversations = () => [
-  {
-    conversationId: 'th-3001',
-    participant: {
-      shopName: 'Arriola Auto Care',
-      ownerName: 'Maria Arriola',
-      name: 'Arriola Auto Care',
-      role: 'Shop',
-      isOnline: true,
-    },
-    lastMessage: {
-      content: 'Sure, we can accommodate you tomorrow.',
-      createdAt: new Date().toISOString(),
-    },
-    unreadCount: 2,
-  },
-  {
-    conversationId: 'th-3002',
-    participant: {
-      shopName: 'QuickFix Garage',
-      ownerName: 'Juan Reyes',
-      name: 'QuickFix Garage',
-      role: 'Shop',
-      isOnline: false,
-    },
-    lastMessage: {
-      content: 'Please send your vehicle model and plate number.',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    unreadCount: 0,
-  },
-]
+const API_BASE = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
-/** Shop owner inbox: participants are customers; fromMe = shop sent the message */
-const shopOwnerInitialConversations = () => [
-  {
-    conversationId: 'so-3001',
-    participant: { name: 'Rhod Velmar Debelen', role: 'Customer', isOnline: true },
-    lastMessage: {
-      content: 'Motorcycle tune-up po. Available ba tomorrow?',
-      createdAt: new Date().toISOString(),
-    },
-    unreadCount: 1,
-  },
-  {
-    conversationId: 'so-3002',
-    participant: { name: 'Ana Santos', role: 'Customer', isOnline: false },
-    lastMessage: {
-      content: 'Salamat po sa update!',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    },
-    unreadCount: 0,
-  },
-]
+function getToken() {
+  return localStorage.getItem('token')
+}
 
-const shopOwnerInitialMessagesByConversation = () => ({
-  'so-3001': [
-    {
-      _id: 'so-m1',
-      content: 'Hello! What service do you need?',
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      fromMe: true,
-      attachments: [],
-    },
-    {
-      _id: 'so-m2',
-      content: 'Motorcycle tune-up po. Available ba tomorrow?',
-      createdAt: new Date(Date.now() - 3500000).toISOString(),
-      fromMe: false,
-      attachments: [],
-    },
-    {
-      _id: 'so-m3',
-      content: 'Sure, we can accommodate you tomorrow.',
-      createdAt: new Date(Date.now() - 3400000).toISOString(),
-      fromMe: true,
-      attachments: [],
-    },
-  ],
-  'so-3002': [
-    {
-      _id: 'so-m4',
-      content: 'Your booking is confirmed for Saturday 2 PM.',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      fromMe: true,
-      attachments: [],
-    },
-    {
-      _id: 'so-m5',
-      content: 'Salamat po sa update!',
-      createdAt: new Date(Date.now() - 86000000).toISOString(),
-      fromMe: false,
-      attachments: [],
-    },
-  ],
-})
+async function apiFetch(path, options = {}) {
+  const token = getToken()
+  const { body: rawBody, headers: optHeaders = {}, ...rest } = options
+  const headers = { ...optHeaders }
+  if (token) headers.Authorization = `Bearer ${token}`
+  const isForm = rawBody instanceof FormData
+  if (!isForm && rawBody != null && typeof rawBody !== 'string') {
+    headers['Content-Type'] = 'application/json'
+  }
+  const body =
+    !isForm && rawBody != null && typeof rawBody !== 'string' ? JSON.stringify(rawBody) : rawBody
 
-/** Mechanic/technician inbox: customers at shop owners; fromMe = technician sent */
-const mechanicTechnicianInitialConversations = () => [
-  {
-    conversationId: 'mt-3001',
-    participant: { name: 'Juan Dela Cruz', role: 'Customer', isOnline: true },
-    lastMessage: {
-      content: 'Hi, could we reschedule my appointment?',
-      createdAt: new Date().toISOString(),
-    },
-    unreadCount: 1,
-  },
-  {
-    conversationId: 'mt-3002',
-    participant: {
-      shopName: 'QuickFix Garage',
-      ownerName: 'QC Branch',
-      name: 'QuickFix Garage',
-      role: 'Shop owner',
-      isOnline: false,
-    },
-    lastMessage: {
-      content: 'Please update the status of JOB-1001.',
-      createdAt: new Date(Date.now() - 7200000).toISOString(),
-    },
-    unreadCount: 0,
-  },
-]
-
-const mechanicTechnicianInitialMessagesByConversation = () => ({
-  'mt-3001': [
-    {
-      _id: 'mt-m1',
-      content: 'Hi, could we reschedule my appointment?',
-      createdAt: new Date(Date.now() - 4000000).toISOString(),
-      fromMe: false,
-      attachments: [],
-    },
-    {
-      _id: 'mt-m2',
-      content: 'Good day! What date works best for you?',
-      createdAt: new Date(Date.now() - 3900000).toISOString(),
-      fromMe: true,
-      attachments: [],
-    },
-  ],
-  'mt-3002': [
-    {
-      _id: 'mt-m3',
-      content: 'Please update the status of JOB-1001.',
-      createdAt: new Date(Date.now() - 7100000).toISOString(),
-      fromMe: false,
-      attachments: [],
-    },
-    {
-      _id: 'mt-m4',
-      content: 'Noted. JOB-1001 is now in progress.',
-      createdAt: new Date(Date.now() - 7000000).toISOString(),
-      fromMe: true,
-      attachments: [],
-    },
-  ],
-})
-
-const initialMessagesByConversation = () => ({
-  'th-3001': [
-    {
-      _id: 'm1',
-      content: 'Hello! What service do you need?',
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      fromMe: false,
-      attachments: [],
-    },
-    {
-      _id: 'm2',
-      content: 'Motorcycle tune-up po. Available ba tomorrow?',
-      createdAt: new Date(Date.now() - 3500000).toISOString(),
-      fromMe: true,
-      attachments: [],
-    },
-    {
-      _id: 'm3',
-      content: 'Sure, we can accommodate you tomorrow.',
-      createdAt: new Date(Date.now() - 3400000).toISOString(),
-      fromMe: false,
-      attachments: [],
-    },
-  ],
-  'th-3002': [
-    {
-      _id: 'm4',
-      content: 'Please send your vehicle model and plate number.',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      fromMe: false,
-      attachments: [],
-    },
-  ],
-})
+  const res = await fetch(`${API_BASE}${path}`, { ...rest, headers, body })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const msg = data?.message || res.statusText || 'Request failed'
+    throw new Error(msg)
+  }
+  return data
+}
 
 export function formatMessageTime(value) {
   if (!value) return ''
@@ -228,31 +60,46 @@ export default function useMessaging(variant = 'customer') {
   const skipRecipientHydration = isShopOwner || isMechanicTechnician
 
   const listRef = useRef(null)
+  const skipFetchOnceRef = useRef(null)
+
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState(() => {
-    if (isShopOwner) return 'so-3001'
-    if (isMechanicTechnician) return 'mt-3001'
-    return 'th-3001'
-  })
+  const [selectedId, setSelectedId] = useState(null)
   const [input, setInput] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [conversations, setConversations] = useState(() => {
-    if (isShopOwner) return shopOwnerInitialConversations()
-    if (isMechanicTechnician) return mechanicTechnicianInitialConversations()
-    return initialConversations()
-  })
-  const [messagesByConversation, setMessagesByConversation] = useState(() => {
-    if (isShopOwner) return shopOwnerInitialMessagesByConversation()
-    if (isMechanicTechnician) return mechanicTechnicianInitialMessagesByConversation()
-    return initialMessagesByConversation()
-  })
-  const [loading] = useState(false)
-  const [messagesLoading] = useState(false)
+  const [conversations, setConversations] = useState([])
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [messagesLoading, setMessagesLoading] = useState(false)
   const [error, setError] = useState(null)
   const [attachments, setAttachments] = useState([])
   const [uploading, setUploading] = useState(false)
   const [sellerInfo, setSellerInfo] = useState(null)
   const [hasSelectedNewConversation, setHasSelectedNewConversation] = useState(false)
+
+  const loadConversations = useCallback(async (opts = {}) => {
+    const { silent } = opts
+    if (!silent) setLoading(true)
+    try {
+      const data = await apiFetch('/api/messages/conversations')
+      setConversations(Array.isArray(data.conversations) ? data.conversations : [])
+      if (!silent) setError(null)
+    } catch (e) {
+      if (!silent) setError(e?.message || 'Could not load conversations.')
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadConversations({ silent: false })
+  }, [loadConversations])
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      loadConversations({ silent: true })
+    }, 25000)
+    return () => clearInterval(t)
+  }, [loadConversations])
 
   useEffect(() => {
     if (skipRecipientHydration) return
@@ -265,12 +112,14 @@ export default function useMessaging(variant = 'customer') {
         typeof parsed === 'object' &&
         (typeof parsed.fullName === 'string' || typeof parsed.shopName === 'string')
       ) {
+        const otherUserId = parsed.otherUserId || parsed.shopOwnerId
         setSellerInfo({
           shopName: typeof parsed.shopName === 'string' ? parsed.shopName : '',
           ownerName: typeof parsed.ownerName === 'string' ? parsed.ownerName : '',
           fullName: parsed.fullName || parsed.shopName || parsed.ownerName || 'Shop',
           role: parsed.role || 'Shop',
           isOnline: Boolean(parsed.isOnline),
+          otherUserId: typeof otherUserId === 'string' ? otherUserId : '',
         })
         setHasSelectedNewConversation(true)
         setSelectedId(null)
@@ -279,6 +128,41 @@ export default function useMessaging(variant = 'customer') {
       sessionStorage.removeItem(RECIPIENT_KEY)
     }
   }, [skipRecipientHydration])
+
+  const loadMessages = useCallback(async (convId, { silent } = {}) => {
+    if (!convId) return
+    if (!silent) setMessagesLoading(true)
+    try {
+      const data = await apiFetch(`/api/messages/conversations/${encodeURIComponent(convId)}/messages`)
+      setMessages(Array.isArray(data.messages) ? data.messages : [])
+      if (!silent) setError(null)
+    } catch (e) {
+      if (!silent) setError(e?.message || 'Could not load messages.')
+      setMessages([])
+    } finally {
+      if (!silent) setMessagesLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!selectedId) {
+      if (!hasSelectedNewConversation) setMessages([])
+      return
+    }
+    if (skipFetchOnceRef.current === selectedId) {
+      skipFetchOnceRef.current = null
+      return
+    }
+    loadMessages(selectedId, { silent: false })
+  }, [selectedId, hasSelectedNewConversation, loadMessages])
+
+  useEffect(() => {
+    if (!selectedId) return
+    const t = setInterval(() => {
+      loadMessages(selectedId, { silent: true })
+    }, 12000)
+    return () => clearInterval(t)
+  }, [selectedId, loadMessages])
 
   const currentConversation = useMemo(
     () => conversations.find((c) => c.conversationId === selectedId) ?? null,
@@ -298,17 +182,13 @@ export default function useMessaging(variant = 'customer') {
     })
   }, [conversations, query])
 
-  const messages = selectedId ? messagesByConversation[selectedId] ?? [] : []
-
-  const isOwnMessage = useCallback((m) => Boolean(m?.fromMe), [])
-
   useEffect(() => {
     const el = listRef.current
     if (!el) return
     el.scrollTop = el.scrollHeight
   }, [messages, selectedId, hasSelectedNewConversation])
 
-  const handleSelectConversation = useCallback((id) => {
+  const selectConversation = useCallback((id) => {
     setSelectedId(id)
     setSidebarOpen(false)
     setHasSelectedNewConversation(false)
@@ -319,96 +199,103 @@ export default function useMessaging(variant = 'customer') {
     )
   }, [])
 
+  const isOwnMessage = useCallback((m) => Boolean(m?.fromMe), [])
+
   const handleSendMessage = useCallback(
-    (e) => {
+    async (e) => {
       e.preventDefault()
       const text = input.trim()
       if (!text && attachments.length === 0) return
 
-      const attachmentPayload = attachments.map((file) => ({
-        url: URL.createObjectURL(file),
-        mimetype: file.type,
-        originalName: file.name,
-        size: file.size,
-      }))
-
-      const now = new Date().toISOString()
       const preview = text || (attachments.length ? `Sent ${attachments.length} file(s)` : '')
+      const now = new Date().toISOString()
+
+      const sendForm = async (convId) => {
+        const fd = new FormData()
+        fd.append('content', text)
+        for (const file of attachments) {
+          fd.append('files', file)
+        }
+        return apiFetch(`/api/messages/conversations/${encodeURIComponent(convId)}/messages`, {
+          method: 'POST',
+          body: fd,
+        })
+      }
 
       setUploading(true)
-      window.setTimeout(() => {
+      setError(null)
+      try {
         if (hasSelectedNewConversation && sellerInfo) {
-          const newId = `conv-${Date.now()}`
-          const participant = {
-            shopName: sellerInfo.shopName || '',
-            ownerName: sellerInfo.ownerName || '',
-            name: sellerInfo.fullName || sellerInfo.shopName || 'Shop',
-            role: sellerInfo.role || 'Shop',
-            isOnline: sellerInfo.isOnline ?? false,
+          const otherUserId = sellerInfo.otherUserId
+          if (!otherUserId || String(otherUserId).length !== 24) {
+            setError('Missing shop contact. Open Messages from a service page (Message shop) or try again.')
+            setUploading(false)
+            return
           }
-          setConversations((prev) => [
-            {
-              conversationId: newId,
-              participant,
-              lastMessage: { content: preview, createdAt: now },
-              unreadCount: 0,
-            },
-            ...prev,
-          ])
-          setMessagesByConversation((prev) => ({
-            ...prev,
-            [newId]: [
-              {
-                _id: `m-${Date.now()}`,
-                content: text,
-                createdAt: now,
-                fromMe: true,
-                attachments: attachmentPayload,
-              },
-            ],
-          }))
-          setSelectedId(newId)
+
+          const created = await apiFetch('/api/messages/conversations', {
+            method: 'POST',
+            body: { otherUserId: String(otherUserId) },
+          })
+          const conv = created.conversation
+          if (!conv?.conversationId) throw new Error('Could not start conversation.')
+
+          const convId = conv.conversationId
+          setConversations((prev) => {
+            const has = prev.some((c) => c.conversationId === convId)
+            if (has) {
+              return prev.map((c) => (c.conversationId === convId ? { ...conv, unreadCount: 0 } : c))
+            }
+            return [{ ...conv, unreadCount: 0 }, ...prev]
+          })
+
+          const sent = await sendForm(convId)
+          const msg = sent.message
+          if (!msg) throw new Error('Message was not saved.')
+
+          skipFetchOnceRef.current = convId
           setHasSelectedNewConversation(false)
           setSellerInfo(null)
           sessionStorage.removeItem(RECIPIENT_KEY)
+          setMessages([msg])
+          setSelectedId(convId)
+          setInput('')
+          setAttachments([])
+          await loadConversations({ silent: true })
         } else if (selectedId) {
-          setMessagesByConversation((prev) => {
-            const list = prev[selectedId] ?? []
-            return {
-              ...prev,
-              [selectedId]: [
-                ...list,
-                {
-                  _id: `m-${Date.now()}`,
-                  content: text,
-                  createdAt: now,
-                  fromMe: true,
-                  attachments: attachmentPayload,
-                },
-              ],
-            }
-          })
+          const sent = await sendForm(selectedId)
+          const msg = sent.message
+          if (!msg) throw new Error('Message was not saved.')
+          setMessages((prev) => [...prev, msg])
           setConversations((prev) =>
             prev.map((c) =>
               c.conversationId === selectedId
-                ? { ...c, lastMessage: { content: preview, createdAt: now }, unreadCount: 0 }
+                ? {
+                    ...c,
+                    lastMessage: { content: preview, createdAt: msg.createdAt || now },
+                    unreadCount: 0,
+                  }
                 : c,
             ),
           )
+          setInput('')
+          setAttachments([])
+          await loadConversations({ silent: true })
         }
-        setInput('')
-        setAttachments([])
+      } catch (err) {
+        setError(err?.message || 'Send failed.')
+      } finally {
         setUploading(false)
-      }, 350)
+      }
     },
-    [attachments, hasSelectedNewConversation, input, selectedId, sellerInfo],
+    [attachments, hasSelectedNewConversation, input, loadConversations, selectedId, sellerInfo],
   )
 
   return {
     query,
     setQuery,
     selectedId,
-    setSelectedId: handleSelectConversation,
+    setSelectedId: selectConversation,
     input,
     setInput,
     sidebarOpen,

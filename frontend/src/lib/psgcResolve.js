@@ -73,11 +73,16 @@ const ADDRESS_FIELD_SPECS = [
   ['shopBarangay', 'barangay'],
 ]
 
-async function resolveOne(kind, code) {
+/** Numeric PSGC → display name; non-numeric values returned as-is (already human-readable). */
+export async function resolvePsgcField(kind, code) {
   if (code == null || code === '') return ''
   const s = String(code).trim()
   if (!/^\d+$/.test(s)) return s
   return getPsgcDisplayName(kind, s)
+}
+
+async function resolveOne(kind, code) {
+  return resolvePsgcField(kind, code)
 }
 
 /**
@@ -101,6 +106,23 @@ export async function formatReadableShopAddress(owner) {
   if (detail && geoLine) return `${detail}, ${geoLine}`
   if (detail) return detail
   return geoLine || '—'
+}
+
+/**
+ * Short label for filters/lists: "Municipality, Barangay" (no street/province/region).
+ */
+export async function formatMunicipalityBarangayLabel(owner) {
+  if (!owner) return '—'
+  const [city, brgy] = await Promise.all([
+    resolveOne('city', owner.shopCityMunicipality),
+    resolveOne('barangay', owner.shopBarangay),
+  ])
+  const m = String(city ?? '').trim()
+  const b = String(brgy ?? '').trim()
+  if (m && b) return `${m}, ${b}`
+  if (m) return m
+  if (b) return b
+  return '—'
 }
 
 /**

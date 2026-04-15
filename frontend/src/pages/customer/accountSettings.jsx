@@ -3,6 +3,10 @@ import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Bell, LogOut, Settings, Star, User } from 'lucide-react'
 import logoEpaayos from '../../assets/epaayosLOGO.png'
+import {
+  NotificationBellIndicator,
+  useCustomerNotificationUnreadCount,
+} from '../../components/notifications/NotificationFeed.jsx'
 
 function CustomerAccountSettings() {
   const [user, setUser] = useState(null)
@@ -38,6 +42,8 @@ function CustomerAccountSettings() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [profileOpen])
+
+  const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -77,7 +83,7 @@ function CustomerAccountSettings() {
           </div>
 
           <nav className="flex-1 flex justify-center">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-9 md:gap-11">
               <button
                 type="button"
                 className="text-sm font-semibold text-blue-900/80 hover:text-blue-700 transition-colors"
@@ -121,7 +127,9 @@ function CustomerAccountSettings() {
               onClick={() => { window.location.hash = '#/customer/notification' }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#081F5C] transition-colors hover:bg-[#081F5C]/8"
             >
-              <Bell className="h-5 w-5" />
+              <NotificationBellIndicator unreadCount={customerNotifUnread}>
+                <Bell className="h-5 w-5" />
+              </NotificationBellIndicator>
             </button>
 
             <div ref={profileMenuRef} className="relative">

@@ -1726,10 +1726,12 @@ const Register = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="shopDescription" className="text-sm font-medium text-gray-700">Shop Description (optional)</Label>
+        <Label htmlFor="shopDescription" className="text-sm font-medium text-gray-700">
+          {isIndependentMechanic ? 'Business description (optional)' : 'Shop Description (optional)'}
+        </Label>
         <Textarea
           id="shopDescription"
-          placeholder="Tell customers about your shop (optional)"
+          placeholder={isIndependentMechanic ? 'Tell customers about you Business.' : 'Tell customers about your shop (optional)'}
           value={formData.shopDescription}
           onChange={(e) => handleInputChange('shopDescription', e.target.value)}
           className="w-full h-24 resize-none"

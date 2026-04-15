@@ -8,7 +8,6 @@ import {
   Bell,
   Bike,
   Calendar,
-  CalendarCheck,
   ChevronDown,
   FileText,
   Home,
@@ -16,7 +15,6 @@ import {
   LogOut,
   MapPin,
   MessageCircle,
-  MoreHorizontal,
   Phone,
   Search,
   Settings,
@@ -26,14 +24,11 @@ import {
   WashingMachine,
   Wrench,
 } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../../components/ui/dropdown-menu'
 import logoEpaayos from '../../assets/epaayosLOGO.png'
+import {
+  NotificationBellIndicator,
+  useCustomerNotificationUnreadCount,
+} from '../../components/notifications/NotificationFeed.jsx'
 import { SERVICE_TYPES } from './findServices.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
@@ -69,6 +64,7 @@ function mapBookingFromApi(row) {
     date: row.date || '',
     preferredTime: row.preferredTime || '',
     serviceAddress: row.serviceAddress || '',
+    issuePhotos: Array.isArray(row.issuePhotos) ? row.issuePhotos.filter(Boolean) : [],
     problemDescription: row.problemDescription || '',
     notes: row.notes || '',
     status: String(row.status || 'pending').toLowerCase(),
@@ -76,6 +72,42 @@ function mapBookingFromApi(row) {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
+}
+
+function resolveIssuePhotoSrc(src) {
+  const value = String(src ?? '').trim()
+  if (!value) return ''
+  if (/^(https?:\/\/|data:|blob:)/i.test(value)) return value
+  if (value.startsWith('/uploads/')) return `${API_URL}${value}`
+  return value
+}
+
+function IssuePhotoThumb({ src, label, size = 'sm' }) {
+  const [failed, setFailed] = useState(false)
+  const resolvedSrc = resolveIssuePhotoSrc(src)
+  const boxClass = size === 'lg' ? 'h-20 w-20' : 'h-16 w-16'
+
+  return (
+    <a href={resolvedSrc || '#'} target="_blank" rel="noopener noreferrer" className="group block" title={label}>
+      <div
+        className={`relative ${boxClass} overflow-hidden rounded-md border border-[#081F5C]/20 bg-slate-100 dark:border-white/15 dark:bg-slate-800/60`}
+      >
+        {!failed ? (
+          <img
+            src={resolvedSrc}
+            alt={label}
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.05]"
+            loading="lazy"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-medium text-slate-600 dark:text-slate-300">
+            No preview
+          </div>
+        )}
+      </div>
+    </a>
+  )
 }
 
 const selectShell =
@@ -194,6 +226,15 @@ function formatPreferredDateLong(ymd) {
   const d = new Date(`${str}T12:00:00`)
   if (Number.isNaN(d.getTime())) return str
   return d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatSubmittedLine(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return `${date} · ${time}`
 }
 
 function parseBookingDate(b) {
@@ -418,6 +459,8 @@ function CustomerMyBookings() {
     return sorted
   }, [bookings, activeTab, categoryFilter, dateFilter, q, sortBy])
 
+  const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-sky-50 via-violet-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -450,7 +493,7 @@ function CustomerMyBookings() {
           </div>
 
           <nav className="flex-1 flex justify-center">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-9 md:gap-11">
               <button
                 type="button"
                 className="text-sm font-semibold text-[#081F5C]/80 hover:text-[#081F5C] transition-colors dark:text-blue-200/85 dark:hover:text-blue-100"
@@ -492,7 +535,9 @@ function CustomerMyBookings() {
               }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#081F5C] transition-colors hover:bg-[#081F5C]/8 dark:text-blue-200 dark:hover:bg-white/10"
             >
-              <Bell className="h-5 w-5" />
+              <NotificationBellIndicator unreadCount={customerNotifUnread}>
+                <Bell className="h-5 w-5" />
+              </NotificationBellIndicator>
             </button>
 
             <div ref={profileMenuRef} className="relative">
@@ -736,7 +781,10 @@ function CustomerMyBookings() {
                             <CategoryIcon className="h-5 w-5" aria-hidden />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="text-base font-semibold leading-snug text-foreground sm:text-lg">{b.serviceName}</p>
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <p className="min-w-0 truncate text-base font-semibold leading-snug text-foreground sm:text-lg">{b.serviceName}</p>
+                              <div className="shrink-0">{statusBadge(b.status)}</div>
+                            </div>
                             <p className="mt-0.5 truncate text-sm font-semibold text-[#04133d] dark:text-slate-100">{b.shopName}</p>
                             {b.subcategory?.trim() ? (
                               <p className="text-sm text-muted-foreground">{b.subcategory.trim()}</p>
@@ -745,7 +793,6 @@ function CustomerMyBookings() {
                               <Badge className={categoryBadgeClass(b.category)}>{b.category || '—'}</Badge>
                               {serviceModeBadge(b.serviceMode)}
                               {listingTypeBadge(b.listingType)}
-                              {statusBadge(b.status)}
                               <Badge
                                 variant="outline"
                                 className="border-[#081F5C]/15 bg-white/90 font-mono text-[10px] text-[#081F5C] dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
@@ -760,55 +807,13 @@ function CustomerMyBookings() {
                             ) : null}
                           </div>
                         </div>
-                        <div className="flex shrink-0 items-start gap-1">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                className="h-9 w-9 shrink-0 rounded-full p-0 text-[#081F5C]/70 opacity-90 hover:bg-[#081F5C]/8 hover:text-[#081F5C] hover:opacity-100 dark:text-blue-200/80 dark:hover:bg-white/10"
-                                aria-label="More actions"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 text-xs">
-                              <DropdownMenuItem
-                                className="gap-2 text-xs"
-                                disabled={!b.shopServiceId?.trim()}
-                                onClick={() => {
-                                  if (!b.shopServiceId?.trim()) return
-                                  window.location.hash = `#/customer/shop/${encodeURIComponent(b.shopServiceId)}`
-                                }}
-                              >
-                                <CalendarCheck className="h-4 w-4" />
-                                View service
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 text-xs" onClick={() => setViewing(b)}>
-                                <Calendar className="h-4 w-4" />
-                                Full details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="gap-2 text-xs"
-                                onClick={() => {
-                                  window.location.hash = '#/customer/messages'
-                                }}
-                              >
-                                <MessageCircle className="h-4 w-4" />
-                                Message shop
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="gap-2 text-xs"
-                                onClick={() => {
-                                  window.location.hash = '#/customer/find-services'
-                                }}
-                              >
-                                <Wrench className="h-4 w-4" />
-                                Find more services
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                        <div className="shrink-0 text-right" title={formatSubmittedLine(b.createdAt)}>
+                          <p className="text-xs leading-tight sm:text-sm">
+                            <span className="font-semibold text-muted-foreground">Submitted: </span>
+                            <span className="whitespace-nowrap font-normal tabular-nums text-foreground/90">
+                              {formatSubmittedLine(b.createdAt)}
+                            </span>
+                          </p>
                         </div>
                       </div>
 
@@ -819,6 +824,18 @@ function CustomerMyBookings() {
                         />
                         <span className="min-w-0 line-clamp-3">{b.problemDescription || '—'}</span>
                       </p>
+                      {Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0 ? (
+                        <div className="pl-7">
+                          <p className="mb-1.5 text-xs font-semibold text-[#081F5C] dark:text-slate-100">
+                            Uploaded issue photo{b.issuePhotos.length === 1 ? '' : 's'}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {b.issuePhotos.slice(0, 6).map((src, photoIndex) => (
+                              <IssuePhotoThumb key={`${b.id}-photo-${photoIndex}`} src={src} label={`Issue photo ${photoIndex + 1}`} />
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                       {b.notes?.trim() ? (
                         <p className="pl-7 text-xs leading-snug text-muted-foreground">
                           <span className="font-medium text-foreground/80">Additional notes:</span> {b.notes.trim()}
@@ -860,39 +877,71 @@ function CustomerMyBookings() {
                           ) : null}
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-9 rounded-lg border-[#081F5C]/15 bg-white/90 px-3 text-xs text-[#081F5C] shadow-sm hover:bg-white disabled:pointer-events-none disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-blue-100 sm:text-sm"
-                            disabled={!b.shopServiceId?.trim()}
-                            onClick={() => {
-                              if (!b.shopServiceId?.trim()) return
-                              window.location.hash = `#/customer/shop/${encodeURIComponent(b.shopServiceId)}`
-                            }}
-                          >
-                            View service
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-9 rounded-lg border-[#081F5C]/15 bg-white/80 px-3 text-xs text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100 sm:text-sm"
-                            onClick={() => setViewing(b)}
-                          >
-                            Details
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-9 gap-1.5 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] px-3 text-xs text-white shadow-sm hover:opacity-95 sm:text-sm"
-                            onClick={() => {
-                              window.location.hash = '#/customer/messages'
-                            }}
-                          >
-                            <MessageCircle className="h-3.5 w-3.5 shrink-0 opacity-95" aria-hidden />
-                            Message
-                          </Button>
+                          {String(b.status).toLowerCase() === 'completed' ? (
+                            <>
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-9 gap-1.5 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] px-3 text-xs text-white shadow-sm hover:opacity-95 sm:text-sm"
+                                onClick={() => {
+                                  window.location.hash = '#/customer/messages'
+                                }}
+                              >
+                                <MessageCircle className="h-3.5 w-3.5 shrink-0 opacity-95" aria-hidden />
+                                Message
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 gap-1.5 rounded-lg border-amber-400/35 bg-linear-to-r from-amber-400 via-yellow-400 to-orange-400 px-3 text-xs text-amber-950 shadow-sm transition-all hover:from-amber-400/90 hover:via-yellow-400/90 hover:to-orange-400/90 focus-visible:ring-2 focus-visible:ring-amber-300/45 dark:border-amber-300/30 dark:from-amber-500 dark:via-yellow-500 dark:to-orange-500 dark:text-amber-950 sm:text-sm"
+                                onClick={() => {
+                                  window.location.hash = '#/customer/reviews-ratings'
+                                }}
+                              >
+                                <Star className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                Rate Service
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 rounded-lg border-[#081F5C]/15 bg-white/90 px-3 text-xs text-[#081F5C] shadow-sm hover:bg-white disabled:pointer-events-none disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-blue-100 sm:text-sm"
+                                disabled={!b.shopServiceId?.trim()}
+                                onClick={() => {
+                                  if (!b.shopServiceId?.trim()) return
+                                  window.location.hash = `#/customer/shop/${encodeURIComponent(b.shopServiceId)}`
+                                }}
+                              >
+                                View service
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 rounded-lg border-[#081F5C]/15 bg-white/80 px-3 text-xs text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100 sm:text-sm"
+                                onClick={() => setViewing(b)}
+                              >
+                                Details
+                              </Button>
+                            </>
+                          )}
+                          {String(b.status).toLowerCase() !== 'completed' ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="h-9 gap-1.5 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] px-3 text-xs text-white shadow-sm hover:opacity-95 sm:text-sm"
+                              onClick={() => {
+                                window.location.hash = '#/customer/messages'
+                              }}
+                            >
+                              <MessageCircle className="h-3.5 w-3.5 shrink-0 opacity-95" aria-hidden />
+                              Message
+                            </Button>
+                          ) : null}
                         </div>
                       </div>
                     </CardContent>
@@ -960,6 +1009,23 @@ function CustomerMyBookings() {
                   <div className="rounded-2xl border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
                     <p className="text-xs font-medium text-muted-foreground">Issue / service description</p>
                     <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap text-foreground">{viewing.problemDescription}</p>
+                    {Array.isArray(viewing.issuePhotos) && viewing.issuePhotos.length > 0 ? (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-[#081F5C] dark:text-slate-100">
+                          Uploaded issue photo{viewing.issuePhotos.length === 1 ? '' : 's'}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {viewing.issuePhotos.slice(0, 6).map((src, photoIndex) => (
+                            <IssuePhotoThumb
+                              key={`${viewing.id}-details-photo-${photoIndex}`}
+                              src={src}
+                              label={`Issue photo ${photoIndex + 1}`}
+                              size="lg"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   {viewing.notes?.trim() ? (

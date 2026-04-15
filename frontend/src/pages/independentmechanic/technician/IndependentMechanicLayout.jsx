@@ -29,6 +29,20 @@ import {
   Store,
 } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
+import {
+  EPAAYOS_UNREAD_EVENT,
+  NotificationBellIndicator,
+  useNotificationUnreadCount,
+} from '../../../components/notifications/NotificationFeed.jsx'
+
+const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+
+/** Same targets as `notification.jsx` feed — used for unread bell badge. */
+const INDEPENDENT_NOTIF_ROUTES = {
+  bookings: '#/independent/technician/service-request',
+  messages: '#/independent/technician/messages',
+  dashboard: '#/independent/technician/dashboard',
+}
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -77,10 +91,13 @@ export default function IndependentMechanicLayout({
   pageMeta = { title: 'Dashboard', description: 'Independent mechanic workspace.' },
   children,
   fullHeightMain = false,
+  /** When false, children render without the default spaced wrapper (e.g. shared `ShopOwnerDashboardHome` already applies it). */
+  wrapContent = true,
 }) {
   const [user, setUser] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(independentMechanicSidebarOpenState)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [independentEventUnread, setIndependentEventUnread] = useState(null)
   const profileMenuRef = useRef(null)
 
   useEffect(() => {
@@ -120,6 +137,26 @@ export default function IndependentMechanicLayout({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [profileOpen])
+
+  const onNotifSection = activeSection === 'notification'
+  const { unreadCount: independentNotifUnread } = useNotificationUnreadCount({
+    user,
+    readScope: 'mechanic_independent',
+    bookingsUrl: `${API_URL}/api/mechanic/bookings`,
+    routes: INDEPENDENT_NOTIF_ROUTES,
+    variant: 'technician',
+    enabled: Boolean(user) && !onNotifSection,
+  })
+
+  useEffect(() => {
+    const fn = (e) => {
+      if (e.detail?.readScope === 'mechanic_independent') setIndependentEventUnread(e.detail.count)
+    }
+    window.addEventListener(EPAAYOS_UNREAD_EVENT, fn)
+    return () => window.removeEventListener(EPAAYOS_UNREAD_EVENT, fn)
+  }, [])
+
+  const independentHeaderUnread = onNotifSection ? (independentEventUnread ?? independentNotifUnread) : independentNotifUnread
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -314,7 +351,9 @@ export default function IndependentMechanicLayout({
                       : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
-                  <Bell className="h-5 w-5" />
+                  <NotificationBellIndicator unreadCount={independentHeaderUnread}>
+                    <Bell className="h-5 w-5" />
+                  </NotificationBellIndicator>
                 </button>
 
                 <div ref={profileMenuRef} className="relative">
@@ -371,7 +410,11 @@ export default function IndependentMechanicLayout({
                   : 'scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2'
               }
             >
-              <div className="space-y-2 sm:space-y-3.5 pr-2 md:pr-4">{children}</div>
+              {wrapContent ? (
+                <div className="space-y-2 sm:space-y-3.5 pr-2 md:pr-4">{children}</div>
+              ) : (
+                children
+              )}
             </div>
           </SidebarInset>
         </SidebarProvider>

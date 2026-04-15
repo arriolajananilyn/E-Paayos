@@ -8,6 +8,7 @@ import shopRoutes from "./routes/shopRoutes.js"
 import catalogRoutes from "./routes/catalogRoutes.js"
 import mechanicRoutes from "./routes/mechanicRoutes.js"
 import adminRoutes from "./routes/adminRoutes.js"
+import messageRoutes from "./routes/messageRoutes.js"
 import { connectDB } from "./config/db.js"
 
 dotenv.config()
@@ -22,8 +23,9 @@ const app = express()
 // Middleware
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173"
 app.use(cors({ origin: CLIENT_URL, credentials: true }))
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// Booking issue photos can increase payload size (base64 strings).
+app.use(express.json({ limit: "15mb" }))
+app.use(express.urlencoded({ extended: true, limit: "15mb" }))
 
 // Static for uploads
 const __filename = fileURLToPath(import.meta.url)
@@ -39,6 +41,7 @@ app.use("/api/shop", shopRoutes)
 app.use("/api/catalog", catalogRoutes)
 app.use("/api/mechanic", mechanicRoutes)
 app.use("/api/admin", adminRoutes)
+app.use("/api/messages", messageRoutes)
 
 app.use((err, req, res, _next) => {
   const status = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500

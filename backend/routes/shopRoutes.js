@@ -10,7 +10,12 @@ import {
   patchRegisteredMechanic,
   updateShopService,
 } from "../controllers/shopController.js"
-import { listShopOwnerBookings, patchShopOwnerBookingStatus } from "../controllers/bookingController.js"
+import {
+  listShopOwnerBookings,
+  listShopOwnerReviewsRatings,
+  patchShopOwnerBookingReviewResponse,
+  patchShopOwnerBookingStatus,
+} from "../controllers/bookingController.js"
 
 const router = express.Router()
 
@@ -20,6 +25,8 @@ router.get("/employees", getShopEmployees)
 router.get("/registered-mechanics", getRegisteredMechanics)
 router.patch("/registered-mechanics/:id", patchRegisteredMechanic)
 router.get("/bookings", listShopOwnerBookings)
+router.get("/reviews-ratings", listShopOwnerReviewsRatings)
+router.patch("/bookings/:id/review-response", patchShopOwnerBookingReviewResponse)
 router.patch("/bookings/:id", patchShopOwnerBookingStatus)
 router.get("/services", getShopServices)
 router.post("/services", createShopService)

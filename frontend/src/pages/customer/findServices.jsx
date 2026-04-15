@@ -3,9 +3,28 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
-import { Bell, Bike, Home, LogOut, MapPin, Search, Settings, SlidersHorizontal, Smartphone, Star, WashingMachine, Wrench } from 'lucide-react'
+import {
+  Bell,
+  Bike,
+  Home,
+  LogOut,
+  MapPin,
+  Search,
+  Settings,
+  SlidersHorizontal,
+  Smartphone,
+  Star,
+  Store,
+  UserRound,
+  WashingMachine,
+  Wrench,
+} from 'lucide-react'
 import logoEpaayos from '../../assets/epaayosLOGO.png'
-import { formatReadableShopAddress } from '../../lib/psgcResolve'
+import { formatMunicipalityBarangayLabel, formatReadableShopAddress } from '../../lib/psgcResolve'
+import {
+  NotificationBellIndicator,
+  useCustomerNotificationUnreadCount,
+} from '../../components/notifications/NotificationFeed.jsx'
 
 const CATEGORIES = ['Appliance', 'Gadget', 'Vehicle', 'Others']
 export const SERVICE_TYPES = [
@@ -64,6 +83,28 @@ function categoryBadgeClass(category) {
   return 'bg-linear-to-r from-slate-600 to-slate-700 text-white'
 }
 
+/** Stable key for grouping/filtering listings by shop location (PSGC chain or fallback per owner). */
+function itemLocationKey(item) {
+  const parts = [item.shopRegion, item.shopProvince, item.shopCityMunicipality, item.shopBarangay]
+    .map((x) => (x == null ? '' : String(x).trim()))
+    .filter(Boolean)
+  if (parts.length) return `psgc:${parts.join('\x1f')}`
+  const owner = item.shopOwnerId != null && item.shopOwnerId !== '' ? String(item.shopOwnerId) : String(item.id ?? '')
+  return `addr:${owner}`
+}
+
+/** Placeholder before async "Municipality, Barangay" labels resolve (plain-text fields only). */
+function locationFilterLabelPlaceholder(item) {
+  const m = String(item.shopCityMunicipality ?? '').trim()
+  const b = String(item.shopBarangay ?? '').trim()
+  const mOk = m && !/^\d+$/.test(m)
+  const bOk = b && !/^\d+$/.test(b)
+  if (mOk && bOk) return `${m}, ${b}`
+  if (mOk) return m
+  if (bOk) return b
+  return 'Unknown location'
+}
+
 /** Vehicle category: mechanics. Gadget, appliance, and others: technicians. */
 export function staffRoleHeading(category) {
   const normalized = String(category ?? '').toLowerCase()
@@ -80,6 +121,189 @@ export function staffAssignedLabel(category, count) {
   return `${n} ${n === 1 ? 'technician' : 'technicians'} assigned`
 }
 
+/** Mock data — palitan kapag may API nang para sa top independent / top shop services. */
+const MOCK_TOP_INDEPENDENT_SERVICES = [
+  {
+    id: 'mock-ind-1',
+    serviceName: 'Mobile phone LCD & battery replacement',
+    providerName: 'Marcus Reyes',
+    category: 'Gadget',
+    rating: 4.9,
+    jobs: 156,
+  },
+  {
+    id: 'mock-ind-2',
+    serviceName: 'Laptop board-level diagnostics',
+    providerName: 'Anna Lim',
+    category: 'Gadget',
+    rating: 4.85,
+    jobs: 98,
+  },
+  {
+    id: 'mock-ind-3',
+    serviceName: 'Home aircon cleaning & refill',
+    providerName: 'Rico Santos',
+    category: 'Appliance',
+    rating: 4.95,
+    jobs: 412,
+  },
+  {
+    id: 'mock-ind-4',
+    serviceName: 'Motorcycle tune-up & oil change',
+    providerName: 'Jay Cruz',
+    category: 'Vehicle',
+    rating: 4.8,
+    jobs: 267,
+  },
+  {
+    id: 'mock-ind-5',
+    serviceName: 'Washing machine motor repair',
+    providerName: 'Ben Torres',
+    category: 'Appliance',
+    rating: 4.75,
+    jobs: 89,
+  },
+  {
+    id: 'mock-ind-6',
+    serviceName: 'Small appliance wiring & safety check',
+    providerName: 'Kim Navarro',
+    category: 'Others',
+    rating: 4.7,
+    jobs: 54,
+  },
+]
+
+const MOCK_TOP_SHOP_SERVICES = [
+  {
+    id: 'mock-shop-1',
+    serviceName: 'Full vehicle computer diagnostics',
+    shopName: 'Taytay Auto Care Hub',
+    category: 'Vehicle',
+    rating: 4.9,
+    jobs: 520,
+  },
+  {
+    id: 'mock-shop-2',
+    serviceName: 'Brake pad replacement (all wheels)',
+    shopName: 'GearShift Motors',
+    category: 'Vehicle',
+    rating: 4.85,
+    jobs: 380,
+  },
+  {
+    id: 'mock-shop-3',
+    serviceName: 'Refrigerator compressor service',
+    shopName: 'CoolFix Appliance Center',
+    category: 'Appliance',
+    rating: 4.8,
+    jobs: 210,
+  },
+  {
+    id: 'mock-shop-4',
+    serviceName: 'Smartphone water damage recovery',
+    shopName: 'ByteLine Gadget Clinic',
+    category: 'Gadget',
+    rating: 4.95,
+    jobs: 640,
+  },
+  {
+    id: 'mock-shop-5',
+    serviceName: 'Periodic maintenance package',
+    shopName: 'Highway 88 Garage',
+    category: 'Vehicle',
+    rating: 4.75,
+    jobs: 295,
+  },
+  {
+    id: 'mock-shop-6',
+    serviceName: 'Microwave & oven repair',
+    shopName: 'HomeTech Service Bay',
+    category: 'Appliance',
+    rating: 4.88,
+    jobs: 175,
+  },
+]
+
+/** Isang listahan: independent + shop owner, pinaka-mataas na rating sa unahan (tie: mas maraming jobs). */
+const MOCK_TOP_SERVICES_SORTED = [
+  ...MOCK_TOP_INDEPENDENT_SERVICES.map((row) => ({ ...row, kind: 'independent' })),
+  ...MOCK_TOP_SHOP_SERVICES.map((row) => ({ ...row, kind: 'shop' })),
+].sort((a, b) => {
+  const rd = Number(b.rating) - Number(a.rating)
+  if (rd !== 0) return rd
+  return Number(b.jobs) - Number(a.jobs)
+})
+
+function MockTopServiceCard({ item }) {
+  const CategoryIcon = categoryIcon(item.category)
+  const isIndependent = item.kind === 'independent'
+  return (
+    <Card
+      className="w-[272px] shrink-0 overflow-hidden border border-[#081F5C]/12 bg-white/95 shadow-[0_3px_12px_rgba(15,23,42,0.08)] transition-shadow hover:shadow-[0_8px_20px_rgba(15,23,42,0.12)]"
+      aria-hidden
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#081F5C]/10 text-[#081F5C]">
+              <CategoryIcon className="h-4 w-4" />
+            </span>
+            <Badge
+              className={
+                isIndependent
+                  ? 'border-violet-300/50 bg-violet-100 text-violet-900'
+                  : 'border-sky-300/50 bg-sky-100 text-sky-900'
+              }
+            >
+              {isIndependent ? 'Independent' : 'Shop owner'}
+            </Badge>
+          </div>
+          <div
+            className="flex shrink-0 items-center gap-0.5 rounded-full border border-amber-300/60 bg-amber-50 px-1.5 py-0.5"
+            aria-label={`Rating ${item.rating}`}
+          >
+            <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
+            <span className="text-[11px] font-semibold tabular-nums text-gray-900">{item.rating.toFixed(2)}</span>
+          </div>
+        </div>
+        <p className="mt-3 line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{item.serviceName}</p>
+        <p className="mt-2 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          {isIndependent ? (
+            <>
+              <UserRound className="h-3.5 w-3.5 shrink-0 text-[#081F5C]/80" />
+              <span className="truncate">{item.providerName}</span>
+            </>
+          ) : (
+            <>
+              <Store className="h-3.5 w-3.5 shrink-0 text-[#081F5C]/80" />
+              <span className="truncate">{item.shopName}</span>
+            </>
+          )}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="text-[10px]">
+            {item.category}
+          </Badge>
+          <span className="text-[11px] text-muted-foreground">{item.jobs} completed jobs</span>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function TopServicesMarqueeRow({ items }) {
+  const loop = useMemo(() => [...items, ...items], [items])
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-[#081F5C]/10 bg-linear-to-b from-white/90 to-slate-50/80 py-3 shadow-inner">
+      <div className="find-services-marquee-track flex w-max gap-4 px-1">
+        {loop.map((item, i) => (
+          <MockTopServiceCard key={`${item.id}-${i}`} item={item} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function CustomerFindServices() {
   const [user, setUser] = useState(null)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -87,6 +311,7 @@ function CustomerFindServices() {
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('__')
   const [serviceTypeFilter, setServiceTypeFilter] = useState('__')
+  const [locationFilter, setLocationFilter] = useState('__')
   const [sortBy, setSortBy] = useState('rating')
   const [catalogServices, setCatalogServices] = useState([])
   const [catalogLoading, setCatalogLoading] = useState(true)
@@ -94,6 +319,8 @@ function CustomerFindServices() {
   /** Resolved PSGC → readable address per shop owner (customer cards). */
   const [readableShopAddresses, setReadableShopAddresses] = useState({})
   const [shopAddressesResolving, setShopAddressesResolving] = useState(false)
+  /** Location filter: "Municipality, Barangay" per itemLocationKey. */
+  const [locationFilterLabels, setLocationFilterLabels] = useState({})
 
   const loadCatalog = useCallback(async () => {
     setCatalogError('')
@@ -190,6 +417,50 @@ function CustomerFindServices() {
     })()
   }, [catalogServices])
 
+  const filterLocationLabelGen = useRef(0)
+  useEffect(() => {
+    const gen = ++filterLocationLabelGen.current
+    if (!catalogServices.length) {
+      setLocationFilterLabels({})
+      return
+    }
+    const firstByKey = new Map()
+    for (const item of catalogServices) {
+      const key = itemLocationKey(item)
+      if (!firstByKey.has(key)) firstByKey.set(key, item)
+    }
+    ;(async () => {
+      const entries = await Promise.all(
+        [...firstByKey.entries()].map(async ([key, item]) => {
+          let label = await formatMunicipalityBarangayLabel(item)
+          if (!label || label === '—') label = locationFilterLabelPlaceholder(item)
+          return [key, label]
+        }),
+      )
+      if (gen !== filterLocationLabelGen.current) return
+      setLocationFilterLabels(Object.fromEntries(entries))
+    })()
+  }, [catalogServices])
+
+  const locationOptions = useMemo(() => {
+    const byKey = new Map()
+    for (const item of catalogServices) {
+      const key = itemLocationKey(item)
+      if (byKey.has(key)) continue
+      const label = locationFilterLabels[key] ?? locationFilterLabelPlaceholder(item)
+      byKey.set(key, label)
+    }
+    return [...byKey.entries()]
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }))
+  }, [catalogServices, locationFilterLabels])
+
+  useEffect(() => {
+    if (locationFilter === '__' || locationFilter === '') return
+    const valid = new Set(locationOptions.map((o) => o.value))
+    if (!valid.has(locationFilter)) setLocationFilter('__')
+  }, [locationOptions, locationFilter])
+
   useEffect(() => {
     if (!profileOpen) return
     const handleClickOutside = (event) => {
@@ -210,11 +481,13 @@ function CustomerFindServices() {
   const filteredShops = useMemo(() => {
     const category = categoryFilter === '__' ? '' : categoryFilter
     const serviceType = serviceTypeFilter === '__' ? '' : serviceTypeFilter
+    const location = locationFilter === '__' ? '' : locationFilter
     const normalizedQuery = query.trim().toLowerCase()
 
     const base = catalogServices.filter((item) => {
       if (category && item.category !== category) return false
       if (serviceType && item.type !== serviceType) return false
+      if (location && itemLocationKey(item) !== location) return false
       if (!normalizedQuery) return true
 
       const sub = String(item.subcategory ?? '')
@@ -248,7 +521,9 @@ function CustomerFindServices() {
         break
     }
     return sorted
-  }, [catalogServices, categoryFilter, query, serviceTypeFilter, sortBy, readableShopAddresses])
+  }, [catalogServices, categoryFilter, locationFilter, query, serviceTypeFilter, sortBy, readableShopAddresses])
+
+  const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
 
   if (!user) {
     return (
@@ -281,7 +556,7 @@ function CustomerFindServices() {
           </div>
 
           <nav className="flex-1 flex justify-center">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-9 md:gap-11">
               <button
                 type="button"
                 className="text-sm font-semibold text-blue-900/80 hover:text-blue-700 transition-colors"
@@ -320,7 +595,9 @@ function CustomerFindServices() {
               onClick={() => { window.location.hash = '#/customer/notification' }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#081F5C] transition-colors hover:bg-[#081F5C]/8"
             >
-              <Bell className="h-5 w-5" />
+              <NotificationBellIndicator unreadCount={customerNotifUnread}>
+                <Bell className="h-5 w-5" />
+              </NotificationBellIndicator>
             </button>
 
             <div ref={profileMenuRef} className="relative">
@@ -380,17 +657,40 @@ function CustomerFindServices() {
       </header>
 
       <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 pt-4 pb-5 space-y-4">
-        <div className="space-y-0.5">
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Find Services</h1>
-          <p className="text-gray-600 text-sm md:text-base">
-            Hanapin ang trusted shops at services para sa gustong ipaayos na sirang gamit.
-          </p>
-        </div>
+        <style>{`
+          @keyframes findServicesMarqueeLeft {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+          .find-services-marquee-track {
+            animation: findServicesMarqueeLeft 120s linear infinite;
+          }
+          .find-services-marquee-track:hover {
+            animation-play-state: paused;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .find-services-marquee-track {
+              animation: none !important;
+            }
+          }
+        `}</style>
+
+        <section className="space-y-2" aria-label="Top services preview (sample data)">
+          <div>
+            <h2 className="text-base font-semibold text-[#081F5C] md:text-lg">
+              Top services — Independent technicians &amp; shop owners
+            </h2>
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              Parehong independent mechanic/technician at shop owner sa isang row; nakaayos ayon sa rating (mock data).
+            </p>
+          </div>
+          <TopServicesMarqueeRow items={MOCK_TOP_SERVICES_SORTED} />
+        </section>
 
         <section className="space-y-3">
           <div className="mb-1 flex min-w-0 w-full max-w-full flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
-              <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[220px]">
+              <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
               <select
                 className={`${selectShell} ${categoryFilter === '__' ? 'text-neutral-500' : 'text-neutral-900'}`}
                 value={categoryFilter}
@@ -409,7 +709,7 @@ function CustomerFindServices() {
               <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
               </div>
 
-              <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[170px] sm:flex-1 sm:max-w-[250px]">
+              <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
               <select
                 className={`${selectShell} ${serviceTypeFilter === '__' ? 'text-neutral-500' : 'text-neutral-900'}`}
                 value={serviceTypeFilter}
@@ -428,7 +728,26 @@ function CustomerFindServices() {
               <Home className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
               </div>
 
-              <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[180px] sm:flex-1 sm:max-w-[250px]">
+              <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
+              <select
+                className={`${selectShell} ${locationFilter === '__' ? 'text-neutral-500' : 'text-neutral-900'}`}
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+              >
+                <option value="__" disabled hidden>
+                  Location
+                </option>
+                <option value="">All locations</option>
+                {locationOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <MapPin className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              </div>
+
+              <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
               <select className={selectShell} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <option value="rating">Sort: Top rated</option>
                 <option value="jobs">Sort: Most completed jobs</option>
@@ -496,7 +815,7 @@ function CustomerFindServices() {
               <p className="mt-1 max-w-md text-xs text-muted-foreground">
                 {catalogServices.length === 0
                   ? 'Kapag nag-list na ang mga shop owner ng active services, lalabas ang mga iyon dito.'
-                  : 'Subukan i-adjust ang search keyword o filters para makakita ng available shops.'}
+                  : 'Subukan i-adjust ang search keyword, location, o iba pang filters para makakita ng available shops.'}
               </p>
             </div>
           ) : (

@@ -375,6 +375,9 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "on-leave", "inactive"],
       default: "active",
     },
+    /** Aggregate customer feedback for service providers (shop-owner / independent-mechanic-technician). */
+    providerRatingAvg: { type: Number, default: 0, min: 0, max: 5 },
+    providerRatingCount: { type: Number, default: 0, min: 0 },
 
     email: { type: String, required: true, unique: true, lowercase: true, index: true },
     password: { type: String, required: true },
@@ -404,7 +407,16 @@ userSchema.pre("save", async function () {
 })
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password)
+  const stored = String(this.password || "")
+  const entered = String(enteredPassword || "")
+
+  // Normal path: bcrypt hash in DB.
+  if (stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$")) {
+    return bcrypt.compare(entered, stored)
+  }
+
+  // Backward-compat: accept legacy plain-text passwords, then migrate on login.
+  return entered === stored
 }
 
 export const User = mongoose.model("User", userSchema)

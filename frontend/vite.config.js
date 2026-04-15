@@ -17,6 +17,12 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        // Proxy API requests in dev to avoid CORS/origin issues.
+        "/api": {
+          target: apiTarget,
+          changeOrigin: true,
+          secure: false,
+        },
         // Same-origin /uploads in dev (see buildAdminFileUrl). Target must be the API that has backend/uploads.
         "/uploads": {
           target: apiTarget,

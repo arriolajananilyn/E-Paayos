@@ -29,6 +29,7 @@ const shopServiceSchema = new mongoose.Schema(
     technicianIds: [{ type: mongoose.Schema.Types.ObjectId }],
     bookingsCount: { type: Number, default: 0, min: 0 },
     ratingAvg: { type: Number, default: 0, min: 0, max: 5 },
+    ratingCount: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 )

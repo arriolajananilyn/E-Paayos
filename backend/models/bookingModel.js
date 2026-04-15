@@ -36,6 +36,8 @@ const bookingSchema = new mongoose.Schema(
     /** Customer device GPS when home service (optional; helps technicians navigate). */
     serviceLatitude: { type: Number, min: -90, max: 90 },
     serviceLongitude: { type: Number, min: -180, max: 180 },
+    /** Optional customer-uploaded issue photos (data URLs or remote URLs). */
+    issuePhotos: [{ type: String, trim: true }],
     problemDescription: { type: String, required: true, trim: true },
     notes: { type: String, default: "", trim: true },
     status: {
@@ -46,6 +48,24 @@ const bookingSchema = new mongoose.Schema(
     },
     /** Set when the shop owner rejects (cancels) a booking from the dashboard. */
     rejectionReason: { type: String, default: "", trim: true, maxlength: 2000 },
+    /** Customer feedback after completed service. */
+    customerReviewRating: { type: Number, min: 1, max: 5, default: null },
+    customerReviewComment: { type: String, default: "", trim: true, maxlength: 4000 },
+    customerReviewMedia: [
+      {
+        type: {
+          type: String,
+          enum: ["image", "video"],
+          default: "image",
+        },
+        url: { type: String, trim: true, default: "" },
+        name: { type: String, trim: true, default: "" },
+      },
+    ],
+    customerReviewedAt: { type: Date, default: null },
+    /** Shop owner or assigned technician reply visible to customers on the review. */
+    providerReviewResponse: { type: String, default: "", trim: true, maxlength: 4000 },
+    providerReviewRespondedAt: { type: Date, default: null },
   },
   { timestamps: true }
 )

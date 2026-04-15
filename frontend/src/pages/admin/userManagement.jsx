@@ -27,6 +27,7 @@ import {
   PaginationItem,
 } from '@/components/ui/pagination'
 import { getApiBaseUrl } from '@/lib/apiBaseUrl'
+import { resolvePsgcField } from '@/lib/psgcResolve'
 import { AdminRegistrationDetailView } from '@/pages/admin/AdminUserRegistrationDetail.jsx'
 import {
   Building2,
@@ -295,7 +296,42 @@ export default function AdminUserManagement() {
         throw new Error(typeof data?.message === 'string' ? data.message : 'Could not load users')
       }
       const rows = Array.isArray(data) ? data : []
-      setUsers(rows.map(mapUserFromApi).filter(Boolean))
+
+      const uniqPsgc = new Map()
+      for (const u of rows) {
+        if (u?.role !== 'customer') continue
+        for (const [kind, key] of [
+          ['barangay', 'barangay'],
+          ['city', 'cityMunicipality'],
+          ['province', 'province'],
+        ]) {
+          const v = u[key]
+          if (v == null || v === '') continue
+          const s = String(v).trim()
+          if (!/^\d+$/.test(s)) continue
+          uniqPsgc.set(`${kind}:${s}`, [kind, v])
+        }
+      }
+      await Promise.all([...uniqPsgc.values()].map(([kind, code]) => resolvePsgcField(kind, code)))
+
+      const mapped = (
+        await Promise.all(
+          rows.map(async (u) => {
+            const base = mapUserFromApi(u)
+            if (!base) return null
+            if (base.roleRaw !== 'customer') return base
+            const [brgy, city, prov] = await Promise.all([
+              resolvePsgcField('barangay', u.barangay),
+              resolvePsgcField('city', u.cityMunicipality),
+              resolvePsgcField('province', u.province),
+            ])
+            const sub = [brgy, city, prov].filter(Boolean).join(', ')
+            return { ...base, subtitle: sub || 'Customer' }
+          }),
+        )
+      ).filter(Boolean)
+
+      setUsers(mapped)
     } catch (e) {
       setListError(e?.message || 'Could not load users')
       setUsers([])

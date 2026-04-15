@@ -39,6 +39,11 @@ import {
   Wrench,
 } from 'lucide-react'
 import Elogo from '../../assets/Elogo.png'
+import {
+  EPAAYOS_UNREAD_EVENT,
+  NotificationBellIndicator,
+  useNotificationUnreadCount,
+} from '../../components/notifications/NotificationFeed.jsx'
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -50,6 +55,12 @@ const DASHBOARD_META = { title: 'Dashboard', description: 'Overview of your shop
 let shopOwnerSidebarOpenState = false
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+
+const PROVIDER_NOTIF_ROUTES = {
+  bookings: '#/provider/service-request',
+  messages: '#/provider/messages',
+  dashboard: '#/provider/dashboard',
+}
 
 function authHeaders() {
   const token = localStorage.getItem('token')
@@ -672,6 +683,7 @@ function ShopOwnerDashboard({ activeSection = 'dashboard', pageMeta = DASHBOARD_
   const [user, setUser] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(shopOwnerSidebarOpenState)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [shopEventUnread, setShopEventUnread] = useState(null)
   const profileMenuRef = useRef(null)
   const [employeesOpen, setEmployeesOpen] = useState(['manage-employee', 'track-employee'].includes(activeSection))
   const [serviceManagementOpen, setServiceManagementOpen] = useState(
@@ -752,6 +764,26 @@ function ShopOwnerDashboard({ activeSection = 'dashboard', pageMeta = DASHBOARD_
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [profileOpen])
+
+  const onNotifSection = activeSection === 'notification'
+  const { unreadCount: shopNotifUnread } = useNotificationUnreadCount({
+    user,
+    readScope: 'shop_owner',
+    bookingsUrl: `${API_URL}/api/shop/bookings`,
+    routes: PROVIDER_NOTIF_ROUTES,
+    variant: 'shopOwner',
+    enabled: Boolean(user) && !onNotifSection,
+  })
+
+  useEffect(() => {
+    const fn = (e) => {
+      if (e.detail?.readScope === 'shop_owner') setShopEventUnread(e.detail.count)
+    }
+    window.addEventListener(EPAAYOS_UNREAD_EVENT, fn)
+    return () => window.removeEventListener(EPAAYOS_UNREAD_EVENT, fn)
+  }, [])
+
+  const shopHeaderUnread = onNotifSection ? (shopEventUnread ?? shopNotifUnread) : shopNotifUnread
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -1000,7 +1032,9 @@ function ShopOwnerDashboard({ activeSection = 'dashboard', pageMeta = DASHBOARD_
                       : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
-                  <Bell className="h-5 w-5" />
+                  <NotificationBellIndicator unreadCount={shopHeaderUnread}>
+                    <Bell className="h-5 w-5" />
+                  </NotificationBellIndicator>
                 </button>
 
                 <div ref={profileMenuRef} className="relative">

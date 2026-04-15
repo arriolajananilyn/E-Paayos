@@ -1,5 +1,9 @@
 import asyncHandler from "express-async-handler"
 import mongoose from "mongoose"
+import fs from "fs/promises"
+import path from "path"
+import { fileURLToPath } from "url"
+import crypto from "crypto"
 import { User } from "../models/userModel.js"
 import { ShopService } from "../models/shopServiceModel.js"
 import { Booking } from "../models/bookingModel.js"
@@ -7,6 +11,131 @@ import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : ""
+}
+
+function normalizeReviewMedia(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => {
+      const type = item?.type === "video" ? "video" : "image"
+      const url = clean(item?.url)
+      const name = clean(item?.name)
+      if (!url) return null
+      return { type, url, name }
+    })
+    .filter(Boolean)
+    .slice(0, 8)
+}
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const BOOKING_UPLOAD_DIR = path.join(__dirname, "..", "uploads", "bookings")
+
+function parseIssuePhotos(value) {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((item) => clean(item))
+    .filter(Boolean)
+    .slice(0, 6)
+}
+
+function detectImageExtFromDataUrl(dataUrl) {
+  const m = /^data:image\/([a-zA-Z0-9+.-]+);base64,/.exec(dataUrl)
+  if (!m) return null
+  const subtype = m[1].toLowerCase()
+  if (subtype === "jpeg") return "jpg"
+  if (subtype === "svg+xml") return "svg"
+  if (["jpg", "png", "gif", "webp", "bmp", "svg"].includes(subtype)) return subtype
+  return "jpg"
+}
+
+function buildPublicBaseUrl(req) {
+  return process.env.API_PUBLIC_URL || `${req.protocol}://${req.get("host")}`
+}
+
+async function persistIssuePhotoSource(src, req) {
+  if (!src) return ""
+  if (/^https?:\/\//i.test(src) || /^blob:/i.test(src)) return src
+  if (src.startsWith("/uploads/")) return `${buildPublicBaseUrl(req)}${src}`
+
+  const ext = detectImageExtFromDataUrl(src)
+  if (!ext) return src
+  const base64Payload = src.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "")
+  if (!base64Payload) return ""
+
+  await fs.mkdir(BOOKING_UPLOAD_DIR, { recursive: true })
+  const fileName = `booking-${Date.now()}-${crypto.randomUUID()}.${ext}`
+  const absPath = path.join(BOOKING_UPLOAD_DIR, fileName)
+  const relUrl = `/uploads/bookings/${fileName}`
+  const fileBuffer = Buffer.from(base64Payload, "base64")
+  await fs.writeFile(absPath, fileBuffer)
+  return `${buildPublicBaseUrl(req)}${relUrl}`
+}
+
+async function normalizeIssuePhotos(value, req) {
+  const list = parseIssuePhotos(value)
+  if (!list.length) return []
+  const out = await Promise.all(list.map((src) => persistIssuePhotoSource(src, req)))
+  return out.filter(Boolean)
+}
+
+async function recomputeServiceAndProviderRatings(shopServiceId, shopOwnerId) {
+  const [serviceAgg, providerAgg] = await Promise.all([
+    Booking.aggregate([
+      {
+        $match: {
+          shopService: new mongoose.Types.ObjectId(shopServiceId),
+          customerReviewRating: { $gte: 1, $lte: 5 },
+        },
+      },
+      {
+        $group: {
+          _id: "$shopService",
+          ratingAvg: { $avg: "$customerReviewRating" },
+          ratingCount: { $sum: 1 },
+        },
+      },
+    ]),
+    Booking.aggregate([
+      {
+        $match: {
+          shopOwner: new mongoose.Types.ObjectId(shopOwnerId),
+          customerReviewRating: { $gte: 1, $lte: 5 },
+        },
+      },
+      {
+        $group: {
+          _id: "$shopOwner",
+          ratingAvg: { $avg: "$customerReviewRating" },
+          ratingCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ])
+
+  const serviceDoc = serviceAgg[0]
+  const providerDoc = providerAgg[0]
+
+  await Promise.all([
+    ShopService.updateOne(
+      { _id: shopServiceId },
+      {
+        $set: {
+          ratingAvg: serviceDoc?.ratingAvg ? Number(serviceDoc.ratingAvg.toFixed(2)) : 0,
+          ratingCount: serviceDoc?.ratingCount || 0,
+        },
+      },
+    ),
+    User.updateOne(
+      { _id: shopOwnerId },
+      {
+        $set: {
+          providerRatingAvg: providerDoc?.ratingAvg ? Number(providerDoc.ratingAvg.toFixed(2)) : 0,
+          providerRatingCount: providerDoc?.ratingCount || 0,
+        },
+      },
+    ),
+  ])
 }
 
 function isApprovedShopOwner(u) {
@@ -56,6 +185,7 @@ export const createCustomerBooking = asyncHandler(async (req, res) => {
   const serviceAddress = clean(body.serviceAddress)
   const problemDescription = clean(body.problemDescription)
   const notes = clean(body.notes)
+  const issuePhotos = await normalizeIssuePhotos(body.issuePhotos, req)
   const latParsed = parseOptionalCoord(body.serviceLatitude)
   const lngParsed = parseOptionalCoord(body.serviceLongitude)
 
@@ -144,6 +274,7 @@ export const createCustomerBooking = asyncHandler(async (req, res) => {
     serviceMode,
     serviceAddress: serviceMode === "home" ? serviceAddress : "",
     ...(hasLat && hasLng ? { serviceLatitude: latParsed, serviceLongitude: lngParsed } : {}),
+    issuePhotos,
     problemDescription,
     notes,
     status: "pending",
@@ -184,10 +315,20 @@ function mapBookingForCustomer(b) {
     preferredTime: b.preferredTime,
     serviceMode: b.serviceMode,
     serviceAddress: b.serviceAddress || "",
+    issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos : [],
     problemDescription: b.problemDescription,
     notes: b.notes || "",
     status: b.status,
     rejectionReason: b.rejectionReason || "",
+    customerReviewRating:
+      Number.isFinite(Number(b.customerReviewRating)) && Number(b.customerReviewRating) > 0
+        ? Number(b.customerReviewRating)
+        : null,
+    customerReviewComment: b.customerReviewComment || "",
+    customerReviewMedia: Array.isArray(b.customerReviewMedia) ? b.customerReviewMedia : [],
+    customerReviewedAt: b.customerReviewedAt || null,
+    shopResponse: typeof b.providerReviewResponse === "string" ? b.providerReviewResponse.trim() : "",
+    providerReviewRespondedAt: b.providerReviewRespondedAt || null,
     createdAt: b.createdAt,
     updatedAt: b.updatedAt,
   }
@@ -215,6 +356,331 @@ export const listCustomerBookings = asyncHandler(async (req, res) => {
   })
 })
 
+/**
+ * POST /api/catalog/bookings/:id/review
+ * body: { rating: number(1..5), comment: string, media?: [{type,url,name}] }
+ */
+export const createCustomerBookingReview = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking")
+  }
+
+  const rating = Number(req.body?.rating)
+  const comment = clean(req.body?.comment)
+  const media = normalizeReviewMedia(req.body?.media)
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    res.status(400)
+    throw new Error("Rating must be between 1 and 5.")
+  }
+  if (!comment) {
+    res.status(400)
+    throw new Error("Please enter your review comment.")
+  }
+
+  const booking = await Booking.findOne({ _id: id, customer: req.user._id })
+  if (!booking) {
+    res.status(404)
+    throw new Error("Booking not found.")
+  }
+  if (booking.status !== "completed") {
+    res.status(400)
+    throw new Error("Only completed bookings can be reviewed.")
+  }
+  if (Number.isFinite(Number(booking.customerReviewRating)) && Number(booking.customerReviewRating) > 0) {
+    res.status(400)
+    throw new Error("You already submitted a review for this booking.")
+  }
+
+  booking.customerReviewRating = Math.round(rating)
+  booking.customerReviewComment = comment
+  booking.customerReviewMedia = media
+  booking.customerReviewedAt = new Date()
+  await booking.save()
+
+  await recomputeServiceAndProviderRatings(booking.shopService, booking.shopOwner)
+
+  const populated = await Booking.findById(booking._id)
+    .populate("shopOwner", "shopName fullName")
+    .populate("shopService", "name")
+    .lean()
+
+  const owner = populated?.shopOwner && typeof populated.shopOwner === "object" ? populated.shopOwner : null
+  const svc = populated?.shopService && typeof populated.shopService === "object" ? populated.shopService : null
+
+  return res.status(201).json({
+    message: "Review submitted successfully.",
+    review: {
+      id: `rv-${String(booking._id)}`,
+      sourceId: String(booking._id),
+      shopServiceId: svc?._id ? String(svc._id) : "",
+      orderId: `BK-${String(booking._id).slice(-8).toUpperCase()}`,
+      shop: owner?.shopName?.trim() || owner?.fullName || "Service Provider",
+      service: svc?.name || "Service",
+      rating: booking.customerReviewRating,
+      text: booking.customerReviewComment,
+      media: booking.customerReviewMedia || [],
+      createdAt: booking.customerReviewedAt,
+      date: booking.customerReviewedAt ? booking.customerReviewedAt.toISOString().slice(0, 10) : "",
+      customerName: req.user.fullName || req.user.email || "Customer",
+    },
+  })
+})
+
+/**
+ * GET /api/catalog/shop-services/:serviceId/reviews
+ * Customer-visible approved reviews for one service listing.
+ */
+export const listServiceReviewsForCustomer = asyncHandler(async (req, res) => {
+  const serviceId = clean(req.params.serviceId)
+  if (!serviceId || !mongoose.Types.ObjectId.isValid(serviceId)) {
+    res.status(400)
+    throw new Error("Invalid service id")
+  }
+
+  const rows = await Booking.find({
+    shopService: serviceId,
+    customerReviewRating: { $gte: 1, $lte: 5 },
+  })
+    .sort({ customerReviewedAt: -1, updatedAt: -1 })
+    .populate("customer", "fullName")
+    .select(
+      "customer customerReviewRating customerReviewComment customerReviewMedia customerReviewedAt providerReviewResponse providerReviewRespondedAt",
+    )
+    .lean()
+
+  const reviews = rows.map((b, idx) => ({
+    id: `sr-${String(b._id || idx)}`,
+    overallRating: Number(b.customerReviewRating) || 0,
+    customerName:
+      b.customer && typeof b.customer === "object" && typeof b.customer.fullName === "string"
+        ? b.customer.fullName.trim() || "Customer"
+        : "Customer",
+    comment: b.customerReviewComment || "",
+    createdAt: b.customerReviewedAt || b.updatedAt || b.createdAt || null,
+    shopResponse: typeof b.providerReviewResponse === "string" && b.providerReviewResponse.trim() ? b.providerReviewResponse.trim() : null,
+    providerReviewRespondedAt: b.providerReviewRespondedAt || null,
+    images: Array.isArray(b.customerReviewMedia) ? b.customerReviewMedia.map((m) => m?.url).filter(Boolean) : [],
+  }))
+
+  return res.json({ reviews })
+})
+
+function buildReviewSummaryRows(rows) {
+  const summary = {
+    averageRating: 0,
+    totalReviews: 0,
+    stars: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    withCommentCount: 0,
+    withMediaCount: 0,
+  }
+  if (!rows.length) return summary
+  let sum = 0
+  for (const row of rows) {
+    const rating = Number(row?.customerReviewRating)
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) continue
+    summary.totalReviews += 1
+    sum += rating
+    const rounded = Math.min(5, Math.max(1, Math.round(rating)))
+    summary.stars[rounded] += 1
+    if (typeof row.customerReviewComment === "string" && row.customerReviewComment.trim()) {
+      summary.withCommentCount += 1
+    }
+    if (Array.isArray(row.customerReviewMedia) && row.customerReviewMedia.length > 0) {
+      summary.withMediaCount += 1
+    }
+  }
+  summary.averageRating = summary.totalReviews > 0 ? Number((sum / summary.totalReviews).toFixed(2)) : 0
+  return summary
+}
+
+/**
+ * GET /api/shop/reviews-ratings
+ * Shop owner: all customer reviews for their bookings/services.
+ */
+export const listShopOwnerReviewsRatings = asyncHandler(async (req, res) => {
+  const rows = await Booking.find({
+    shopOwner: req.user._id,
+    customerReviewRating: { $gte: 1, $lte: 5 },
+  })
+    .sort({ customerReviewedAt: -1, updatedAt: -1 })
+    .populate("customer", "fullName")
+    .populate("shopService", "name category")
+    .select(
+      "customer shopService status preferredDate preferredTime customerReviewRating customerReviewComment customerReviewMedia customerReviewedAt providerReviewResponse providerReviewRespondedAt createdAt updatedAt",
+    )
+    .lean()
+
+  const summary = buildReviewSummaryRows(rows)
+  const reviews = rows.map((row) => ({
+    id: String(row._id),
+    bookingId: String(row._id),
+    serviceName:
+      row.shopService && typeof row.shopService === "object" ? row.shopService.name || "Service" : "Service",
+    category:
+      row.shopService && typeof row.shopService === "object" ? row.shopService.category || "" : "",
+    customerName:
+      row.customer && typeof row.customer === "object" ? row.customer.fullName || "Customer" : "Customer",
+    rating: Number(row.customerReviewRating) || 0,
+    comment: row.customerReviewComment || "",
+    media: Array.isArray(row.customerReviewMedia) ? row.customerReviewMedia : [],
+    reviewedAt: row.customerReviewedAt || row.updatedAt || row.createdAt || null,
+    bookingStatus: row.status || "",
+    preferredDate: row.preferredDate || null,
+    preferredTime: row.preferredTime || "",
+    shopResponse: typeof row.providerReviewResponse === "string" ? row.providerReviewResponse.trim() : "",
+    providerReviewRespondedAt: row.providerReviewRespondedAt || null,
+  }))
+
+  return res.json({ summary, reviews })
+})
+
+/**
+ * GET /api/mechanic/reviews-ratings
+ * Mechanic/Technician: reviews from bookings assigned to this technician's services.
+ */
+export const listMechanicReviewsRatings = asyncHandler(async (req, res) => {
+  const techId = req.user._id
+  const services = await ShopService.find({ technicianIds: techId }).select("_id name category").lean()
+  const serviceIds = services.map((s) => s._id)
+  if (!serviceIds.length) {
+    return res.json({
+      summary: buildReviewSummaryRows([]),
+      reviews: [],
+    })
+  }
+
+  const serviceNameById = new Map(services.map((s) => [String(s._id), { name: s.name || "Service", category: s.category || "" }]))
+  const rows = await Booking.find({
+    shopService: { $in: serviceIds },
+    customerReviewRating: { $gte: 1, $lte: 5 },
+  })
+    .sort({ customerReviewedAt: -1, updatedAt: -1 })
+    .populate("customer", "fullName")
+    .select(
+      "customer shopService status preferredDate preferredTime customerReviewRating customerReviewComment customerReviewMedia customerReviewedAt providerReviewResponse providerReviewRespondedAt createdAt updatedAt",
+    )
+    .lean()
+
+  const summary = buildReviewSummaryRows(rows)
+  const reviews = rows.map((row) => {
+    const svc = serviceNameById.get(String(row.shopService))
+    return {
+      id: String(row._id),
+      bookingId: String(row._id),
+      serviceName: svc?.name || "Service",
+      category: svc?.category || "",
+      customerName:
+        row.customer && typeof row.customer === "object" ? row.customer.fullName || "Customer" : "Customer",
+      rating: Number(row.customerReviewRating) || 0,
+      comment: row.customerReviewComment || "",
+      media: Array.isArray(row.customerReviewMedia) ? row.customerReviewMedia : [],
+      reviewedAt: row.customerReviewedAt || row.updatedAt || row.createdAt || null,
+      bookingStatus: row.status || "",
+      preferredDate: row.preferredDate || null,
+      preferredTime: row.preferredTime || "",
+      shopResponse: typeof row.providerReviewResponse === "string" ? row.providerReviewResponse.trim() : "",
+      providerReviewRespondedAt: row.providerReviewRespondedAt || null,
+    }
+  })
+
+  return res.json({ summary, reviews })
+})
+
+function parseProviderReviewBody(body) {
+  const b = body || {}
+  const raw = b.shopResponse ?? b.message ?? ""
+  const text = typeof raw === "string" ? raw.trim() : String(raw || "").trim()
+  if (text.length > 4000) {
+    return { error: "Response is too long (max 4000 characters)" }
+  }
+  return { text }
+}
+
+/**
+ * PATCH /api/shop/bookings/:id/review-response
+ * Shop owner: public reply on a customer review for their booking.
+ */
+export const patchShopOwnerBookingReviewResponse = asyncHandler(async (req, res) => {
+  const bookingId = clean(req.params.id)
+  if (!bookingId || !mongoose.Types.ObjectId.isValid(bookingId)) {
+    res.status(400)
+    throw new Error("Invalid booking id")
+  }
+  const parsed = parseProviderReviewBody(req.body)
+  if (parsed.error) {
+    res.status(400)
+    throw new Error(parsed.error)
+  }
+  const { text } = parsed
+
+  const booking = await Booking.findOne({ _id: bookingId, shopOwner: req.user._id })
+  if (!booking) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+  if (!Number.isFinite(Number(booking.customerReviewRating)) || booking.customerReviewRating < 1) {
+    res.status(400)
+    throw new Error("This booking has no customer review yet")
+  }
+
+  booking.providerReviewResponse = text
+  booking.providerReviewRespondedAt = text ? new Date() : null
+  await booking.save()
+
+  return res.json({
+    message: text ? "Response saved." : "Response cleared.",
+    shopResponse: text,
+    providerReviewRespondedAt: booking.providerReviewRespondedAt,
+  })
+})
+
+/**
+ * PATCH /api/mechanic/bookings/:id/review-response
+ * Assigned technician: reply on reviews for bookings under their services.
+ */
+export const patchMechanicBookingReviewResponse = asyncHandler(async (req, res) => {
+  const bookingId = clean(req.params.id)
+  if (!bookingId || !mongoose.Types.ObjectId.isValid(bookingId)) {
+    res.status(400)
+    throw new Error("Invalid booking id")
+  }
+  const parsed = parseProviderReviewBody(req.body)
+  if (parsed.error) {
+    res.status(400)
+    throw new Error(parsed.error)
+  }
+  const { text } = parsed
+
+  const services = await ShopService.find({ technicianIds: req.user._id }).select("_id").lean()
+  const serviceIds = services.map((s) => s._id)
+  if (!serviceIds.length) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+
+  const booking = await Booking.findOne({ _id: bookingId, shopService: { $in: serviceIds } })
+  if (!booking) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+  if (!Number.isFinite(Number(booking.customerReviewRating)) || booking.customerReviewRating < 1) {
+    res.status(400)
+    throw new Error("This booking has no customer review yet")
+  }
+
+  booking.providerReviewResponse = text
+  booking.providerReviewRespondedAt = text ? new Date() : null
+  await booking.save()
+
+  return res.json({
+    message: text ? "Response saved." : "Response cleared.",
+    shopResponse: text,
+    providerReviewRespondedAt: booking.providerReviewRespondedAt,
+  })
+})
+
 function mapBookingForShopOwner(b) {
   if (!b) return null
   const cust = b.customer && typeof b.customer === "object" ? b.customer : null
@@ -230,6 +696,7 @@ function mapBookingForShopOwner(b) {
     serviceAddress: b.serviceAddress || "",
     serviceLatitude: b.serviceLatitude,
     serviceLongitude: b.serviceLongitude,
+    issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos : [],
     problemDescription: b.problemDescription,
     notes: b.notes || "",
     rejectionReason: b.rejectionReason || "",
@@ -374,6 +841,7 @@ function mapBookingForTechnician(b) {
     serviceAddress: b.serviceAddress || "",
     serviceLatitude: b.serviceLatitude,
     serviceLongitude: b.serviceLongitude,
+    issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos : [],
     problemDescription: b.problemDescription,
     notes: b.notes || "",
     rejectionReason: b.rejectionReason || "",
@@ -544,6 +1012,7 @@ function mapBookingForAdmin(b, techNameById) {
     preferredTime: b.preferredTime,
     serviceMode: b.serviceMode,
     serviceAddress: b.serviceAddress || "",
+    issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos : [],
     problemDescription: b.problemDescription,
     notes: b.notes || "",
     rejectionReason: b.rejectionReason || "",

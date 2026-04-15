@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Bell, LogOut, Settings, Star } from 'lucide-react'
 import logoEpaayos from '../../assets/epaayosLOGO.png'
 import { MessagingPanel } from '../../components/MessagingPanel'
+import {
+  NotificationBellIndicator,
+  useCustomerNotificationUnreadCount,
+} from '../../components/notifications/NotificationFeed.jsx'
 
 function CustomerMessages() {
   const [user, setUser] = useState(null)
@@ -37,6 +41,8 @@ function CustomerMessages() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [profileOpen])
+
+  const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -76,7 +82,7 @@ function CustomerMessages() {
           </div>
 
           <nav className="flex-1 flex justify-center">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-9 md:gap-11">
               <button
                 type="button"
                 className="text-sm font-semibold text-blue-900/80 hover:text-blue-700 transition-colors"
@@ -118,7 +124,9 @@ function CustomerMessages() {
               }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[#081F5C] transition-colors hover:bg-[#081F5C]/8"
             >
-              <Bell className="h-5 w-5" />
+              <NotificationBellIndicator unreadCount={customerNotifUnread}>
+                <Bell className="h-5 w-5" />
+              </NotificationBellIndicator>
             </button>
 
             <div ref={profileMenuRef} className="relative">
