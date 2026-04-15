@@ -18,7 +18,7 @@ function ReportsAnalyticsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Dito mo makikita ang reports, metrics, at analytics ng shop performance mo.
+            This is where you will see reports, metrics, and analytics for your shop’s performance.
           </p>
         </CardContent>
       </Card>

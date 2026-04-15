@@ -7,13 +7,13 @@ export default function IndependentMechanicReportAnalytics() {
       activeSection="reports-analytics"
       pageMeta={{
         title: 'Report & Analytics',
-        description: 'Buod ng performance at trend.',
+        description: 'Summary of performance and trends.',
       }}
     >
       <IndependentPlaceholder
         icon={BarChart3}
         title="Report & Analytics (placeholder)"
-        body="Mga chart at export — pansamantalang teksto hanggang ma-link ang datos."
+        body="Charts and exports — placeholder copy until real data is connected."
       />
     </IndependentMechanicLayout>
   )

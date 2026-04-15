@@ -15,7 +15,7 @@ export default function IndependentMechanicNotification() {
       activeSection="notification"
       pageMeta={{
         title: 'Notifications',
-        description: 'Mga update sa mga booking na naka-assign sa’yo.',
+        description: 'Updates on the bookings assigned to you.',
       }}
     >
       <NotificationBootstrap readScope="mechanic_independent" />

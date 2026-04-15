@@ -301,18 +301,18 @@ function CustomerReviewsRatings() {
     const toDataUrl = (file) =>
       new Promise((resolve) => {
         const reader = new FileReader()
-        reader.onload = () => resolve(reader.result || '')
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
         reader.onerror = () => resolve('')
         reader.readAsDataURL(file)
       })
+
+    // Persist only portable URLs (data: or /uploads). Never send blob: URLs to the API.
     const media = []
     for (const m of ratingMedia) {
-      if (m.file instanceof File) {
-        const dataUrl = await toDataUrl(m.file)
-        if (dataUrl) media.push({ type: m.type, url: dataUrl, name: m.name })
-      } else if (m.url) {
-        media.push({ type: m.type, url: m.url, name: m.name })
-      }
+      if (!(m?.file instanceof File)) continue
+      const dataUrl = await toDataUrl(m.file)
+      if (!dataUrl) continue
+      media.push({ type: m.type, url: dataUrl, name: m.name })
     }
 
     try {

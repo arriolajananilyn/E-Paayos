@@ -321,8 +321,8 @@ function flatMapBookings(bookings, readMap, routes, variant) {
 }
 
 /**
- * Numeric badge on header bell: unread count (0 kung wala), hanggang 99+.
- * `countOnDarkBg`: true kapag ang bell ay nasa madilim na bar (mas readable ang 0).
+ * Numeric badge on header bell: unread count (0 if none), up to 99+.
+ * `countOnDarkBg`: true when the bell is on a dark bar (keeps 0 readable).
  */
 export function NotificationBellIndicator({ unreadCount, children, className = '', countOnDarkBg = false }) {
   const raw = Number(unreadCount)

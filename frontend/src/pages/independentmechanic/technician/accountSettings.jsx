@@ -7,13 +7,13 @@ export default function IndependentMechanicAccountSettings() {
       activeSection="account-settings"
       pageMeta={{
         title: 'Account Settings',
-        description: 'Profile at seguridad ng account.',
+        description: 'Profile and account security.',
       }}
     >
       <IndependentPlaceholder
         icon={Settings}
         title="Account Settings (placeholder)"
-        body="Dito mo ma-aadjust ang profile, password, at preferences — parang Account Settings ng shop owner."
+        body="This is where you will adjust your profile, password, and preferences — similar to the shop owner’s Account Settings."
       />
     </IndependentMechanicLayout>
   )

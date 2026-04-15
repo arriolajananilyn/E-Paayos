@@ -18,7 +18,7 @@ function AppointmentsSchedulePage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Dito mo ma-aayos ang appointment dates, oras, at scheduling ng bookings.
+            This is where you will manage appointment dates, times, and booking schedules.
           </p>
         </CardContent>
       </Card>

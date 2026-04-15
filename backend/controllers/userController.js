@@ -449,15 +449,20 @@ export const loginUser = asyncHandler(async (req, res) => {
   if (user.role !== "admin") {
     const st = user.accountApprovalStatus
     if (st === "pending") {
-      res.status(403)
-      throw new Error("Your account is waiting for admin approval. Please try again in a few minutes.")
+      return res.status(403).json({
+        code: "ACCOUNT_PENDING_APPROVAL",
+        message: "Your account is waiting for admin approval. Please try again in a few minutes.",
+      })
     }
     if (st === "rejected") {
-      res.status(403)
       const reason = typeof user.approvalRejectionReason === "string" ? user.approvalRejectionReason.trim() : ""
-      throw new Error(
-        reason ? `Your registration was not approved. Reason: ${reason}` : "Your registration was not approved."
-      )
+      return res.status(403).json({
+        code: "ACCOUNT_REJECTED",
+        message: "Your registration was not approved.",
+        reason,
+        action:
+          "Please submit a new registration using accurate details that match your registration information and valid ID.",
+      })
     }
   }
 

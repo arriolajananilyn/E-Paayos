@@ -21,6 +21,8 @@ function normalizeReviewMedia(value) {
       const url = clean(item?.url)
       const name = clean(item?.name)
       if (!url) return null
+      // blob: URLs are device-local; never persist them in DB.
+      if (/^blob:/i.test(url)) return null
       return { type, url, name }
     })
     .filter(Boolean)
@@ -51,7 +53,10 @@ function detectImageExtFromDataUrl(dataUrl) {
 
 async function persistIssuePhotoSource(src, req) {
   if (!src) return ""
-  if (/^https?:\/\//i.test(src) || /^blob:/i.test(src)) return src
+  // Never persist blob: URLs; they only work on the originating device/session.
+  if (/^blob:/i.test(src)) return ""
+  // Remote URLs can be kept as-is (but prefer storing data URLs or /uploads paths).
+  if (/^https?:\/\//i.test(src)) return src
   // Store as relative server path so it works across devices/environments.
   if (src.startsWith("/uploads/")) return src
 

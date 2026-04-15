@@ -122,7 +122,7 @@ export function staffAssignedLabel(category, count) {
   return `${n} ${n === 1 ? 'technician' : 'technicians'} assigned`
 }
 
-/** Mock data — palitan kapag may API nang para sa top independent / top shop services. */
+/** Mock data — replace once an API is available for top independent and top shop services. */
 const MOCK_TOP_INDEPENDENT_SERVICES = [
   {
     id: 'mock-ind-1',
@@ -225,7 +225,7 @@ const MOCK_TOP_SHOP_SERVICES = [
   },
 ]
 
-/** Isang listahan: independent + shop owner, pinaka-mataas na rating sa unahan (tie: mas maraming jobs). */
+/** One list: independent + shop owner, highest rating first (tie-breaker: more jobs). */
 const MOCK_TOP_SERVICES_SORTED = [
   ...MOCK_TOP_INDEPENDENT_SERVICES.map((row) => ({ ...row, kind: 'independent' })),
   ...MOCK_TOP_SHOP_SERVICES.map((row) => ({ ...row, kind: 'shop' })),
@@ -805,17 +805,17 @@ function CustomerFindServices() {
           {showCatalogSkeleton ? (
             <div className="flex min-h-[160px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-white/60 px-6 text-center shadow-sm">
               <p className="text-sm font-medium text-foreground">Loading services…</p>
-              <p className="mt-1 max-w-md text-xs text-muted-foreground">Kinukuha ang active listings mula sa mga shop.</p>
+              <p className="mt-1 max-w-md text-xs text-muted-foreground">Fetching active listings from shops.</p>
             </div>
           ) : filteredShops.length === 0 ? (
             <div className="flex min-h-[150px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/70 px-6 text-center shadow-sm">
               <p className="text-sm font-medium text-foreground">
-                {catalogServices.length === 0 ? 'Walang active na services sa ngayon' : 'No matching shops or services'}
+                {catalogServices.length === 0 ? 'No active services yet' : 'No matching shops or services'}
               </p>
               <p className="mt-1 max-w-md text-xs text-muted-foreground">
                 {catalogServices.length === 0
-                  ? 'Kapag nag-list na ang mga shop owner ng active services, lalabas ang mga iyon dito.'
-                  : 'Subukan i-adjust ang search keyword, location, o iba pang filters para makakita ng available shops.'}
+                  ? 'Once shop owners publish active services, they will appear here.'
+                  : 'Try adjusting your search, location, or other filters to find available shops.'}
               </p>
             </div>
           ) : (

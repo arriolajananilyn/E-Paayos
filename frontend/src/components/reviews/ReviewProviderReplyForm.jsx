@@ -40,7 +40,7 @@ export function ReviewProviderReplyForm({
     if (!patchUrl || isLocked) return
     const text = draft.trim()
     if (!text) {
-      setError('Maglagay muna ng reply bago i-save.')
+      setError('Please enter a reply before saving.')
       return
     }
     setSaving(true)
@@ -97,7 +97,7 @@ export function ReviewProviderReplyForm({
             className="mt-2 min-h-[72px] resize-y text-sm"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Salamat po sa review…"
+            placeholder="Thank you for the review…"
             maxLength={4000}
             disabled={saving}
           />

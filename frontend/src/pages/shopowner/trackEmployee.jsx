@@ -18,7 +18,7 @@ function TrackEmployeePage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Dito mo matra-track ang attendance at activity updates ng employees mo.
+            This is where you will track employee attendance and activity updates.
           </p>
         </CardContent>
       </Card>

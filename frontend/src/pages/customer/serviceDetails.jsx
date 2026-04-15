@@ -114,9 +114,9 @@ const MOCK_SERVICE_REVIEWS = [
     overallRating: 5,
     customerName: 'Rhea D. Castillo',
     comment:
-      'Malinis ang trabaho sa ref namin, maayos magpaliwanag ang technician. Babalik kami dito sa shop na ito.',
+      'Clean work on our refrigerator, and the technician explained everything well. We will definitely come back to this shop.',
     createdAt: '2025-04-01T10:30:00',
-    shopResponse: 'Salamat po sa tiwala — glad we could help with the refrigerator.',
+    shopResponse: 'Thank you for your trust — glad we could help with the refrigerator.',
     images: [],
   },
   {
@@ -1196,16 +1196,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                           <ClipboardList className="h-5 w-5 shrink-0 text-[#081F5C]/80 dark:text-sky-300/85" aria-hidden />
                           Completed works
                         </h2>
-                        <p className="mt-0.5 max-w-2xl text-xs text-muted-foreground sm:text-sm">
-                          Customer, work completed for them, then date and time the job was completed. Sample rows until history is loaded from the server.
-                        </p>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className="mt-1 w-fit shrink-0 border-dashed border-[#081F5C]/25 text-[10px] text-muted-foreground dark:border-white/15 sm:mt-0"
-                      >
-                        Sample data
-                      </Badge>
                     </div>
                     <div
                       className="flex flex-nowrap gap-4 overflow-x-auto overscroll-x-contain pt-0.5 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
@@ -1260,12 +1251,6 @@ export default function CustomerServiceDetails({ serviceId }) {
                             Reviews & Ratings
                           </h2>
                           <div className="flex shrink-0 items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className="border-dashed border-[#081F5C]/25 text-[10px] text-muted-foreground dark:border-white/15"
-                            >
-                              Sample data
-                            </Badge>
                             <button
                               type="button"
                               onClick={() => {

@@ -46,10 +46,12 @@ function Login() {
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false)
+  const [rejectionNotice, setRejectionNotice] = useState(null)
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }))
+    if (rejectionNotice) setRejectionNotice(null)
   }
 
   const validateForm = () => {
@@ -71,6 +73,7 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validateForm()) return
+    setRejectionNotice(null)
     setIsLoading(true)
     try {
       const rawApiUrl = import.meta?.env?.VITE_API_URL
@@ -83,6 +86,25 @@ function Login() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
+        if (res.status === 403 && err?.code === 'ACCOUNT_REJECTED') {
+          setErrors({})
+          setRejectionNotice({
+            title: 'Registration Not Approved',
+            message:
+              typeof err?.message === 'string' && err.message.trim()
+                ? err.message.trim()
+                : 'Your registration was not approved.',
+            reason:
+              typeof err?.reason === 'string' && err.reason.trim()
+                ? err.reason.trim()
+                : 'No specific reason was provided by the administrator.',
+            action:
+              typeof err?.action === 'string' && err.action.trim()
+                ? err.action.trim()
+                : 'Please submit a new registration using accurate details that match your registration information and valid ID.',
+          })
+          return
+        }
         const msg =
           typeof err?.message === 'string' && err.message.trim()
             ? err.message
@@ -194,6 +216,30 @@ function Login() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {rejectionNotice && (
+                <div className="relative overflow-hidden rounded-2xl border border-rose-300/70 bg-linear-to-br from-rose-50 via-white to-orange-50 p-4 shadow-sm">
+                  <div className="absolute -top-10 -right-10 h-28 w-28 rounded-full bg-rose-200/30 blur-2xl" aria-hidden />
+                  <div className="relative space-y-2">
+                    <p className="text-sm font-semibold tracking-wide text-rose-700 uppercase">
+                      Account Update
+                    </p>
+                    <h3 className="text-base font-semibold text-rose-900">{rejectionNotice.title}</h3>
+                    <p className="text-sm text-rose-800">{rejectionNotice.message}</p>
+                    <div className="rounded-xl border border-rose-200 bg-white/90 p-3">
+                      <p className="text-xs font-semibold text-rose-700 uppercase">Admin message</p>
+                      <p className="mt-1 text-sm text-rose-900">{rejectionNotice.reason}</p>
+                    </div>
+                    <p className="text-sm text-rose-800">{rejectionNotice.action}</p>
+                    <button
+                      type="button"
+                      onClick={() => { window.location.hash = '#/register' }}
+                      className="inline-flex items-center rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-sm font-medium text-rose-700 transition hover:bg-rose-50"
+                    >
+                      Start New Registration
+                    </button>
+                  </div>
+                </div>
+              )}
               {errors.general && (
                 <div
                   className={`rounded-lg border p-4 ${

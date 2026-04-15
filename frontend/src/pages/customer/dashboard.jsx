@@ -583,7 +583,7 @@ function CustomerDashboard() {
                 <div className="py-8 text-center text-sm text-gray-500">Loading bookings...</div>
               ) : recentBookings.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-[#081F5C]/20 p-6 text-center text-sm text-gray-600">
-                  Wala ka pang booking request. Start ka sa Find Services.
+                  You don&apos;t have any booking requests yet. Start by browsing Find Services.
                 </div>
               ) : (
                 <div className="space-y-3">

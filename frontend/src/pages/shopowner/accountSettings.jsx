@@ -18,7 +18,7 @@ function AccountSettingsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Dito mo ma-aadjust ang profile details, password, at account settings.
+            This is where you will update your profile details, password, and account settings.
           </p>
         </CardContent>
       </Card>
