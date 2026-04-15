@@ -18,6 +18,7 @@ import { TooltipProvider } from '../../../components/ui/tooltip'
 import { Bell, Briefcase, ClipboardList, History, LayoutDashboard, LogOut, MessageSquare, Settings, Star } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
 import { MessagingPanel } from '../../../components/MessagingPanel'
+import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -97,6 +98,8 @@ function MechanicTechnicianMessages() {
     localStorage.removeItem('user')
     window.location.hash = '#/'
   }
+
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   if (!user) {
     return (
@@ -284,7 +287,7 @@ function MechanicTechnicianMessages() {
                         type="button"
                         onClick={() => {
                           setProfileOpen(false)
-                          handleLogout()
+                          requestLogout()
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
@@ -308,6 +311,7 @@ function MechanicTechnicianMessages() {
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      {LogoutDialog}
     </div>
   )
 }

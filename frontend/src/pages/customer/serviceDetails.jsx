@@ -55,6 +55,7 @@ import {
   NotificationBellIndicator,
   useCustomerNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
 import { resolveProfilePsgcLabels } from '../../lib/psgcResolve'
 import { SERVICE_TYPES, staffAssignedLabel } from './findServices.jsx'
 
@@ -720,6 +721,8 @@ export default function CustomerServiceDetails({ serviceId }) {
 
   const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
 
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-sky-50 via-violet-50 to-indigo-100">
@@ -836,7 +839,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      handleLogout()
+                      requestLogout()
                     }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                   >
@@ -1920,6 +1923,7 @@ export default function CustomerServiceDetails({ serviceId }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {LogoutDialog}
     </>
   )
 }

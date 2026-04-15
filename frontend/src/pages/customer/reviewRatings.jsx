@@ -8,6 +8,7 @@ import {
   NotificationBellIndicator,
   useCustomerNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
 
 const MAX_MEDIA = 5
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
@@ -50,8 +51,23 @@ function mapBookingFromApi(row) {
 function resolveMediaSrc(src) {
   const value = String(src ?? '').trim()
   if (!value) return ''
-  if (/^(https?:\/\/|data:|blob:)/i.test(value)) return value
+  if (/^(data:|blob:)/i.test(value)) return value
   if (value.startsWith('/uploads/')) return `${API_URL}${value}`
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const parsed = new URL(value)
+      const host = (parsed.hostname || '').toLowerCase()
+      if (host === 'localhost' || host === '127.0.0.1') {
+        const api = new URL(API_URL)
+        parsed.protocol = api.protocol
+        parsed.host = api.host
+        return parsed.toString()
+      }
+    } catch {
+      // ignore
+    }
+    return value
+  }
   return value
 }
 
@@ -227,6 +243,8 @@ function CustomerReviewsRatings() {
     localStorage.removeItem('user')
     window.location.hash = '#/'
   }
+
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   const resetForm = () => {
     ratingMedia.forEach((file) => file.url && URL.revokeObjectURL(file.url))
@@ -409,7 +427,7 @@ function CustomerReviewsRatings() {
                     <Settings className="h-4 w-4" />
                     <span>Account Settings</span>
                   </button>
-                  <button type="button" onClick={() => { setProfileOpen(false); handleLogout() }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+                  <button type="button" onClick={() => { setProfileOpen(false); requestLogout() }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
                     <LogOut className="h-4 w-4" />
                     <span>Log out</span>
                   </button>
@@ -652,6 +670,7 @@ function CustomerReviewsRatings() {
         )}
         </main>
       </div>
+      {LogoutDialog}
     </>
   )
 }

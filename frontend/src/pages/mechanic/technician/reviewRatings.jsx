@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
 import { ReviewProviderReplyForm } from '../../../components/reviews/ReviewProviderReplyForm.jsx'
+import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -230,6 +231,8 @@ function MechanicTechnicianReviewRatings() {
     window.location.hash = '#/'
   }
 
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
+
   if (!user) {
     return (
       <div className="min-h-svh flex items-center justify-center bg-muted/30">
@@ -416,7 +419,7 @@ function MechanicTechnicianReviewRatings() {
                         type="button"
                         onClick={() => {
                           setProfileOpen(false)
-                          handleLogout()
+                          requestLogout()
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
@@ -572,6 +575,7 @@ function MechanicTechnicianReviewRatings() {
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      {LogoutDialog}
     </div>
   )
 }

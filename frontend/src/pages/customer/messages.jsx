@@ -6,6 +6,7 @@ import {
   NotificationBellIndicator,
   useCustomerNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
 
 function CustomerMessages() {
   const [user, setUser] = useState(null)
@@ -49,6 +50,8 @@ function CustomerMessages() {
     localStorage.removeItem('user')
     window.location.hash = '#/'
   }
+
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   if (!user) {
     return (
@@ -171,7 +174,7 @@ function CustomerMessages() {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      handleLogout()
+                      requestLogout()
                     }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                   >
@@ -188,6 +191,7 @@ function CustomerMessages() {
       <main className="w-full flex-1 min-h-0 basis-0 px-6 sm:px-10 md:px-14 lg:px-20 pt-4 pb-5 flex flex-col overflow-hidden">
         <MessagingPanel variant="customer" />
       </main>
+      {LogoutDialog}
     </div>
   )
 }

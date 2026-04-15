@@ -27,6 +27,7 @@ import {
   NotificationBellIndicator,
   useCustomerNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -294,6 +295,8 @@ function CustomerDashboard() {
     window.location.hash = '#/'
   }
 
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-sky-50 via-violet-50 to-indigo-100">
@@ -409,7 +412,7 @@ function CustomerDashboard() {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      handleLogout()
+                      requestLogout()
                     }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                   >
@@ -634,6 +637,7 @@ function CustomerDashboard() {
           </Card>
         </div>
       </main>
+      {LogoutDialog}
     </div>
   )
 }

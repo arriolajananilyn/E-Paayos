@@ -48,6 +48,7 @@ import {
   preferredDateSortValue,
   selectShell,
 } from './mechanicBookingShared.jsx'
+import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -176,6 +177,8 @@ function MechanicTechnicianAssignedRequest() {
     localStorage.removeItem('user')
     window.location.hash = '#/'
   }
+
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   const counts = useMemo(() => {
     const base = { pending: 0, confirmed: 0, working: 0, completed: 0 }
@@ -420,7 +423,7 @@ function MechanicTechnicianAssignedRequest() {
                         type="button"
                         onClick={() => {
                           setProfileOpen(false)
-                          handleLogout()
+                          requestLogout()
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
@@ -664,6 +667,7 @@ function MechanicTechnicianAssignedRequest() {
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      {LogoutDialog}
     </div>
   )
 }

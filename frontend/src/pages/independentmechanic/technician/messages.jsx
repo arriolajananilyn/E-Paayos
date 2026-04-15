@@ -35,6 +35,7 @@ import {
   NotificationBellIndicator,
   useNotificationUnreadCount,
 } from '../../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -52,7 +53,7 @@ const pageBaseNavyGradient = `linear-gradient(145deg, ${navyDeep} 0%, ${navy} 35
 
 const MESSAGES_META = {
   title: 'Messages',
-  description: 'Makipag-chat sa mga customer at tingnan ang inquiries.',
+  description: 'Chat with customers and view inquiries.',
 }
 
 const ROUTES = {
@@ -156,6 +157,8 @@ function IndependentMechanicMessages() {
     localStorage.removeItem('user')
     window.location.hash = '#/'
   }
+
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   const go = (hash) => {
     window.location.hash = hash
@@ -358,7 +361,7 @@ function IndependentMechanicMessages() {
                         type="button"
                         onClick={() => {
                           setProfileOpen(false)
-                          handleLogout()
+                          requestLogout()
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
@@ -382,6 +385,7 @@ function IndependentMechanicMessages() {
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      {LogoutDialog}
     </div>
   )
 }

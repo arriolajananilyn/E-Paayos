@@ -44,6 +44,7 @@ import {
   NotificationBellIndicator,
   useNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -791,6 +792,8 @@ function ShopOwnerDashboard({ activeSection = 'dashboard', pageMeta = DASHBOARD_
     window.location.hash = '#/'
   }
 
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
+
   if (!user) {
     return (
       <div className="min-h-svh flex items-center justify-center bg-muted/30">
@@ -1070,7 +1073,7 @@ function ShopOwnerDashboard({ activeSection = 'dashboard', pageMeta = DASHBOARD_
                         type="button"
                         onClick={() => {
                           setProfileOpen(false)
-                          handleLogout()
+                          requestLogout()
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
@@ -1096,6 +1099,7 @@ function ShopOwnerDashboard({ activeSection = 'dashboard', pageMeta = DASHBOARD_
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      {LogoutDialog}
     </div>
   )
 }

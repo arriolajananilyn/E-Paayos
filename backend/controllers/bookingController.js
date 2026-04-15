@@ -49,14 +49,11 @@ function detectImageExtFromDataUrl(dataUrl) {
   return "jpg"
 }
 
-function buildPublicBaseUrl(req) {
-  return process.env.API_PUBLIC_URL || `${req.protocol}://${req.get("host")}`
-}
-
 async function persistIssuePhotoSource(src, req) {
   if (!src) return ""
   if (/^https?:\/\//i.test(src) || /^blob:/i.test(src)) return src
-  if (src.startsWith("/uploads/")) return `${buildPublicBaseUrl(req)}${src}`
+  // Store as relative server path so it works across devices/environments.
+  if (src.startsWith("/uploads/")) return src
 
   const ext = detectImageExtFromDataUrl(src)
   if (!ext) return src
@@ -69,7 +66,7 @@ async function persistIssuePhotoSource(src, req) {
   const relUrl = `/uploads/bookings/${fileName}`
   const fileBuffer = Buffer.from(base64Payload, "base64")
   await fs.writeFile(absPath, fileBuffer)
-  return `${buildPublicBaseUrl(req)}${relUrl}`
+  return relUrl
 }
 
 async function normalizeIssuePhotos(value, req) {

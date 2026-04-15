@@ -46,6 +46,7 @@ import {
   preferredDateSortValue,
   selectShell,
 } from './mechanicBookingShared.jsx'
+import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const MECHANIC_FOCUS_KEY = 'epaayosMechanicHistoryFocusBookingId'
 
@@ -176,6 +177,8 @@ function MechanicTechnicianServiceHistory() {
     localStorage.removeItem('user')
     window.location.hash = '#/'
   }
+
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   const kpis = useMemo(() => {
     const total = bookings.length
@@ -417,7 +420,7 @@ function MechanicTechnicianServiceHistory() {
                         type="button"
                         onClick={() => {
                           setProfileOpen(false)
-                          handleLogout()
+                          requestLogout()
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
@@ -601,6 +604,7 @@ function MechanicTechnicianServiceHistory() {
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      {LogoutDialog}
     </div>
   )
 }

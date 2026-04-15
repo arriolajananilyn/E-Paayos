@@ -94,6 +94,35 @@ export default function useMessaging(variant = 'customer') {
     loadConversations({ silent: false })
   }, [loadConversations])
 
+  // Presence heartbeat while messaging UI is open.
+  useEffect(() => {
+    let cancelled = false
+    const ping = async () => {
+      try {
+        await apiFetch('/api/messages/presence/ping', { method: 'POST', body: {} })
+      } catch {
+        // ignore presence errors; messaging should still work
+      }
+    }
+    const start = async () => {
+      if (cancelled) return
+      await ping()
+    }
+    void start()
+    const t = setInterval(() => {
+      void ping()
+    }, 20_000)
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void ping()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      cancelled = true
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [])
+
   useEffect(() => {
     const t = setInterval(() => {
       loadConversations({ silent: true })

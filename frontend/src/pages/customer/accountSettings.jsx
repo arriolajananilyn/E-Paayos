@@ -7,6 +7,7 @@ import {
   NotificationBellIndicator,
   useCustomerNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
 
 function CustomerAccountSettings() {
   const [user, setUser] = useState(null)
@@ -50,6 +51,8 @@ function CustomerAccountSettings() {
     localStorage.removeItem('user')
     window.location.hash = '#/'
   }
+
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   if (!user) {
     return (
@@ -174,7 +177,7 @@ function CustomerAccountSettings() {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      handleLogout()
+                      requestLogout()
                     }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                   >
@@ -208,6 +211,7 @@ function CustomerAccountSettings() {
           </CardContent>
         </Card>
       </main>
+      {LogoutDialog}
     </div>
   )
 }

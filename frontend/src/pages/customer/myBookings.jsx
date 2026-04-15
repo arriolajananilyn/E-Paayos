@@ -29,6 +29,7 @@ import {
   NotificationBellIndicator,
   useCustomerNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
 import { SERVICE_TYPES } from './findServices.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
@@ -77,8 +78,24 @@ function mapBookingFromApi(row) {
 function resolveIssuePhotoSrc(src) {
   const value = String(src ?? '').trim()
   if (!value) return ''
-  if (/^(https?:\/\/|data:|blob:)/i.test(value)) return value
+  if (/^(data:|blob:)/i.test(value)) return value
   if (value.startsWith('/uploads/')) return `${API_URL}${value}`
+  if (/^https?:\/\//i.test(value)) {
+    // Best-effort remap legacy localhost URLs to configured API base.
+    try {
+      const parsed = new URL(value)
+      const host = (parsed.hostname || '').toLowerCase()
+      if (host === 'localhost' || host === '127.0.0.1') {
+        const api = new URL(API_URL)
+        parsed.protocol = api.protocol
+        parsed.host = api.host
+        return parsed.toString()
+      }
+    } catch {
+      // ignore
+    }
+    return value
+  }
   return value
 }
 
@@ -430,6 +447,8 @@ function CustomerMyBookings() {
     window.location.hash = '#/'
   }
 
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
+
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase()
 
@@ -582,7 +601,7 @@ function CustomerMyBookings() {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      handleLogout()
+                      requestLogout()
                     }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                   >
@@ -1076,6 +1095,7 @@ function CustomerMyBookings() {
           ) : null}
         </DialogContent>
       </Dialog>
+      {LogoutDialog}
     </div>
   )
 }

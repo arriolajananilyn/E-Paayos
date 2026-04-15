@@ -25,6 +25,7 @@ import {
   NotificationBellIndicator,
   useCustomerNotificationUnreadCount,
 } from '../../components/notifications/NotificationFeed.jsx'
+import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
 
 const CATEGORIES = ['Appliance', 'Gadget', 'Vehicle', 'Others']
 export const SERVICE_TYPES = [
@@ -478,6 +479,8 @@ function CustomerFindServices() {
     window.location.hash = '#/'
   }
 
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
+
   const filteredShops = useMemo(() => {
     const category = categoryFilter === '__' ? '' : categoryFilter
     const serviceType = serviceTypeFilter === '__' ? '' : serviceTypeFilter
@@ -642,7 +645,7 @@ function CustomerFindServices() {
                     type="button"
                     onClick={() => {
                       setProfileOpen(false)
-                      handleLogout()
+                      requestLogout()
                     }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                   >
@@ -680,9 +683,6 @@ function CustomerFindServices() {
             <h2 className="text-base font-semibold text-[#081F5C] md:text-lg">
               Top services — Independent technicians &amp; shop owners
             </h2>
-            <p className="text-xs text-muted-foreground sm:text-sm">
-              Parehong independent mechanic/technician at shop owner sa isang row; nakaayos ayon sa rating (mock data).
-            </p>
           </div>
           <TopServicesMarqueeRow items={MOCK_TOP_SERVICES_SORTED} />
         </section>
@@ -925,6 +925,7 @@ function CustomerFindServices() {
         </section>
 
       </main>
+      {LogoutDialog}
     </div>
   )
 }

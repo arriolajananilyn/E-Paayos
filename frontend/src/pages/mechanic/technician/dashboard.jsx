@@ -35,6 +35,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
+import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const navyDeep = '#04133d'
 const navy = '#081F5C'
@@ -451,6 +452,8 @@ function MechanicTechnicianDashboard() {
     window.location.hash = '#/'
   }
 
+  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
+
   if (!user) {
     return (
       <div className="min-h-svh flex items-center justify-center bg-muted/30">
@@ -639,7 +642,7 @@ function MechanicTechnicianDashboard() {
                         type="button"
                         onClick={() => {
                           setProfileOpen(false)
-                          handleLogout()
+                          requestLogout()
                         }}
                         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                       >
@@ -897,6 +900,7 @@ function MechanicTechnicianDashboard() {
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      {LogoutDialog}
     </div>
   )
 }

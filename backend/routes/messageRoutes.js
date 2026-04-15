@@ -9,6 +9,7 @@ import {
   createConversation,
   listMessages,
   sendMessage,
+  presencePing,
 } from "../controllers/messageController.js"
 
 const __filename = fileURLToPath(import.meta.url)
@@ -26,6 +27,7 @@ router.use(protect)
 
 router.get("/conversations", listConversations)
 router.post("/conversations", createConversation)
+router.post("/presence/ping", presencePing)
 router.get("/conversations/:conversationId/messages", listMessages)
 router.post("/conversations/:conversationId/messages", upload.array("files", 8), sendMessage)
 

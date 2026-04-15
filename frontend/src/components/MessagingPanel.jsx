@@ -14,8 +14,28 @@ import useMessaging from '../hooks/useMessaging'
 const API_BASE = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
 function resolveAttachmentUrl(url) {
-  if (!url) return ''
-  return url.startsWith('http') || url.startsWith('blob:') ? url : `${API_BASE}${url}`
+  const value = String(url || '').trim()
+  if (!value) return ''
+  if (/^(data:|blob:)/i.test(value)) return value
+  if (value.startsWith('/uploads/')) return `${API_BASE}${value}`
+  if (/^https?:\/\//i.test(value)) {
+    // If backend stored a localhost URL, remap to configured API base so other devices can load it.
+    try {
+      const parsed = new URL(value)
+      const host = (parsed.hostname || '').toLowerCase()
+      if (host === 'localhost' || host === '127.0.0.1') {
+        const api = new URL(API_BASE)
+        parsed.protocol = api.protocol
+        parsed.host = api.host
+        return parsed.toString()
+      }
+    } catch {
+      // fall through
+    }
+    return value
+  }
+  // Best-effort: treat as relative server path
+  return `${API_BASE}${value.startsWith('/') ? '' : '/'}${value}`
 }
 
 function formatRoleDisplay(role) {
@@ -144,16 +164,16 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
 
   const emptySelectHint =
     variant === 'shop-owner'
-      ? 'Pumili ng conversation para makita ang mga mensahe ng customer.'
+      ? 'Select a conversation to view customer messages.'
       : variant === 'mechanic-technician'
-        ? 'Pumili ng conversation para makita ang usapan sa customer o shop owner.'
+        ? 'Select a conversation to view messages with the customer or shop owner.'
         : 'Your messages will appear here.'
 
   const newConvHint =
     variant === 'shop-owner'
-      ? 'Magpadala ng unang mensahe sa customer sa ibaba.'
+      ? 'Send your first message to the customer below.'
       : variant === 'mechanic-technician'
-        ? 'Magpadala ng unang mensahe sa ibaba.'
+        ? 'Send your first message below.'
         : 'Send your first message below.'
 
   return (
@@ -322,7 +342,7 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
                         currentConversation.participant?.isOnline ? 'bg-green-500' : 'bg-gray-300'
                       }`}
                     />
-                    {currentConversation.participant?.isOnline ? 'Active now' : 'Offline'}
+                    {currentConversation.participant?.isOnline ? 'Online' : 'Offline'}
                   </div>
                 </div>
               </div>

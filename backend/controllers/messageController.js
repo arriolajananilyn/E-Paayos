@@ -7,6 +7,7 @@ import mongoose from "mongoose"
 import { User } from "../models/userModel.js"
 import { Conversation } from "../models/conversationModel.js"
 import { Message } from "../models/messageModel.js"
+import { isUserOnline, markOnline } from "../utils/presenceStore.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -54,7 +55,7 @@ function buildParticipantPayload(u) {
     ownerName: u.role === "shop-owner" ? fullName : "",
     name,
     role: roleLabel(u.role),
-    isOnline: false,
+    isOnline: isUserOnline(u._id),
   }
 }
 
@@ -77,6 +78,7 @@ async function unreadCountFor(conversationId, userId, lastReadAt) {
  */
 export const listConversations = asyncHandler(async (req, res) => {
   const me = req.user._id
+  markOnline(me)
   const list = await Conversation.find({
     $or: [{ userA: me }, { userB: me }],
   })
@@ -112,6 +114,7 @@ export const listConversations = asyncHandler(async (req, res) => {
  */
 export const createConversation = asyncHandler(async (req, res) => {
   const me = req.user._id
+  markOnline(me)
   const raw = req.body?.otherUserId
   if (!raw || !mongoose.Types.ObjectId.isValid(String(raw))) {
     res.status(400)
@@ -188,6 +191,7 @@ async function assertParticipant(convId, userId) {
  */
 export const listMessages = asyncHandler(async (req, res) => {
   const me = req.user._id
+  markOnline(me)
   const { conversationId } = req.params
   if (!mongoose.Types.ObjectId.isValid(conversationId)) {
     res.status(400)
@@ -233,6 +237,7 @@ export const listMessages = asyncHandler(async (req, res) => {
  */
 export const sendMessage = asyncHandler(async (req, res) => {
   const me = req.user._id
+  markOnline(me)
   const { conversationId } = req.params
   if (!mongoose.Types.ObjectId.isValid(conversationId)) {
     res.status(400)
@@ -254,7 +259,6 @@ export const sendMessage = asyncHandler(async (req, res) => {
   }
 
   await fs.mkdir(MESSAGE_UPLOAD_DIR, { recursive: true })
-  const baseUrl = buildPublicBaseUrl(req)
   const attachments = []
 
   for (const f of files) {
@@ -269,7 +273,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     }
     const rel = `/uploads/messages/${fileName}`
     attachments.push({
-      url: `${baseUrl}${rel}`,
+      url: rel,
       mimetype: f.mimetype || "application/octet-stream",
       originalName: orig,
       size: f.size || 0,
@@ -317,4 +321,13 @@ export const sendMessage = asyncHandler(async (req, res) => {
       attachments,
     },
   })
+})
+
+/**
+ * POST /api/messages/presence/ping
+ * Marks current user as online (recently active).
+ */
+export const presencePing = asyncHandler(async (req, res) => {
+  markOnline(req.user?._id)
+  res.json({ ok: true })
 })
