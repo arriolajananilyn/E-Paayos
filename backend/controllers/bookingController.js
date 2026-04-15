@@ -65,13 +65,21 @@ async function persistIssuePhotoSource(src, req) {
   const base64Payload = src.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "")
   if (!base64Payload) return ""
 
-  await fs.mkdir(BOOKING_UPLOAD_DIR, { recursive: true })
-  const fileName = `booking-${Date.now()}-${crypto.randomUUID()}.${ext}`
-  const absPath = path.join(BOOKING_UPLOAD_DIR, fileName)
-  const relUrl = `/uploads/bookings/${fileName}`
-  const fileBuffer = Buffer.from(base64Payload, "base64")
-  await fs.writeFile(absPath, fileBuffer)
-  return relUrl
+  try {
+    await fs.mkdir(BOOKING_UPLOAD_DIR, { recursive: true })
+    const fileName = `booking-${Date.now()}-${crypto.randomUUID()}.${ext}`
+    const absPath = path.join(BOOKING_UPLOAD_DIR, fileName)
+    const relUrl = `/uploads/bookings/${fileName}`
+    const fileBuffer = Buffer.from(base64Payload, "base64")
+    await fs.writeFile(absPath, fileBuffer)
+    return relUrl
+  } catch (error) {
+    // Vercel serverless filesystem is read-only, so persist the data URL itself.
+    if (error?.code === "EROFS" || error?.code === "EACCES") {
+      return src
+    }
+    throw error
+  }
 }
 
 async function normalizeIssuePhotos(value, req) {

@@ -187,6 +187,8 @@ const Register = () => {
   });
   const [validIdPreview, setValidIdPreview] = useState('');
   const [selfiePreview, setSelfiePreview] = useState('');
+  const [isPresentAddressSameAsBirthPlace, setIsPresentAddressSameAsBirthPlace] = useState(false);
+  const [isPermanentAddressSameAsBirthPlace, setIsPermanentAddressSameAsBirthPlace] = useState(false);
   /** After choosing Mechanic/Technician: pick shop here first; Confirm opens the normal registration steps. */
   const [mechanicShopGateOpen, setMechanicShopGateOpen] = useState(false);
   const [registeredShopOwners, setRegisteredShopOwners] = useState([]);
@@ -409,6 +411,80 @@ const Register = () => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  useEffect(() => {
+    if (!isPresentAddressSameAsBirthPlace) return;
+    setFormData(prev => ({
+      ...prev,
+      region: prev.pobRegion,
+      province: prev.pobProvince,
+      cityMunicipality: prev.pobCityMunicipality,
+      barangay: prev.pobBarangay,
+    }));
+  }, [
+    isPresentAddressSameAsBirthPlace,
+    formData.pobRegion,
+    formData.pobProvince,
+    formData.pobCityMunicipality,
+    formData.pobBarangay,
+  ]);
+
+  useEffect(() => {
+    if (!isPermanentAddressSameAsBirthPlace) return;
+    setFormData(prev => ({
+      ...prev,
+      permanentRegion: prev.region,
+      permanentProvince: prev.province,
+      permanentCityMunicipality: prev.cityMunicipality,
+      permanentBarangay: prev.barangay,
+    }));
+  }, [
+    isPermanentAddressSameAsBirthPlace,
+    formData.region,
+    formData.province,
+    formData.cityMunicipality,
+    formData.barangay,
+  ]);
+
+  const handlePresentAddressSameAsBirthPlaceChange = (checked) => {
+    setIsPresentAddressSameAsBirthPlace(checked);
+    if (!checked) return;
+
+    setFormData(prev => ({
+      ...prev,
+      region: prev.pobRegion,
+      province: prev.pobProvince,
+      cityMunicipality: prev.pobCityMunicipality,
+      barangay: prev.pobBarangay,
+    }));
+    setErrors(prev => ({
+      ...prev,
+      region: '',
+      province: '',
+      cityMunicipality: '',
+      barangay: '',
+    }));
+  };
+
+  const handlePermanentAddressSameAsBirthPlaceChange = (checked) => {
+    setIsPermanentAddressSameAsBirthPlace(checked);
+    if (!checked) return;
+
+    setFormData(prev => ({
+      ...prev,
+      permanentRegion: prev.region,
+      permanentProvince: prev.province,
+      permanentCityMunicipality: prev.cityMunicipality,
+      permanentBarangay: prev.barangay,
+    }));
+    setErrors(prev => ({
+      ...prev,
+      permanentRegion: '',
+      permanentProvince: '',
+      permanentCityMunicipality: '',
+      permanentBarangay: '',
+    }));
   };
 
   const addressSelectorCommonProps = {
@@ -716,6 +792,7 @@ const Register = () => {
     if (isShopOwnerFlow && step === 4 && !isIndependentMechanic) {
       if (!formData.dtiSecRegistrationNumber.trim()) newErrors.dtiSecRegistrationNumber = 'DTI/SEC registration number is required';
       if (!formData.businessPermitNumber.trim()) newErrors.businessPermitNumber = 'Business permit number is required';
+      if (!formData.tinNumber.trim()) newErrors.tinNumber = 'TIN is required';
       if (!formData.businessPermitCertificate) newErrors.businessPermitCertificate = 'Please upload business permit/certificate';
     }
 
@@ -744,6 +821,11 @@ const Register = () => {
         newErrors.validId = 'Please upload a valid ID';
       } else if (formData.validId.size > 5 * 1024 * 1024) {
         newErrors.validId = 'File size must be less than 5MB';
+      }
+      if (!formData.selfie) {
+        newErrors.selfie = 'Please upload a selfie with your ID';
+      } else if (formData.selfie.size > 5 * 1024 * 1024) {
+        newErrors.selfie = 'File size must be less than 5MB';
       }
       if (!formData.idType) {
         newErrors.idType = 'Please select ID type';
@@ -1075,9 +1157,23 @@ const Register = () => {
           </div>
 
           <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium text-gray-700">Present Address *</Label>
+              <Label htmlFor="presentAddressSameAsBirthPlace" className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  id="presentAddressSameAsBirthPlace"
+                  type="checkbox"
+                  checked={isPresentAddressSameAsBirthPlace}
+                  onChange={(e) => handlePresentAddressSameAsBirthPlaceChange(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>Same as Place of Birth</span>
+              </Label>
+            </div>
             <AddressTabsSelector
               {...addressSelectorCommonProps}
               label="Present Address"
+              hideLabel
               regionKey="region"
               provinceKey="province"
               cityKey="cityMunicipality"
@@ -1101,9 +1197,23 @@ const Register = () => {
           </div>
 
           <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label className="text-sm font-medium text-gray-700">Permanent Address *</Label>
+              <Label htmlFor="permanentAddressSameAsBirthPlace" className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  id="permanentAddressSameAsBirthPlace"
+                  type="checkbox"
+                  checked={isPermanentAddressSameAsBirthPlace}
+                  onChange={(e) => handlePermanentAddressSameAsBirthPlaceChange(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>Same as Present address</span>
+              </Label>
+            </div>
             <AddressTabsSelector
               {...addressSelectorCommonProps}
               label="Permanent Address"
+              hideLabel
               regionKey="permanentRegion"
               provinceKey="permanentProvince"
               cityKey="permanentCityMunicipality"
@@ -1769,15 +1879,16 @@ const Register = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="tinNumber" className="text-sm font-medium text-gray-700">TIN (optional)</Label>
+        <Label htmlFor="tinNumber" className="text-sm font-medium text-gray-700">TIN Number *</Label>
         <Input
           id="tinNumber"
           type="text"
-          placeholder="Enter TIN (optional)"
+          placeholder="Enter TIN number"
           value={formData.tinNumber}
           onChange={(e) => handleInputChange('tinNumber', e.target.value)}
-          className="h-10"
+          className={`h-10 ${validationAttempted && errors.tinNumber ? 'border-red-500' : ''}`}
         />
+        {validationAttempted && errors.tinNumber && <p className="text-sm text-red-600">{errors.tinNumber}</p>}
       </div>
 
       <div className="space-y-2">
@@ -2139,8 +2250,8 @@ const Register = () => {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="selfie" className="text-sm font-medium text-gray-700">Selfie with ID (optional)</Label>
-        <div className="border-2 border-dashed rounded-lg p-0 text-center transition-colors overflow-hidden border-gray-300 hover:border-blue-400">
+        <Label htmlFor="selfie" className="text-sm font-medium text-gray-700">Selfie with ID *</Label>
+        <div className={`border-2 border-dashed rounded-lg p-0 text-center transition-colors overflow-hidden ${errors.selfie ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-blue-400'}`}>
           <input
             type="file"
             id="selfie"
@@ -2174,6 +2285,15 @@ const Register = () => {
             )}
           </label>
         </div>
+        {errors.selfie && <p className="text-sm text-red-600">{errors.selfie}</p>}
+        {formData.selfie && !errors.selfie && !selfiePreview && (
+          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-700 flex items-center">
+              <FileText className="h-4 w-4 mr-2" />
+              {formData.selfie.name} selected
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Registration Summary (bottom of Step 4) */}
