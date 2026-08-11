@@ -4,6 +4,7 @@ import {
   registerUser,
   loginUser,
   getMe,
+  patchMyPaymentMethods,
   updateShopOwnerShopInfo,
   listShopOwnersForRegistration,
   listUsersForAdmin,
@@ -34,6 +35,7 @@ router.post(
 )
 router.post("/login", loginUser)
 router.get("/me", protect, getMe)
+router.patch("/me/payment-methods", protect, patchMyPaymentMethods)
 router.patch("/me/shop", protect, updateShopOwnerShopInfo)
 router.get("/admin/list", protect, adminOnly, listUsersForAdmin)
 router.patch("/admin/:id/approve", protect, adminOnly, approveUserForAdmin)

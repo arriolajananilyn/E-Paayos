@@ -1,8 +1,79 @@
 import asyncHandler from "express-async-handler"
 import mongoose from "mongoose"
+import fs from "fs/promises"
+import path from "path"
+import { fileURLToPath } from "url"
+import crypto from "crypto"
 import { User } from "../models/userModel.js"
 import { generateToken } from "../utils/generateToken.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
+import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const SHOP_PLACE_UPLOAD_DIR = path.join(__dirname, "..", "uploads", "shop-place")
+const MAX_SHOP_PLACE_DATA_URL_CHARS = 12 * 1024 * 1024
+const MAX_SHOP_PLACE_FILE_BYTES = 5 * 1024 * 1024
+
+function detectImageExtFromDataUrl(dataUrl) {
+  const m = /^data:image\/([a-zA-Z0-9+.-]+);base64,/.exec(dataUrl)
+  if (!m) return null
+  const subtype = m[1].toLowerCase()
+  if (subtype === "jpeg") return "jpg"
+  if (subtype === "svg+xml") return "svg"
+  if (["jpg", "png", "gif", "webp", "bmp", "svg"].includes(subtype)) return subtype
+  return "jpg"
+}
+
+/**
+ * @returns {Promise<string|undefined>} `""` to clear, a stored path/URL, or `undefined` to leave unchanged
+ */
+async function normalizeShopPlacePhotoInput(raw) {
+  if (raw === undefined) return undefined
+  const s = typeof raw === "string" ? raw.trim() : ""
+  if (s === "") return ""
+  if (s.length > MAX_SHOP_PLACE_DATA_URL_CHARS) {
+    throw new Error("Shop photo is too large. Please use an image under 5MB.")
+  }
+  if (s.startsWith("/uploads/shop-place/")) return s
+  if (/^https?:\/\//i.test(s)) return s
+  if (!s.startsWith("data:image/")) {
+    throw new Error("Shop photo must be a valid image")
+  }
+  const ext = detectImageExtFromDataUrl(s)
+  if (!ext) {
+    throw new Error("Invalid shop photo format")
+  }
+  const base64Payload = s.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "")
+  if (!base64Payload) {
+    throw new Error("Invalid shop photo data")
+  }
+  let fileBuffer
+  try {
+    fileBuffer = Buffer.from(base64Payload, "base64")
+  } catch {
+    throw new Error("Invalid shop photo data")
+  }
+  if (fileBuffer.length > MAX_SHOP_PLACE_FILE_BYTES) {
+    throw new Error("Shop photo file size must be 5MB or less")
+  }
+  if (shouldStoreUploadsInline()) {
+    return s
+  }
+  try {
+    await fs.mkdir(SHOP_PLACE_UPLOAD_DIR, { recursive: true })
+    const fileName = `shop-place-${Date.now()}-${crypto.randomUUID()}.${ext}`
+    const absPath = path.join(SHOP_PLACE_UPLOAD_DIR, fileName)
+    const relUrl = `/uploads/shop-place/${fileName}`
+    await fs.writeFile(absPath, fileBuffer)
+    return relUrl
+  } catch (error) {
+    if (error?.code === "EROFS" || error?.code === "EACCES") {
+      return s
+    }
+    throw error
+  }
+}
 
 const trimStr = (value) => (typeof value === "string" ? value.trim() : value)
 
@@ -185,7 +256,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   const normalizedRole = normalizeEnum(role, [
     "shop-owner",
-    "independent-mechanic-technician",
+    "oncall-mechanic-technician",
     "mechanic-technician",
     "customer",
     "admin",
@@ -207,8 +278,8 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   const isMechanic = normalizedRole === "mechanic-technician"
   const isShopOwner = normalizedRole === "shop-owner"
-  const isIndependentMechanicTechnician = normalizedRole === "independent-mechanic-technician"
-  const isShopStyleProvider = isShopOwner || isIndependentMechanicTechnician
+  const isOnCallMechanicTechnician = normalizedRole === "oncall-mechanic-technician" || normalizedRole === "independent-mechanic-technician"
+  const isShopStyleProvider = isShopOwner || isOnCallMechanicTechnician
   const isProviderRegistration = isMechanic || isShopStyleProvider
 
   let employerShopOwnerId = null
@@ -233,7 +304,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   if (isProviderRegistration) {
     const mechanicEducationOk =
-      (!isMechanic && !isIndependentMechanicTechnician) ||
+      (!isMechanic && !isOnCallMechanicTechnician) ||
       (!!highestEducationalLevel && !!schoolUniversity && !!courseProgram)
     const shopBusinessOkShopOwner =
       !!clean(shopName) &&
@@ -246,6 +317,7 @@ export const registerUser = asyncHandler(async (req, res) => {
       !!repairServicesOffered
 
     const shopBusinessOkIndependent =
+      !!clean(shopName) &&
       !!businessType &&
       !!normalizedServiceType &&
       !!yearsOfOperation &&
@@ -255,7 +327,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
     const shopBusinessOk =
       !isShopStyleProvider ||
-      (isIndependentMechanicTechnician ? shopBusinessOkIndependent : shopBusinessOkShopOwner)
+      (isOnCallMechanicTechnician ? shopBusinessOkIndependent : shopBusinessOkShopOwner)
 
     const mechanicWorkExperienceOk =
       !isMechanic ||
@@ -299,7 +371,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   const repairServicesOfferedArr = parseJsonArray(repairServicesOffered)
   const daysOfOperationArr = parseJsonArray(daysOfOperation)
 
-  if (isMechanic || isIndependentMechanicTechnician) {
+  if (isMechanic || isOnCallMechanicTechnician) {
     if (skillsSelfAssessmentArr.length !== 5) {
       res.status(400)
       throw new Error("Please select exactly five (5) skills for self-assessment")
@@ -363,12 +435,12 @@ export const registerUser = asyncHandler(async (req, res) => {
       yearGraduatedLastAttended: clean(yearGraduatedLastAttended),
       schoolUniversity: clean(schoolUniversity),
       courseProgram: clean(courseProgram),
-      shopName: isIndependentMechanicTechnician ? (clean(shopName) || "") : clean(shopName),
+      shopName: isOnCallMechanicTechnician ? (clean(shopName) || "") : clean(shopName),
       businessType: normalizedBusinessType,
       repairServicesOffered: repairServicesOfferedArr,
       serviceType: normalizedServiceType,
       yearsOfOperation: yearsOfOperation === undefined || yearsOfOperation === null || yearsOfOperation === "" ? undefined : Number(yearsOfOperation),
-      numberOfEmployees: isIndependentMechanicTechnician
+      numberOfEmployees: isOnCallMechanicTechnician
         ? undefined
         : numberOfEmployees === undefined || numberOfEmployees === null || numberOfEmployees === ""
           ? undefined
@@ -382,11 +454,11 @@ export const registerUser = asyncHandler(async (req, res) => {
       shopBarangay: clean(shopBarangay),
       shopDetailedAddress: clean(shopDetailedAddress) ?? "",
       shopLandmark: clean(shopLandmark),
-      dtiSecRegistrationNumber: isIndependentMechanicTechnician ? "" : clean(dtiSecRegistrationNumber),
-      businessPermitNumber: isIndependentMechanicTechnician ? "" : clean(businessPermitNumber),
+      dtiSecRegistrationNumber: isOnCallMechanicTechnician ? "" : clean(dtiSecRegistrationNumber),
+      businessPermitNumber: isOnCallMechanicTechnician ? "" : clean(businessPermitNumber),
       tinNumber: clean(tinNumber),
       businessPermitCertificatePath: undefined,
-      businessPermitCertificateImage: isIndependentMechanicTechnician ? undefined : businessPermitCertificateImage,
+      businessPermitCertificateImage: isOnCallMechanicTechnician ? undefined : businessPermitCertificateImage,
       workCompanyName: clean(workCompanyName),
       workCompanyAddress: clean(workCompanyAddress),
       workPositionHeld: clean(workPositionHeld),
@@ -513,9 +585,10 @@ export const updateShopOwnerShopInfo = asyncHandler(async (req, res) => {
 
   const businessEnumOk = ["Sole Proprietorship", "Partnership", "Corporation"].includes(normalizedBusinessType)
   const serviceEnumOk = ["Home Service", "Shop Visit", "Both"].includes(normalizedServiceType)
-  const isIndependentProvider = req.user.role === "independent-mechanic-technician"
+  const isOnCallProvider =
+    req.user.role === "oncall-mechanic-technician" || req.user.role === "independent-mechanic-technician"
 
-  if ((!isIndependentProvider && !clean(body.shopName)) || !businessEnumOk || !serviceEnumOk) {
+  if (!clean(body.shopName) || !businessEnumOk || !serviceEnumOk) {
     res.status(400)
     throw new Error("Please complete all required shop fields with valid business and service types")
   }
@@ -534,7 +607,7 @@ export const updateShopOwnerShopInfo = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error("Years of operation is required")
   }
-  if (!isIndependentProvider && (ne === undefined || ne === null || ne === "" || Number.isNaN(Number(ne)))) {
+  if (!isOnCallProvider && (ne === undefined || ne === null || ne === "" || Number.isNaN(Number(ne)))) {
     res.status(400)
     throw new Error("Number of technicians/mechanics is required")
   }
@@ -558,12 +631,12 @@ export const updateShopOwnerShopInfo = asyncHandler(async (req, res) => {
     throw new Error("User not found")
   }
 
-  user.shopName = isIndependentProvider ? clean(body.shopName) || "" : clean(body.shopName)
+  user.shopName = isOnCallProvider ? clean(body.shopName) || "" : clean(body.shopName)
   user.businessType = normalizedBusinessType
   user.repairServicesOffered = repairServicesOfferedArr
   user.serviceType = normalizedServiceType
   user.yearsOfOperation = Number(yo)
-  user.numberOfEmployees = isIndependentProvider
+  user.numberOfEmployees = isOnCallProvider
     ? ne === undefined || ne === null || ne === "" || Number.isNaN(Number(ne))
       ? undefined
       : Number(ne)
@@ -582,12 +655,61 @@ export const updateShopOwnerShopInfo = asyncHandler(async (req, res) => {
   user.shopDetailedAddress = clean(body.shopDetailedAddress) ?? ""
   user.shopLandmark = clean(body.shopLandmark) || ""
 
+  if (Object.prototype.hasOwnProperty.call(body, "shopPlacePhoto")) {
+    try {
+      const nextPhoto = await normalizeShopPlacePhotoInput(body.shopPlacePhoto)
+      if (nextPhoto !== undefined) {
+        user.shopPlacePhoto = nextPhoto
+      }
+    } catch (e) {
+      res.status(400)
+      throw e
+    }
+  }
+
   await user.save()
 
   const updated = await User.findById(req.user._id).select(
     "-password -validIdImage -selfieImage -businessPermitCertificateImage"
   )
   return res.json(updated)
+})
+
+function normalizeAcceptedPaymentMethods(raw) {
+  if (!Array.isArray(raw)) return []
+  const allowedTypes = new Set(["gcash", "maya", "cash_on_service"])
+  const out = []
+  for (const row of raw) {
+    const id = trimStr(row?.id)
+    const type = trimStr(row?.type)
+    if (!id || !type || !allowedTypes.has(type)) continue
+    out.push({
+      id,
+      type,
+      accountName: trimStr(row?.accountName) || "",
+      details: trimStr(row?.details) || "",
+      notes: trimStr(row?.notes) || "",
+      qrImage: trimStr(row?.qrImage) || "",
+    })
+    if (out.length >= 12) break
+  }
+  return out
+}
+
+export const patchMyPaymentMethods = asyncHandler(async (req, res) => {
+  if (!isServiceProviderRole(req.user?.role)) {
+    res.status(403)
+    throw new Error("Only service providers can update payment methods")
+  }
+  const methods = normalizeAcceptedPaymentMethods(req.body?.acceptedPaymentMethods)
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+  user.acceptedPaymentMethods = methods
+  await user.save()
+  return res.json({ acceptedPaymentMethods: user.acceptedPaymentMethods || [] })
 })
 
 /** Admin dashboard: list platform users (excludes other admin accounts). */

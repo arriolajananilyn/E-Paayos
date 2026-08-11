@@ -11,6 +11,7 @@ import CustomerAccountSettings from './pages/customer/accountSettings.jsx'
 import CustomerReviewsRatings from './pages/customer/reviewRatings.jsx'
 import CustomerFindServices from './pages/customer/findServices.jsx'
 import CustomerServiceDetails from './pages/customer/serviceDetails.jsx'
+import CustomerViewShop from './pages/customer/viewshop.jsx'
 import AdminDashboard from './pages/admin/dashboard.jsx'
 import ShopOwnerDashboard from './pages/shopowner/dashboard.jsx'
 import ManageEmployeePage from './pages/shopowner/manageEmployee.jsx'
@@ -32,16 +33,16 @@ import MechanicTechnicianWorkInfo from './pages/mechanic/technician/workInfo.jsx
 import MechanicTechnicianMessages from './pages/mechanic/technician/messages.jsx'
 import MechanicTechnicianReviewRatings from './pages/mechanic/technician/reviewRatings.jsx'
 import MechanicTechnicianNotification from './pages/mechanic/technician/notification.jsx'
-import IndependentMechanicDashboard from './pages/independentmechanic/technician/dashboard.jsx'
-import IndependentMechanicServices from './pages/independentmechanic/technician/services.jsx'
-import IndependentMechanicBusinessInfo from './pages/independentmechanic/technician/businessInfo.jsx'
-import IndependentMechanicServiceRequest from './pages/independentmechanic/technician/serviceRequest.jsx'
-import IndependentMechanicServiceHistory from './pages/independentmechanic/technician/serviceHistory.jsx'
-import IndependentMechanicMessages from './pages/independentmechanic/technician/messages.jsx'
-import IndependentMechanicRatingReviews from './pages/independentmechanic/technician/ratingReviews.jsx'
-import IndependentMechanicReportAnalytics from './pages/independentmechanic/technician/reportAnalytics.jsx'
-import IndependentMechanicNotification from './pages/independentmechanic/technician/notification.jsx'
-import IndependentMechanicAccountSettings from './pages/independentmechanic/technician/accountSettings.jsx'
+import OnCallMechanicDashboard from './pages/oncallmechanic/technician/dashboard.jsx'
+import OnCallMechanicServices from './pages/oncallmechanic/technician/services.jsx'
+import OnCallMechanicBusinessInfo from './pages/oncallmechanic/technician/businessInfo.jsx'
+import OnCallMechanicServiceRequest from './pages/oncallmechanic/technician/serviceRequest.jsx'
+import OnCallMechanicServiceHistory from './pages/oncallmechanic/technician/serviceHistory.jsx'
+import OnCallMechanicMessages from './pages/oncallmechanic/technician/messages.jsx'
+import OnCallMechanicRatingReviews from './pages/oncallmechanic/technician/ratingReviews.jsx'
+import OnCallMechanicReportAnalytics from './pages/oncallmechanic/technician/reportAnalytics.jsx'
+import OnCallMechanicNotification from './pages/oncallmechanic/technician/notification.jsx'
+import OnCallMechanicAccountSettings from './pages/oncallmechanic/technician/accountSettings.jsx'
 
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/')
@@ -55,12 +56,20 @@ function App() {
   }, [])
 
   const renderRoute = () => {
-    if (route.startsWith('#/customer/shop/')) {
+    const rawHash = (route || '#/').split('?')[0]
+    const cleanRoute = rawHash.length > 2 && rawHash.endsWith('/') ? rawHash.slice(0, -1) : rawHash
+
+    if (cleanRoute.startsWith('#/customer/view-shop/')) {
+      const raw = route.slice('#/customer/view-shop/'.length)
+      const anchorId = decodeURIComponent(raw.split('?')[0] || '')
+      return <CustomerViewShop anchorServiceId={anchorId} />
+    }
+    if (cleanRoute.startsWith('#/customer/shop/')) {
       const raw = route.slice('#/customer/shop/'.length)
       const serviceId = decodeURIComponent(raw.split('?')[0] || '')
       return <CustomerServiceDetails serviceId={serviceId} />
     }
-    switch (route) {
+    switch (cleanRoute) {
       case '#/':
       case '':
         return <LandingPage />
@@ -126,25 +135,25 @@ function App() {
       case '#/mechanic/technician/notification':
         return <MechanicTechnicianNotification />
       case '#/independent/technician/dashboard':
-        return <IndependentMechanicDashboard />
+        return <OnCallMechanicDashboard />
       case '#/independent/technician/services':
-        return <IndependentMechanicServices />
+        return <OnCallMechanicServices />
       case '#/independent/technician/business-info':
-        return <IndependentMechanicBusinessInfo />
+        return <OnCallMechanicBusinessInfo />
       case '#/independent/technician/service-request':
-        return <IndependentMechanicServiceRequest />
+        return <OnCallMechanicServiceRequest />
       case '#/independent/technician/service-history':
-        return <IndependentMechanicServiceHistory />
+        return <OnCallMechanicServiceHistory />
       case '#/independent/technician/messages':
-        return <IndependentMechanicMessages />
+        return <OnCallMechanicMessages />
       case '#/independent/technician/ratings-reviews':
-        return <IndependentMechanicRatingReviews />
+        return <OnCallMechanicRatingReviews />
       case '#/independent/technician/reports-analytics':
-        return <IndependentMechanicReportAnalytics />
+        return <OnCallMechanicReportAnalytics />
       case '#/independent/technician/notification':
-        return <IndependentMechanicNotification />
+        return <OnCallMechanicNotification />
       case '#/independent/technician/account-settings':
-        return <IndependentMechanicAccountSettings />
+        return <OnCallMechanicAccountSettings />
       default:
         return <LandingPage />
     }

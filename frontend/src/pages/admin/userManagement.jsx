@@ -50,7 +50,7 @@ const API_URL = getApiBaseUrl()
 const ROLE_LABELS = {
   customer: 'Customer',
   'shop-owner': 'Shop owner',
-  'independent-mechanic-technician': 'Independent mechanical / technician',
+  'oncall-mechanic-technician': 'On-call Mechanic/Technician',
   'mechanic-technician': 'Mechanic / technician',
 }
 
@@ -72,7 +72,7 @@ function mapUserFromApi(u) {
   const role = ROLE_LABELS[roleRaw] || roleRaw || '—'
   let subtitle = ''
   if (roleRaw === 'shop-owner') subtitle = u.shopName || 'Shop owner'
-  else if (roleRaw === 'independent-mechanic-technician') subtitle = u.shopName || 'Independent provider'
+  else if (roleRaw === 'oncall-mechanic-technician') subtitle = u.shopName || 'On-call provider'
   else if (roleRaw === 'mechanic-technician') {
     const spec = u.courseProgram ? String(u.courseProgram) : ''
     const job = u.shopJobTitle ? String(u.shopJobTitle).trim() : ''
@@ -381,7 +381,7 @@ export default function AdminUserManagement() {
     const total = users.length
     const customers = users.filter((u) => u.roleRaw === 'customer').length
     const owners = users.filter((u) => u.roleRaw === 'shop-owner').length
-    const independents = users.filter((u) => u.roleRaw === 'independent-mechanic-technician').length
+    const independents = users.filter((u) => u.roleRaw === 'oncall-mechanic-technician').length
     const mechanics = users.filter((u) => u.roleRaw === 'mechanic-technician').length
     return { total, customers, owners, independents, mechanics }
   }, [users])
@@ -557,7 +557,7 @@ export default function AdminUserManagement() {
           <StatGradientCard variant="total" label="Total users" value={stats.total} icon={Users} />
           <StatGradientCard variant="customer" label="Customers" value={stats.customers} icon={User} />
           <StatGradientCard variant="shop-owner" label="Shop owners" value={stats.owners} icon={Building2} />
-          <StatGradientCard variant="independent" label="Independent providers" value={stats.independents} icon={HardHat} />
+          <StatGradientCard variant="independent" label="On-call providers" value={stats.independents} icon={HardHat} />
           <StatGradientCard variant="mechanic" label="Mechanics" value={stats.mechanics} icon={Wrench} />
         </div>
       </div>
@@ -582,7 +582,7 @@ export default function AdminUserManagement() {
               <option value="">All</option>
               <option value="customer">Customer</option>
               <option value="shop-owner">Shop owner</option>
-              <option value="independent-mechanic-technician">Independent mechanical / technician</option>
+              <option value="oncall-mechanic-technician">On-call Mechanic/Technician</option>
               <option value="mechanic-technician">Mechanic / technician</option>
             </select>
             <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />

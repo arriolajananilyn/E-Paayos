@@ -4,7 +4,7 @@ import { Button } from '../../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
 import { CalendarDays, ClipboardList, Image as ImageIcon, Loader2, MessageSquare, Star } from 'lucide-react'
 import { ReviewProviderReplyForm } from '../../../components/reviews/ReviewProviderReplyForm.jsx'
-import IndependentMechanicLayout from './IndependentMechanicLayout.jsx'
+import OnCallMechanicLayout from './OnCallMechanicLayout.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -58,7 +58,7 @@ function StatGradientCard({ label, value, icon: Icon, variant }) {
   )
 }
 
-export default function IndependentMechanicRatingReviews() {
+export default function OnCallMechanicRatingReviews() {
   const [summary, setSummary] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -119,7 +119,7 @@ export default function IndependentMechanicRatingReviews() {
   }
 
   return (
-    <IndependentMechanicLayout
+    <OnCallMechanicLayout
       activeSection="ratings-reviews"
       pageMeta={{
         title: 'Ratings & Reviews',
@@ -273,6 +273,6 @@ export default function IndependentMechanicRatingReviews() {
         </Card>
         </div>
       </div>
-    </IndependentMechanicLayout>
+    </OnCallMechanicLayout>
   )
 }

@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
   {
     role: {
       type: String,
-      enum: ["shop-owner", "independent-mechanic-technician", "mechanic-technician", "customer", "admin"],
+      enum: ["shop-owner", "oncall-mechanic-technician", "mechanic-technician", "customer", "admin"],
       required: true,
     },
     fullName: { type: String, required: true },
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -61,7 +61,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -71,7 +71,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -81,7 +81,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -91,7 +91,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -111,7 +111,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -121,7 +121,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -131,7 +131,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -141,7 +141,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -153,7 +153,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -163,7 +163,7 @@ const userSchema = new mongoose.Schema(
         return (
           this.role === "mechanic-technician" ||
           this.role === "shop-owner" ||
-          this.role === "independent-mechanic-technician"
+          this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
         )
       },
     },
@@ -183,7 +183,7 @@ const userSchema = new mongoose.Schema(
         "Post Graduate",
       ],
       required: function () {
-        return this.role === "mechanic-technician" || this.role === "independent-mechanic-technician"
+        return this.role === "mechanic-technician" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     yearGraduatedLastAttended: {
@@ -192,13 +192,13 @@ const userSchema = new mongoose.Schema(
     schoolUniversity: {
       type: String,
       required: function () {
-        return this.role === "mechanic-technician" || this.role === "independent-mechanic-technician"
+        return this.role === "mechanic-technician" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     courseProgram: {
       type: String,
       required: function () {
-        return this.role === "mechanic-technician" || this.role === "independent-mechanic-technician"
+        return this.role === "mechanic-technician" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
 
@@ -213,27 +213,27 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["Sole Proprietorship", "Partnership", "Corporation"],
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     repairServicesOffered: {
       type: [String],
       default: [],
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     serviceType: {
       type: String,
       enum: ["Home Service", "Shop Visit", "Both"],
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     yearsOfOperation: {
       type: Number,
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     numberOfEmployees: {
@@ -242,17 +242,25 @@ const userSchema = new mongoose.Schema(
         return this.role === "shop-owner"
       },
     },
+    laborRatingMin: {
+      type: Number,
+      min: 0,
+    },
+    laborRatingMax: {
+      type: Number,
+      min: 0,
+    },
     operatingHours: {
       type: String,
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     daysOfOperation: {
       type: [String],
       default: [],
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     shopDescription: { type: String },
@@ -261,25 +269,25 @@ const userSchema = new mongoose.Schema(
     shopRegion: {
       type: String,
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     shopProvince: {
       type: String,
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     shopCityMunicipality: {
       type: String,
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     shopBarangay: {
       type: String,
       required: function () {
-        return this.role === "shop-owner" || this.role === "independent-mechanic-technician"
+        return this.role === "shop-owner" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
     shopDetailedAddress: {
@@ -287,6 +295,8 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
     shopLandmark: { type: String },
+    /** Public photo of the shop or business place (data URL, `/uploads/shop-place/...`, or https URL). */
+    shopPlacePhoto: { type: String, default: "" },
     // removed: availableEquipment/specialization (per requirement)
 
     // Shop Owner business registration details
@@ -349,7 +359,7 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
       required: function () {
-        return this.role === "mechanic-technician" || this.role === "independent-mechanic-technician"
+        return this.role === "mechanic-technician" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
 
@@ -358,7 +368,7 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
       required: function () {
-        return this.role === "mechanic-technician" || this.role === "independent-mechanic-technician"
+        return this.role === "mechanic-technician" || this.role === "oncall-mechanic-technician" || this.role === "independent-mechanic-technician"
       },
     },
 
@@ -375,9 +385,22 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "on-leave", "inactive"],
       default: "active",
     },
-    /** Aggregate customer feedback for service providers (shop-owner / independent-mechanic-technician). */
+    /** Aggregate customer feedback for service providers (shop-owner / oncall-mechanic-technician). */
     providerRatingAvg: { type: Number, default: 0, min: 0, max: 5 },
     providerRatingCount: { type: Number, default: 0, min: 0 },
+    acceptedPaymentMethods: {
+      type: [
+        {
+          id: { type: String, required: true, trim: true },
+          type: { type: String, enum: ["gcash", "maya", "cash_on_service"], required: true },
+          accountName: { type: String, default: "", trim: true, maxlength: 200 },
+          details: { type: String, default: "", trim: true, maxlength: 500 },
+          notes: { type: String, default: "", trim: true, maxlength: 500 },
+          qrImage: { type: String, default: "", trim: true },
+        },
+      ],
+      default: [],
+    },
 
     email: { type: String, required: true, unique: true, lowercase: true, index: true },
     password: { type: String, required: true },

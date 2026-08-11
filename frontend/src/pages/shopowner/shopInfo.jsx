@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ShopOwnerDashboard from './dashboard.jsx'
-import IndependentMechanicLayout from '../independentmechanic/technician/IndependentMechanicLayout.jsx'
+import OnCallMechanicLayout from '../oncallmechanic/technician/OnCallMechanicLayout.jsx'
 import AddressTabsSelector from '../../components/AddressTabsSelector.jsx'
 import ShopAddressGoogleMap from '../../components/ShopAddressGoogleMap.jsx'
 import { Button } from '../../components/ui/button'
@@ -9,16 +9,16 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select'
 import { Textarea } from '../../components/ui/textarea'
-import { Building2, Eye, MapPin, RotateCcw, Save, Store } from 'lucide-react'
+import { Building2, Camera, Eye, MapPin, RotateCcw, Save, Store, X } from 'lucide-react'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
 function ShopInfoLayout({ variant, pageMeta, children }) {
   if (variant === 'independent') {
     return (
-      <IndependentMechanicLayout activeSection="business-info" pageMeta={pageMeta}>
+      <OnCallMechanicLayout activeSection="business-info" pageMeta={pageMeta}>
         {children}
-      </IndependentMechanicLayout>
+      </OnCallMechanicLayout>
     )
   }
   return (
@@ -32,7 +32,7 @@ function ShopInfoLayout({ variant, pageMeta, children }) {
 const BUSINESS_TYPES = ['Sole Proprietorship (Single Owner)', 'Partnership (Multiple Owners)', 'Corporation (Multiple Owners)']
 const SERVICE_TYPES = ['Home Service', 'Shop Visit', 'Both (Home Service and Shop Visit)']
 
-/** Independent provider registration uses different labels; DB enum stays Home Service | Shop Visit | Both */
+/** On-call provider registration uses different labels; DB enum stays Home Service | Shop Visit | Both */
 const INDEPENDENT_SERVICE_TYPES_DISPLAY = [
   'Home Service',
   'Technician/Mechanic location Visit',
@@ -98,6 +98,16 @@ const DEFAULT_OPERATING_HOURS_PARTS = {
   closePeriod: 'PM',
 }
 
+/** Resolve stored shop photo path or data URL for <img src>. */
+function resolveShopPlacePhotoUrl(raw, apiBase) {
+  if (!raw || typeof raw !== 'string') return ''
+  const s = raw.trim()
+  if (!s) return ''
+  if (s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) return s
+  if (s.startsWith('/uploads/')) return `${apiBase}${s}`
+  return s
+}
+
 /** Parse `operatingHours` from registration: `HH:MM AM - HH:MM PM`. */
 function parseOperatingHoursToParts(s) {
   if (!s || typeof s !== 'string') return { ...DEFAULT_OPERATING_HOURS_PARTS }
@@ -132,17 +142,18 @@ function emptyShopForm() {
     shopBarangay: '',
     shopDetailedAddress: '',
     shopLandmark: '',
+    shopPlacePhoto: '',
   }
 }
 
 function userToShopForm(u) {
-  if (!u || (u.role !== 'shop-owner' && u.role !== 'independent-mechanic-technician')) return emptyShopForm()
+  if (!u || (u.role !== 'shop-owner' && u.role !== 'oncall-mechanic-technician')) return emptyShopForm()
   return {
     shopName: u.shopName || '',
     businessType: BUSINESS_DISPLAY_BY_DB[u.businessType] || u.businessType || '',
     repairServicesOffered: Array.isArray(u.repairServicesOffered) ? [...u.repairServicesOffered] : [],
     serviceType:
-      u.role === 'independent-mechanic-technician'
+      u.role === 'oncall-mechanic-technician'
         ? INDEPENDENT_DB_TO_DISPLAY[u.serviceType] ||
           SERVICE_DISPLAY_BY_DB[u.serviceType] ||
           'Both (Home Service, Technician/Mechanic location Visit)'
@@ -158,6 +169,7 @@ function userToShopForm(u) {
     shopBarangay: u.shopBarangay || '',
     shopDetailedAddress: u.shopDetailedAddress || '',
     shopLandmark: u.shopLandmark || '',
+    shopPlacePhoto: typeof u.shopPlacePhoto === 'string' ? u.shopPlacePhoto : '',
   }
 }
 
@@ -318,11 +330,11 @@ export function ShopInfoInner({ variant = 'shop' }) {
         }
         const u = await res.json()
         if (cancelled) return
-        if (u.role !== 'shop-owner' && u.role !== 'independent-mechanic-technician') {
+        if (u.role !== 'shop-owner' && u.role !== 'oncall-mechanic-technician') {
           window.location.hash = '#/login'
           return
         }
-        if (variant === 'independent' && u.role !== 'independent-mechanic-technician') {
+        if (variant === 'independent' && u.role !== 'oncall-mechanic-technician') {
           window.location.hash = u.role === 'shop-owner' ? '#/provider/shop-info' : '#/login'
           return
         }
@@ -490,14 +502,13 @@ export function ShopInfoInner({ variant = 'shop' }) {
         ...form,
         businessType: BUSINESS_DB_BY_DISPLAY[form.businessType] || form.businessType,
         serviceType:
-          providerRole === 'independent-mechanic-technician'
+          providerRole === 'oncall-mechanic-technician'
             ? INDEPENDENT_DISPLAY_TO_DB[form.serviceType] ?? SERVICE_DB_BY_DISPLAY[form.serviceType] ?? form.serviceType
             : SERVICE_DB_BY_DISPLAY[form.serviceType] || form.serviceType,
         yearsOfOperation: form.yearsOfOperation === '' ? null : Number(form.yearsOfOperation),
         numberOfEmployees: form.numberOfEmployees === '' ? null : Number(form.numberOfEmployees),
       }
-      if (providerRole === 'independent-mechanic-technician') {
-        delete payload.shopName
+      if (providerRole === 'oncall-mechanic-technician') {
         delete payload.numberOfEmployees
       }
       const res = await fetch(`${API_URL}/api/users/me/shop`, {
@@ -526,7 +537,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
         createdAt: u.createdAt || a.createdAt,
       }))
       setSaveNotice(
-        providerRole === 'independent-mechanic-technician'
+        providerRole === 'oncall-mechanic-technician'
           ? 'Saved successfully. Your business profile is updated.'
           : 'Saved successfully. Your shop profile is updated.',
       )
@@ -538,7 +549,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
     }
   }, [form, providerRole])
 
-  const isIndependentProvider = providerRole === 'independent-mechanic-technician'
+  const isOnCallProvider = providerRole === 'oncall-mechanic-technician'
 
   const regionName = useMemo(
     () => psgcRegions.find((r) => r.code === form.shopRegion)?.name || '',
@@ -595,6 +606,48 @@ export function ShopInfoInner({ variant = 'shop' }) {
     const y = new Date(account.createdAt).getFullYear()
     return Number.isNaN(y) ? '—' : String(y)
   }, [account.createdAt])
+
+  const shopPhotoDisplayUrl = useMemo(
+    () => resolveShopPlacePhotoUrl(form.shopPlacePhoto, API_URL),
+    [form.shopPlacePhoto],
+  )
+
+  const clearShopPhoto = useCallback(() => {
+    update('shopPlacePhoto', '')
+  }, [update])
+
+  const handleShopPhotoFile = useCallback(
+    async (event) => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      if (!file.type.startsWith('image/')) {
+        setSaveError('Please choose a valid image file (JPG, PNG, etc.).')
+        event.target.value = ''
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setSaveError('Image must be 5MB or smaller.')
+        event.target.value = ''
+        return
+      }
+      setSaveError('')
+      setSaveNotice('')
+      try {
+        const dataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(String(reader.result || ''))
+          reader.onerror = () => reject(new Error('Could not read the image.'))
+          reader.readAsDataURL(file)
+        })
+        update('shopPlacePhoto', dataUrl)
+      } catch {
+        setSaveError('Could not load that image. Try another file.')
+      } finally {
+        event.target.value = ''
+      }
+    },
+    [update],
+  )
 
   if (profileLoading) {
     return (
@@ -657,27 +710,133 @@ export function ShopInfoInner({ variant = 'shop' }) {
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_min(400px,100%)]">
         <div className="space-y-6">
+          <Card className="overflow-hidden border-border/80 shadow-sm">
+            <CardHeader className="border-b border-border/60 bg-gradient-to-br from-slate-50/90 via-white to-violet-50/40 pb-4 dark:from-slate-950/80 dark:via-slate-900 dark:to-violet-950/30">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_4px_14px_rgba(8,31,92,0.08)] ring-1 ring-[#081F5C]/10 dark:bg-slate-800 dark:ring-white/10">
+                  <Camera className="h-5 w-5 text-[#081F5C] dark:text-violet-300" />
+                </div>
+                <div className="min-w-0 space-y-1">
+                  <CardTitle className="text-lg font-semibold tracking-tight">
+                    {isOnCallProvider ? 'Business place photo' : 'Shop photo'}
+                  </CardTitle>
+                  <CardDescription className="text-sm leading-relaxed">
+                    {isOnCallProvider
+                      ? 'Tap the frame below to add or change your photo. It may appear when customers browse services.'
+                      : 'Tap the frame below to add or change your shop photo. It appears on your public listing when saved.'}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-6">
+              <div className="relative mx-auto w-full max-w-xl">
+                <input
+                  id="shop-place-photo-input"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handleShopPhotoFile}
+                />
+                <label
+                  htmlFor="shop-place-photo-input"
+                  className={`group relative flex min-h-[220px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl shadow-[0_12px_40px_-12px_rgba(15,23,42,0.18)] transition-all duration-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#081F5C]/35 focus-within:ring-offset-2 focus-within:ring-offset-background ${
+                    shopPhotoDisplayUrl
+                      ? 'ring-1 ring-black/[0.06] dark:ring-white/10'
+                      : 'border-2 border-dashed border-slate-200/95 bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 ring-1 ring-slate-200/60 dark:border-slate-600 dark:from-slate-900/60 dark:via-slate-950 dark:to-indigo-950/20 dark:ring-slate-700/80'
+                  }`}
+                >
+                  {shopPhotoDisplayUrl ? (
+                    <>
+                      <img
+                        src={shopPhotoDisplayUrl}
+                        alt={isOnCallProvider ? 'Your business place' : 'Your shop'}
+                        className="absolute inset-0 h-full min-h-[220px] w-full object-cover transition duration-500 ease-out group-hover:scale-[1.03]"
+                      />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-90"
+                        aria-hidden
+                      />
+                      <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/25" />
+                      <div className="relative z-[1] flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 py-10 opacity-0 transition-all duration-300 group-hover:opacity-100">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg backdrop-blur-md ring-1 ring-white/40">
+                          <Camera className="h-7 w-7 text-white" />
+                        </span>
+                        <span className="text-center text-sm font-semibold text-white drop-shadow-md">
+                          Tap to change photo
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="pointer-events-none absolute inset-0 opacity-[0.55] dark:opacity-40"
+                        style={{
+                          backgroundImage:
+                            'radial-gradient(circle at 20% 20%, rgba(8,31,92,0.06) 0%, transparent 45%), radial-gradient(circle at 80% 80%, rgba(124,58,237,0.07) 0%, transparent 40%)',
+                        }}
+                      />
+                      <div className="relative z-[1] flex min-h-[220px] flex-col items-center justify-center gap-5 px-8 py-12 text-center">
+                        <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[1.25rem] bg-white shadow-[0_12px_40px_-8px_rgba(8,31,92,0.2)] ring-1 ring-[#081F5C]/12 transition duration-300 group-hover:scale-105 group-hover:shadow-[0_16px_48px_-8px_rgba(8,31,92,0.28)] dark:bg-slate-800 dark:ring-white/10">
+                          <Store className="h-9 w-9 text-[#081F5C] dark:text-violet-300" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <p className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+                            {isOnCallProvider ? 'Show your business place' : 'Show your shop'}
+                          </p>
+                          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+                            Tap anywhere on this frame to choose an image from your device
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </label>
+                {form.shopPlacePhoto ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      clearShopPhoto()
+                    }}
+                    className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-xl border border-white/40 bg-white/95 text-slate-600 shadow-lg backdrop-blur-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:bg-slate-900/95 dark:text-slate-300 dark:hover:border-red-900 dark:hover:bg-red-950/60 dark:hover:text-red-400"
+                    aria-label="Remove photo"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                ) : null}
+              </div>
+              <p className="text-center text-xs leading-relaxed text-muted-foreground sm:text-left">
+                JPG, PNG, or WebP · max 5MB · tap the frame to update · use{' '}
+                <span className="font-medium text-foreground/80">Save Changes</span> below to store
+              </p>
+            </CardContent>
+          </Card>
+
           <Card className="border-border/80 shadow-sm">
             <CardHeader className="pb-3">
               <div className="mb-1 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
                 <Building2 className="h-5 w-5 text-blue-700" />
               </div>
               <CardTitle className="text-base">
-                {isIndependentProvider ? 'Business Information' : 'Business / Shop Information'}
+                {isOnCallProvider ? 'Business Information' : 'Business / Shop Information'}
               </CardTitle>
               <CardDescription>
-                {isIndependentProvider
+                {isOnCallProvider
                   ? 'Same as the business information step in independent provider registration.'
                   : 'Same as the business / shop step in shop-owner registration.'}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!isIndependentProvider ? (
-                <div className="space-y-2">
-                  <Label htmlFor="shopName">Shop name *</Label>
-                  <Input id="shopName" value={form.shopName} onChange={(e) => update('shopName', e.target.value)} />
-                </div>
-              ) : null}
+              <div className="space-y-2">
+                <Label htmlFor="shopName">{isOnCallProvider ? 'Business name *' : 'Shop name *'}</Label>
+                <Input
+                  id="shopName"
+                  value={form.shopName}
+                  onChange={(e) => update('shopName', e.target.value)}
+                  placeholder={isOnCallProvider ? 'Enter business name' : 'Enter shop name'}
+                />
+              </div>
 
               <div className="space-y-2">
                 <Label>Type of business *</Label>
@@ -725,7 +884,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(isIndependentProvider ? INDEPENDENT_SERVICE_TYPES_DISPLAY : SERVICE_TYPES).map((opt) => (
+                    {(isOnCallProvider ? INDEPENDENT_SERVICE_TYPES_DISPLAY : SERVICE_TYPES).map((opt) => (
                       <SelectItem key={opt} value={opt}>
                         {opt}
                       </SelectItem>
@@ -734,7 +893,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 </Select>
               </div>
 
-              <div className={`grid gap-4 ${isIndependentProvider ? '' : 'sm:grid-cols-2'}`}>
+              <div className={`grid gap-4 ${isOnCallProvider ? '' : 'sm:grid-cols-2'}`}>
                 <div className="space-y-2">
                   <Label htmlFor="yearsOfOperation">Years of operation *</Label>
                   <Input
@@ -744,7 +903,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                     onChange={(e) => update('yearsOfOperation', e.target.value.replace(/\D/g, '').slice(0, 2))}
                   />
                 </div>
-                {!isIndependentProvider ? (
+                {!isOnCallProvider ? (
                   <div className="space-y-2">
                     <Label htmlFor="numberOfEmployees">Number of technicians/mechanics *</Label>
                     <Input
@@ -953,7 +1112,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 mapTitle={
                   form.shopName?.trim()
                     ? `${form.shopName.trim()} — shop location`
-                    : isIndependentProvider
+                    : isOnCallProvider
                       ? `${(account.fullName || 'Service').trim()} — service location`
                       : 'Shop location'
                 }
@@ -1020,17 +1179,25 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 style={{ background: 'linear-gradient(135deg,#04133d,#1447a6)' }}
               >
                 <div className="flex items-start gap-3 p-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/15">
-                    <Store className="h-6 w-6" aria-hidden />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/15">
+                    {shopPhotoDisplayUrl ? (
+                      <img
+                        src={shopPhotoDisplayUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Store className="h-6 w-6" aria-hidden />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold leading-snug">
-                      {isIndependentProvider
+                      {isOnCallProvider
                         ? account.fullName || 'Provider'
                         : form.shopName.trim() || 'Shop name'}
                     </div>
                     <div className="mt-0.5 text-xs text-white/90">
-                      {isIndependentProvider ? 'Independent provider' : `Owner: ${account.fullName || '—'}`}
+                      {isOnCallProvider ? 'On-call provider' : `Owner: ${account.fullName || '—'}`}
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-white/85">
                       <MapPin className="h-3 w-3 shrink-0" />
@@ -1069,7 +1236,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                     <span className="text-white/60">Open: </span>
                     {form.daysOfOperation.length ? form.daysOfOperation.join(', ') : '—'}
                   </p>
-                  {!isIndependentProvider ? (
+                  {!isOnCallProvider ? (
                     <p className="text-white/85">
                       <span className="text-white/60">Team size (registered): </span>
                       {form.numberOfEmployees || '—'}

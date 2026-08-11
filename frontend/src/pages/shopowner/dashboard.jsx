@@ -700,7 +700,7 @@ function ShopOwnerDashboard({ activeSection = 'dashboard', pageMeta = DASHBOARD_
     }
     try {
       const parsed = JSON.parse(raw)
-      if (parsed.role === 'independent-mechanic-technician') {
+      if (parsed.role === 'oncall-mechanic-technician') {
         window.location.hash = '#/independent/technician/dashboard'
         return
       }

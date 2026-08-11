@@ -6,37 +6,23 @@ import { Label } from '../../components/ui/label'
 import { Checkbox } from '../../components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog'
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { getApiBaseUrl } from '../../lib/apiBaseUrl'
+import loginBackground from '../../assets/loginbackground.jpg'
 
 // Match landing page palette
-const navyDeep = '#04133d'
 const navy = '#081F5C'
 const navyMuted = '#0b2b73'
 const navyBright = '#1447a6'
 const navyGlow = '#2a63cc'
 
-const bvIce = '#eef2ff'
 const bvPeriwinkle = '#e0e7ff'
-const bvLilac = '#e9e5ff'
 const bvSoft = '#c7d2fe'
 const bvViolet = '#a5b4fc'
 
 const borderNavySoft = 'rgba(8, 31, 92, 0.12)'
-const borderBvSoft = 'rgba(99, 102, 241, 0.18)'
 const textBodyOnLight = 'rgba(8, 31, 92, 0.72)'
 
-/** Gradient navy blue — match landing page hero */
-const gradientNavyBlue = `linear-gradient(135deg, ${navyDeep} 0%, ${navy} 35%, ${navyMuted} 62%, ${navyBright} 100%)`
-
-/** Hero mesh: navy atmosphere + light blue-violet glows (landing page) */
-const gradientHeroMesh = `
-  radial-gradient(ellipse 85% 65% at 100% -8%, rgba(147, 197, 253, 0.28) 0%, transparent 52%),
-  radial-gradient(ellipse 75% 55% at -5% 105%, rgba(167, 139, 250, 0.22) 0%, transparent 50%),
-  radial-gradient(ellipse 55% 45% at 88% 92%, ${navyGlow}44 0%, transparent 52%),
-  radial-gradient(ellipse 70% 50% at 15% 20%, rgba(255, 255, 255, 0.07) 0%, transparent 48%)
-`
-
 const gradientNavyButton = `linear-gradient(135deg, ${navy} 0%, ${navyMuted} 42%, ${navyBright} 78%, ${navyGlow} 100%)`
-const gradientLightBlueViolet = `linear-gradient(155deg, #ffffff 0%, ${bvIce} 28%, ${bvPeriwinkle} 55%, ${bvLilac} 100%)`
 const gradientBlueVioletButton = `linear-gradient(135deg, ${bvPeriwinkle} 0%, ${bvSoft} 45%, ${bvViolet} 100%)`
 
 function Login() {
@@ -76,9 +62,7 @@ function Login() {
     setRejectionNotice(null)
     setIsLoading(true)
     try {
-      const rawApiUrl = import.meta?.env?.VITE_API_URL
-      const baseApiUrl = rawApiUrl ? rawApiUrl.replace(/\/$/, '') : ''
-      const loginUrl = `${baseApiUrl}/api/users/login`
+      const loginUrl = `${getApiBaseUrl()}/api/users/login`
       const res = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,7 +117,7 @@ function Login() {
         window.location.hash = '#/customer/dashboard'
       } else if (data.role === 'admin') {
         window.location.hash = '#/admin/dashboard'
-      } else if (data.role === 'independent-mechanic-technician') {
+      } else if (data.role === 'oncall-mechanic-technician') {
         window.location.hash = '#/independent/technician/dashboard'
       } else if (data.role === 'shop-owner') {
         window.location.hash = '#/provider/dashboard'
@@ -159,31 +143,18 @@ function Login() {
   return (
     <div
       className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden"
-      style={{ backgroundImage: gradientNavyBlue, color: '#ffffff' }}
+      style={{
+        backgroundImage: `url(${loginBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        color: '#ffffff',
+      }}
     >
-      <style>{`
-        @keyframes epaayosSlowGradientMove {
-          0% { background-position: 0% 0%, 0% 50%; transform: translate3d(0, 0, 0) scale(1.02); }
-          50% { background-position: 0% 0%, 100% 50%; transform: translate3d(-1.2%, 0.8%, 0) scale(1.04); }
-          100% { background-position: 0% 0%, 0% 50%; transform: translate3d(0, 0, 0) scale(1.02); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .epaayos-animated-bg { animation: none !important; transform: none !important; }
-        }
-      `}</style>
       <div
         aria-hidden="true"
-        className="absolute inset-0 z-0 epaayos-animated-bg"
-        style={{
-          backgroundImage: `${gradientHeroMesh},
-            radial-gradient(ellipse 70% 60% at 50% 40%, rgba(255, 255, 255, 0.10) 0%, transparent 55%),
-            linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.14) 50%, transparent 60%)`,
-          backgroundSize: 'auto, 140% 140%, 240% 240%',
-          animation: 'epaayosSlowGradientMove 32s ease-in-out infinite',
-          opacity: 0.92,
-          filter: 'saturate(1.05) brightness(1.08)',
-          willChange: 'background-position, transform'
-        }}
+        className="absolute inset-0 z-0"
+        style={{ backgroundColor: 'rgba(4, 19, 61, 0.35)' }}
       />
       <div className="w-full max-w-md relative z-10">
         <Card

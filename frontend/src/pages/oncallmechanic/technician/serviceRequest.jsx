@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import IndependentMechanicLayout from './IndependentMechanicLayout.jsx'
+import OnCallMechanicLayout from './OnCallMechanicLayout.jsx'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -42,6 +42,7 @@ import {
 } from 'lucide-react'
 
 import { completionOutcomeLabel, workingFinishButtonLabel } from '../../mechanic/technician/mechanicBookingShared.jsx'
+import { ServiceFeeCalculateDialog } from '../../../components/bookings/ServiceFeeCalculateDialog.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -302,6 +303,25 @@ function mapBookingFromApi(row) {
     updatedAt: row.updatedAt,
     customer: row.customer || null,
     shopService: row.shopService || null,
+    serviceFeeLaborRateAtCalc:
+      row.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(row.serviceFeeLaborRateAtCalc))
+        ? Number(row.serviceFeeLaborRateAtCalc)
+        : null,
+    serviceFeeMaterialsAmount:
+      row.serviceFeeMaterialsAmount != null && Number.isFinite(Number(row.serviceFeeMaterialsAmount))
+        ? Number(row.serviceFeeMaterialsAmount)
+        : null,
+    serviceFeeMaterialsDescription:
+      typeof row.serviceFeeMaterialsDescription === 'string' ? row.serviceFeeMaterialsDescription : '',
+    serviceFeeReplacementParts: Array.isArray(row.serviceFeeReplacementParts)
+      ? row.serviceFeeReplacementParts
+          .map((x) => ({
+            name: typeof x?.name === 'string' ? x.name : '',
+            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+          }))
+          .filter((x) => x.name)
+      : [],
+    serviceFeeConfirmedAt: row.serviceFeeConfirmedAt || null,
   }
 }
 
@@ -311,7 +331,7 @@ function preferredDateSortValue(b) {
   return d.getTime()
 }
 
-function IndependentMechanicServiceRequestPage() {
+function OnCallMechanicServiceRequestPage() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [listError, setListError] = useState('')
@@ -321,9 +341,12 @@ function IndependentMechanicServiceRequestPage() {
   const [search, setSearch] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
   const [confirmBooking, setConfirmBooking] = useState(null)
+  const [confirmWorkingBooking, setConfirmWorkingBooking] = useState(null)
   const [rejectBooking, setRejectBooking] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [rejectReasonError, setRejectReasonError] = useState('')
+  const [feeBooking, setFeeBooking] = useState(null)
+  const [feeDialogError, setFeeDialogError] = useState('')
 
   const loadBookings = useCallback(async () => {
     setListError('')
@@ -428,6 +451,36 @@ function IndependentMechanicServiceRequestPage() {
     }
   }
 
+  const patchBookingServiceFee = async (bookingId, body) => {
+    setFeeDialogError('')
+    setActionError('')
+    setUpdatingId(bookingId)
+    try {
+      const res = await fetch(`${API_URL}/api/shop/bookings/${encodeURIComponent(bookingId)}/service-fee`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify(body),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.message || 'Could not save service fee.')
+      }
+      const mapped = mapBookingFromApi(data?.booking)
+      if (mapped) {
+        setBookings((prev) => prev.map((b) => (b.id === mapped.id ? mapped : b)))
+      } else {
+        await loadBookings()
+      }
+      setFeeBooking(null)
+      return true
+    } catch (e) {
+      setFeeDialogError(e?.message || 'Could not save service fee.')
+      return false
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   const openRejectDialog = (b) => {
     setRejectReasonError('')
     setRejectReason('')
@@ -455,8 +508,14 @@ function IndependentMechanicServiceRequestPage() {
     if (ok) setConfirmBooking(null)
   }
 
+  const confirmStartWorking = async () => {
+    if (!confirmWorkingBooking) return
+    const ok = await patchBooking(confirmWorkingBooking.id, 'working')
+    if (ok) setConfirmWorkingBooking(null)
+  }
+
   return (
-    <IndependentMechanicLayout
+    <OnCallMechanicLayout
       activeSection="service-request"
       pageMeta={{
         title: 'Service requests',
@@ -807,7 +866,13 @@ function IndependentMechanicServiceRequestPage() {
                                 size="sm"
                                 disabled={busy}
                                 className="h-8 gap-1.5 rounded-md bg-linear-to-r from-violet-600 to-indigo-600 px-3 text-sm text-white shadow-sm hover:from-violet-600/90 hover:to-indigo-600/90"
-                                onClick={() => void patchBooking(b.id, 'working')}
+                                onClick={() =>
+                                  setConfirmWorkingBooking({
+                                    id: b.id,
+                                    contactName: b.contactName || 'Customer',
+                                    serviceName: b.shopService?.name || 'Service',
+                                  })
+                                }
                               >
                                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
                                 Working
@@ -838,16 +903,31 @@ function IndependentMechanicServiceRequestPage() {
                                 <Wrench className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
                                 Working
                               </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                disabled={busy}
-                                className="h-8 gap-1.5 rounded-md bg-emerald-600 px-3 text-sm text-white shadow-sm hover:bg-emerald-600/90"
-                                onClick={() => void patchBooking(b.id, 'completed')}
-                              >
-                                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                                {workingFinishButtonLabel(b.shopService?.category)}
-                              </Button>
+                              {!b.serviceFeeConfirmedAt ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={busy}
+                                  className="h-8 gap-1.5 rounded-md bg-linear-to-r from-sky-600 to-blue-600 px-3 text-sm text-white shadow-sm hover:from-sky-600/90 hover:to-blue-600/90"
+                                  onClick={() => {
+                                    setFeeDialogError('')
+                                    setFeeBooking(b)
+                                  }}
+                                >
+                                  Calculate service fee
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={busy}
+                                  className="h-8 gap-1.5 rounded-md bg-emerald-600 px-3 text-sm text-white shadow-sm hover:bg-emerald-600/90"
+                                  onClick={() => void patchBooking(b.id, 'completed')}
+                                >
+                                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                  {workingFinishButtonLabel(b.shopService?.category)}
+                                </Button>
+                              )}
                             </>
                           ) : null}
                         </div>
@@ -906,6 +986,71 @@ function IndependentMechanicServiceRequestPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmWorkingBooking}
+        onOpenChange={(open) => {
+          if (!open) setConfirmWorkingBooking(null)
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start this job now?</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              {confirmWorkingBooking ? (
+                <>
+                  Are you sure you want to mark the booking for{' '}
+                  <span className="font-medium text-foreground">{confirmWorkingBooking.contactName}</span>
+                  {confirmWorkingBooking.serviceName ? (
+                    <>
+                      {' '}
+                      (<span className="font-medium text-foreground">{confirmWorkingBooking.serviceName}</span>)
+                    </>
+                  ) : null}{' '}
+                  as <span className="font-medium text-foreground">Working</span>? This means service is already in progress.
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              className="bg-linear-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-600/90 hover:to-indigo-600/90"
+              disabled={!confirmWorkingBooking || updatingId === confirmWorkingBooking?.id}
+              onClick={() => void confirmStartWorking()}
+            >
+              {confirmWorkingBooking && updatingId === confirmWorkingBooking.id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  Updating…
+                </>
+              ) : (
+                'Yes, start working'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <ServiceFeeCalculateDialog
+        open={Boolean(feeBooking)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFeeBooking(null)
+            setFeeDialogError('')
+          }
+        }}
+        customerName={feeBooking?.contactName || 'Customer'}
+        initialLaborPrice={feeBooking?.serviceFeeLaborRateAtCalc ?? null}
+        initialReplacementParts={feeBooking?.serviceFeeReplacementParts || []}
+        isSubmitting={Boolean(feeBooking) && updatingId === feeBooking.id}
+        error={feeDialogError}
+        onSave={(payload) => {
+          if (!feeBooking) return
+          void patchBookingServiceFee(feeBooking.id, payload)
+        }}
+      />
 
       <Dialog
         open={!!rejectBooking}
@@ -973,8 +1118,8 @@ function IndependentMechanicServiceRequestPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </IndependentMechanicLayout>
+    </OnCallMechanicLayout>
   )
 }
 
-export default IndependentMechanicServiceRequestPage
+export default OnCallMechanicServiceRequestPage

@@ -14,6 +14,7 @@ import {
   listShopOwnerBookings,
   listShopOwnerReviewsRatings,
   patchShopOwnerBookingReviewResponse,
+  patchShopOwnerBookingServiceFee,
   patchShopOwnerBookingStatus,
 } from "../controllers/bookingController.js"
 
@@ -27,6 +28,7 @@ router.patch("/registered-mechanics/:id", patchRegisteredMechanic)
 router.get("/bookings", listShopOwnerBookings)
 router.get("/reviews-ratings", listShopOwnerReviewsRatings)
 router.patch("/bookings/:id/review-response", patchShopOwnerBookingReviewResponse)
+router.patch("/bookings/:id/service-fee", patchShopOwnerBookingServiceFee)
 router.patch("/bookings/:id", patchShopOwnerBookingStatus)
 router.get("/services", getShopServices)
 router.post("/services", createShopService)

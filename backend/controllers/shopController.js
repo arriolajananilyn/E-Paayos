@@ -16,6 +16,22 @@ function parseStartingPrice(raw) {
   return n
 }
 
+/** Returns { ok: true, min, max } or { ok: false, message } — both amounts required when present. */
+function parseLaborRatings(minRaw, maxRaw) {
+  if (minRaw === undefined || minRaw === null || String(minRaw).trim() === "" || maxRaw === undefined || maxRaw === null || String(maxRaw).trim() === "") {
+    return { ok: false, message: "Labor price minimum and maximum are required." }
+  }
+  const min = Number(minRaw)
+  const max = Number(maxRaw)
+  if (!Number.isFinite(min) || min < 0 || !Number.isFinite(max) || max < 0) {
+    return { ok: false, message: "Labor price range must use valid amounts." }
+  }
+  if (min > max) {
+    return { ok: false, message: "Maximum labor price must be greater than or equal to minimum." }
+  }
+  return { ok: true, min, max }
+}
+
 async function resolveTechnicianIds(shopOwnerId, rawIds, providerRole) {
   const arr = Array.isArray(rawIds) ? rawIds : []
   const strings = arr.map((x) => String(x)).filter(Boolean)
@@ -39,7 +55,7 @@ async function resolveTechnicianIds(shopOwnerId, rawIds, providerRole) {
     ...userDocs.map((d) => String(d._id)),
   ])
   const selfId = String(shopOwnerId)
-  if (providerRole === "independent-mechanic-technician" && strings.includes(selfId)) {
+  if ((providerRole === "oncall-mechanic-technician" || providerRole === "independent-mechanic-technician") && strings.includes(selfId)) {
     allowed.add(selfId)
   }
 
@@ -166,6 +182,11 @@ export const createShopService = asyncHandler(async (req, res) => {
 
   const technicianIds = await resolveTechnicianIds(req.user._id, body.technicianIds, req.user.role)
   const startingPrice = parseStartingPrice(body.startingPrice)
+  const labor = parseLaborRatings(body.laborRatingMin, body.laborRatingMax)
+  if (!labor.ok) {
+    res.status(400)
+    throw new Error(labor.message)
+  }
 
   const doc = await ShopService.create({
     shopOwner: req.user._id,
@@ -178,6 +199,8 @@ export const createShopService = asyncHandler(async (req, res) => {
     status,
     technicianIds,
     startingPrice,
+    laborRatingMin: labor.min,
+    laborRatingMax: labor.max,
     bookingsCount: 0,
     ratingAvg: 0,
   })
@@ -228,6 +251,17 @@ export const updateShopService = asyncHandler(async (req, res) => {
 
   if (body.startingPrice !== undefined) {
     existing.startingPrice = parseStartingPrice(body.startingPrice)
+  }
+
+  const laborProvided = Object.prototype.hasOwnProperty.call(body, "laborRatingMin") || Object.prototype.hasOwnProperty.call(body, "laborRatingMax")
+  if (laborProvided) {
+    const labor = parseLaborRatings(body.laborRatingMin, body.laborRatingMax)
+    if (!labor.ok) {
+      res.status(400)
+      throw new Error(labor.message)
+    }
+    existing.laborRatingMin = labor.min
+    existing.laborRatingMax = labor.max
   }
 
   existing.name = name

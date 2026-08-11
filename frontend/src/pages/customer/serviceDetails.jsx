@@ -1,25 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
-  Bell,
   Bike,
   CalendarCheck,
   CalendarDays,
+  CheckCircle2,
   ClipboardList,
   Clock,
   FileText,
   Landmark,
   Layers,
-  LogOut,
   MapPin,
-  Navigation,
   MessageCircle,
-  Settings,
+  Navigation,
   Smartphone,
   Star,
   Store,
   Tag,
-  ThumbsUp,
   User,
   Users,
   WashingMachine,
@@ -28,7 +25,7 @@ import {
 import ShopAddressGoogleMap from '../../components/ShopAddressGoogleMap.jsx'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { Card, CardContent } from '../../components/ui/card'
+import { Card } from '../../components/ui/card'
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -50,20 +47,44 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { NativeSelect } from '../../components/ui/native-select'
 import { Textarea } from '../../components/ui/textarea'
-import logoEpaayos from '../../assets/epaayos_logo.png'
-import {
-  NotificationBellIndicator,
-  useCustomerNotificationUnreadCount,
-} from '../../components/notifications/NotificationFeed.jsx'
-import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
+import CustomerLayout, { readCustomerUserSession } from '../../layout/customerlayout.jsx'
 import { resolveProfilePsgcLabels } from '../../lib/psgcResolve'
 import { SERVICE_TYPES, staffAssignedLabel } from './findServices.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
+const MESSAGE_RECIPIENT_STORAGE_KEY = 'epaayos_message_recipient'
+
+function storeShopRecipientForMessages(detail) {
+  const ownerId = detail?.shopOwnerId
+  if (!ownerId) return
+  try {
+    sessionStorage.setItem(
+      MESSAGE_RECIPIENT_STORAGE_KEY,
+      JSON.stringify({
+        fullName: detail.shopName?.trim() || 'Shop',
+        shopName: detail.shopName?.trim() || '',
+        ownerName: detail.shopOwner?.trim() || '',
+        role: 'Shop',
+        isOnline: false,
+        otherUserId: String(ownerId),
+      }),
+    )
+  } catch {
+    /* ignore */
+  }
+}
+
+function goBackOrCustomerFallback() {
+  if (typeof window !== 'undefined' && window.history.length > 1) {
+    window.history.back()
+  } else {
+    window.location.hash = '#/customer/find-services'
+  }
+}
+
 /**
  * Sample completed jobs: customer, work done, completion date/time (local).
- * Replace with API data when booking/review history is exposed per shop.
  */
 const MOCK_COMPLETED_WORKS = [
   {
@@ -104,42 +125,6 @@ const MOCK_COMPLETED_WORKS = [
   },
 ]
 
-/**
- * Sample reviews for this service / shop — same shape as a future reviews API.
- * Replace when per-service or per-shop reviews are exposed to customers.
- */
-const MOCK_SERVICE_REVIEWS = [
-  {
-    id: 'sr-1',
-    overallRating: 5,
-    customerName: 'Rhea D. Castillo',
-    comment:
-      'Clean work on our refrigerator, and the technician explained everything well. We will definitely come back to this shop.',
-    createdAt: '2025-04-01T10:30:00',
-    shopResponse: 'Thank you for your trust — glad we could help with the refrigerator.',
-    images: [],
-  },
-  {
-    id: 'sr-2',
-    overallRating: 4,
-    customerName: 'Mark Anthony V.',
-    comment: 'On time for home service. Fixed our washer same day.',
-    createdAt: '2025-03-22T15:00:00',
-    shopResponse: null,
-    images: ['https://picsum.photos/seed/epaayos-r2/120/120'],
-  },
-  {
-    id: 'sr-3',
-    overallRating: 5,
-    customerName: 'Anonymous',
-    comment: '',
-    createdAt: '2025-03-10T09:00:00',
-    shopResponse: null,
-    images: [],
-  },
-]
-
-/** Time (left) + mm/dd/yyyy (right), using the viewer’s local timezone */
 function formatCompletedWorkDateTime(value) {
   const d = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(d.getTime())) return { time: '—', date: '—' }
@@ -163,24 +148,8 @@ function formatShopOwnerJoinedAt(iso) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-/** Table row label: mechanics for vehicle, technicians otherwise */
 function noOfTechnicianMechanicLabel(category) {
-  return String(category || '').toLowerCase() === 'vehicle' ? 'No. of mechanics:' : 'No. of technicians:'
-}
-
-const SHOP_TABLE_ICON = 'h-3.5 w-3.5 shrink-0 text-[#081F5C]/75 dark:text-sky-300/85'
-const SHOP_TABLE_ICON_ON_STRIP =
-  'h-3.5 w-3.5 shrink-0 text-zinc-600 dark:text-zinc-400'
-
-function ShopTableLabel({ icon, children, variant = 'default' }) {
-  const onStrip = variant === 'dark'
-  const IconComponent = icon
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <IconComponent className={onStrip ? SHOP_TABLE_ICON_ON_STRIP : SHOP_TABLE_ICON} aria-hidden />
-      <span className={onStrip ? 'text-zinc-800 dark:text-zinc-200' : undefined}>{children}</span>
-    </span>
-  )
+  return String(category || '').toLowerCase() === 'vehicle' ? 'No. of mechanics' : 'No. of technicians'
 }
 
 function authHeaders() {
@@ -219,10 +188,37 @@ function initialsFromName(name) {
   return `${first}${second}`.toUpperCase()
 }
 
+function resolveOwnerThumbSrc(detail) {
+  if (!detail || typeof detail !== 'object') return ''
+  const candidates = [detail.shopPlacePhoto, detail.shopOwnerProfileImage, detail.shopOwnerSelfieImage]
+  for (const raw of candidates) {
+    const value = String(raw ?? '').trim()
+    if (!value) continue
+    if (/^(https?:\/\/|data:|blob:)/i.test(value)) return value
+    if (value.startsWith('/uploads/')) return `${API_URL}${value}`
+    return value
+  }
+  return ''
+}
+
+function OwnerThumb({ src, ownerName, className = 'h-10 w-10' }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const showImage = Boolean(src) && !imageFailed
+  return (
+    <span className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-none border border-slate-200 bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs ${className}`}>
+      {showImage ? (
+        <img src={src} alt="" className="h-full w-full object-cover" onError={() => setImageFailed(true)} />
+      ) : (
+        <span className="text-xs font-bold text-white">{initialsFromName(ownerName) || '?'}</span>
+      )}
+    </span>
+  )
+}
+
 function serviceTypeBadge(type) {
   const label = SERVICE_TYPES.find((x) => x.value === type)?.label ?? '—'
   return (
-    <Badge variant="outline" className="border-[#081F5C]/15 bg-white/90 text-[11px] font-medium text-[#081F5C] dark:border-white/10 dark:bg-white/5 dark:text-blue-100">
+    <Badge variant="outline" className="rounded-none border border-slate-200 bg-slate-100/90 text-[10px] font-bold uppercase tracking-wider text-[#081F5C]">
       {label}
     </Badge>
   )
@@ -247,14 +243,13 @@ function fileToDataUrl(file) {
 
 function categoryBadgeClass(category) {
   const normalized = String(category ?? '').toLowerCase()
-  if (normalized === 'vehicle') return 'bg-linear-to-r from-sky-600 to-blue-700 text-white'
-  if (normalized === 'gadget') return 'bg-linear-to-r from-violet-600 to-fuchsia-600 text-white'
-  if (normalized === 'appliance') return 'bg-linear-to-r from-emerald-600 to-teal-600 text-white'
-  if (normalized === 'others') return 'bg-linear-to-r from-amber-500 to-orange-500 text-white'
-  return 'bg-linear-to-r from-slate-600 to-slate-700 text-white'
+  if (normalized === 'vehicle') return 'rounded-none bg-linear-to-r from-sky-600 to-blue-700 text-white'
+  if (normalized === 'gadget') return 'rounded-none bg-linear-to-r from-violet-600 to-fuchsia-600 text-white'
+  if (normalized === 'appliance') return 'rounded-none bg-linear-to-r from-emerald-600 to-teal-600 text-white'
+  if (normalized === 'others') return 'rounded-none bg-linear-to-r from-amber-600 to-orange-600 text-white'
+  return 'rounded-none bg-linear-to-r from-slate-600 to-slate-800 text-white'
 }
 
-/** Today's date as YYYY-MM-DD in the user's local calendar */
 function localDateInputMin() {
   const d = new Date()
   const y = d.getFullYear()
@@ -263,7 +258,6 @@ function localDateInputMin() {
   return `${y}-${m}-${day}`
 }
 
-/** Format YYYY-MM-DD for confirmation copy (locale-aware). */
 function formatDateForConfirm(ymd) {
   const s = String(ymd ?? '').trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s || '—'
@@ -279,7 +273,6 @@ function truncateForSummary(text, max) {
   return `${t.slice(0, max)}…`
 }
 
-/** Default service mode from catalog `type` (shop service location). */
 function defaultServiceMode(serviceType) {
   const t = String(serviceType ?? '')
   if (t === 'home') return 'home'
@@ -287,7 +280,6 @@ function defaultServiceMode(serviceType) {
   return 'in-shop'
 }
 
-/** Optional hover hint on Book Now — fields to complete (English). */
 function bookingFieldsTooltip(serviceType) {
   const t = String(serviceType ?? '')
   const lines = [
@@ -310,7 +302,6 @@ function bookingFieldsTooltip(serviceType) {
   return lines.join('\n')
 }
 
-/** Hide provider note when value is empty or a placeholder (e.g. "N/A"). */
 function shouldShowProviderNote(value) {
   const t = String(value ?? '').trim()
   if (!t) return false
@@ -322,9 +313,7 @@ function shouldShowProviderNote(value) {
 }
 
 export default function CustomerServiceDetails({ serviceId }) {
-  const [user, setUser] = useState(null)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const profileMenuRef = useRef(null)
+  const [user, setUser] = useState(readCustomerUserSession)
 
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(true)
@@ -354,6 +343,9 @@ export default function CustomerServiceDetails({ serviceId }) {
   })
   const [locationCaptureLoading, setLocationCaptureLoading] = useState(false)
   const [locationCaptureError, setLocationCaptureError] = useState('')
+  const [mapUserLocation, setMapUserLocation] = useState(null)
+  const [mapLocationLoading, setMapLocationLoading] = useState(false)
+  const [mapLocationError, setMapLocationError] = useState('')
   const [issuePhotos, setIssuePhotos] = useState([])
   const issuePhotoPreviews = useMemo(
     () =>
@@ -365,7 +357,6 @@ export default function CustomerServiceDetails({ serviceId }) {
     [issuePhotos]
   )
 
-  /** Customer GPS from booking form — shown as second pin on header map (home service). */
   const headerBookingLocationPin = useMemo(() => {
     if (bookForm.serviceMode !== 'home') return null
     if (
@@ -382,6 +373,23 @@ export default function CustomerServiceDetails({ serviceId }) {
       label: 'Your location (booking preview)',
     }
   }, [bookForm.serviceMode, bookForm.serviceLatitude, bookForm.serviceLongitude])
+
+  const headerMapSecondaryPin = useMemo(() => {
+    if (
+      mapUserLocation &&
+      typeof mapUserLocation.lat === 'number' &&
+      Number.isFinite(mapUserLocation.lat) &&
+      typeof mapUserLocation.lng === 'number' &&
+      Number.isFinite(mapUserLocation.lng)
+    ) {
+      return {
+        lat: mapUserLocation.lat,
+        lng: mapUserLocation.lng,
+        label: 'Your location',
+      }
+    }
+    return headerBookingLocationPin
+  }, [mapUserLocation, headerBookingLocationPin])
 
   const serviceReviewsList = useMemo(
     () => serviceReviews.map((rv) => ({ ...rv, images: (rv.images || []).map(resolveReviewMediaSrc).filter(Boolean) })),
@@ -455,24 +463,6 @@ export default function CustomerServiceDetails({ serviceId }) {
     }
   }, [user, serviceId])
 
-  useEffect(() => {
-    const raw = localStorage.getItem('user')
-    const token = localStorage.getItem('token')
-    if (!token || !raw) {
-      window.location.hash = '#/login'
-      return
-    }
-    try {
-      const parsed = JSON.parse(raw)
-      if (parsed.role !== 'customer') {
-        window.location.hash = '#/login'
-        return
-      }
-      setUser(parsed)
-    } catch {
-      window.location.hash = '#/login'
-    }
-  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -581,16 +571,6 @@ export default function CustomerServiceDetails({ serviceId }) {
     }
   }, [detail])
 
-  useEffect(() => {
-    if (!profileOpen) return
-    const handleClickOutside = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-        setProfileOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [profileOpen])
 
   useEffect(() => {
     return () => {
@@ -627,24 +607,18 @@ export default function CustomerServiceDetails({ serviceId }) {
     setBookDialogOpen(true)
   }
 
-  const captureCustomerLocation = () => {
+  const readBrowserLocation = ({ onSuccess, onError, onFinish }) => {
     if (!navigator.geolocation) {
-      setLocationCaptureError('Location is not supported in this browser.')
+      onError?.('Location is not supported in this browser.')
+      onFinish?.()
       return
     }
-    setLocationCaptureError('')
-    setLocationCaptureLoading(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setBookForm((f) => ({
-          ...f,
-          serviceLatitude: pos.coords.latitude,
-          serviceLongitude: pos.coords.longitude,
-        }))
-        setLocationCaptureLoading(false)
+        onSuccess?.(pos.coords.latitude, pos.coords.longitude)
+        onFinish?.()
       },
       (err) => {
-        setLocationCaptureLoading(false)
         let msg = 'Could not read your location.'
         if (err?.code === 1) {
           msg =
@@ -654,10 +628,44 @@ export default function CustomerServiceDetails({ serviceId }) {
         } else if (err?.code === 3) {
           msg = 'Location request timed out. Try again.'
         }
-        setLocationCaptureError(msg)
+        onError?.(msg)
+        onFinish?.()
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60_000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60_000 },
     )
+  }
+
+  const captureCustomerLocation = () => {
+    setLocationCaptureError('')
+    setLocationCaptureLoading(true)
+    readBrowserLocation({
+      onSuccess: (lat, lng) => {
+        setBookForm((f) => ({
+          ...f,
+          serviceLatitude: lat,
+          serviceLongitude: lng,
+        }))
+      },
+      onError: (msg) => setLocationCaptureError(msg),
+      onFinish: () => setLocationCaptureLoading(false),
+    })
+  }
+
+  const captureMapUserLocation = () => {
+    setMapLocationError('')
+    setMapLocationLoading(true)
+    readBrowserLocation({
+      onSuccess: (lat, lng) => {
+        setMapUserLocation({ lat, lng })
+      },
+      onError: (msg) => setMapLocationError(msg),
+      onFinish: () => setMapLocationLoading(false),
+    })
+  }
+
+  const clearMapUserLocation = () => {
+    setMapUserLocation(null)
+    setMapLocationError('')
   }
 
   const handleBookingFormSubmit = (e) => {
@@ -719,1098 +727,1026 @@ export default function CustomerServiceDetails({ serviceId }) {
     }
   }
 
-  const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
 
-  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-sky-50 via-violet-50 to-indigo-100">
-        <p className="text-gray-600 text-sm">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-600 text-sm font-medium">Loading…</p>
       </div>
     )
   }
 
   const CategoryIcon = detail ? categoryIcon(detail.category) : Wrench
 
+  const dialogInputClass =
+    'h-9 w-full rounded-none border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300'
+
   return (
-    <>
-      <div className="fixed top-0 left-0 right-0 z-100 min-h-16 border-b border-transparent bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6]">
-        <div className="mx-auto flex h-full min-h-16 max-w-7xl items-center justify-between gap-3 px-1 py-2 sm:px-3 sm:py-2.5">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <button
+    <CustomerLayout activePage="find-services">
+
+      {/* Main Container */}
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+        {detailLoading ? (
+          <div className="flex min-h-[360px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-2xs">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-[#081F5C]" />
+            <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-900">Loading service details…</p>
+            <p className="mt-1 max-w-md text-xs text-slate-500">Fetching shop and service information.</p>
+          </div>
+        ) : detailError ? (
+          <div className="rounded-none border border-rose-300 bg-rose-50 px-6 py-8 text-center text-xs font-medium text-rose-900 shadow-2xs">
+            <p className="text-sm font-bold text-rose-800">{detailError}</p>
+            <Button
               type="button"
+              variant="outline"
+              className="mt-4 rounded-none border-rose-300 text-xs font-bold uppercase tracking-wider hover:bg-rose-100"
               onClick={() => {
                 window.location.hash = '#/customer/find-services'
               }}
-              aria-label="Back"
-              className="text-white hover:text-white/90 shrink-0"
             >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              className="flex shrink-0 items-center min-w-0"
-              aria-label="E-PAAYOS"
-              onClick={() => {
-                window.location.hash = '#/customer/dashboard'
-              }}
-            >
-              <img
-                src={logoEpaayos}
-                alt="E-PAAYOS"
-                className="h-8 w-auto max-h-10 max-w-[min(48vw,200px)] object-contain object-left sm:h-9"
-                decoding="async"
-              />
-            </button>
-            <span className="hidden sm:block h-6 w-px bg-white/40 ml-1 mr-1 shrink-0" />
-            <div className="hidden sm:grid h-10 w-10 rounded-lg bg-white/15 border border-white/30 place-items-center shrink-0">
-              <Store className="h-5 w-5 text-white" />
-            </div>
-            <div className="leading-tight min-w-0">
-              <div className="text-base sm:text-xl font-bold text-white truncate">Service Details</div>
-              <div className="text-[10px] sm:text-xs text-white/90 leading-snug sm:max-w-md line-clamp-2">
-                {detailLoading
-                  ? 'Loading shop and service information…'
-                  : detail
-                    ? (() => {
-                        const shop = detail.shopName?.trim() || '—'
-                        const owner = detail.shopOwner?.trim()
-                        return owner ? `${shop} · ${owner}` : shop
-                      })()
-                    : 'Review shop details, location, and this service before booking.'}
-              </div>
-            </div>
+              Back to Find Services
+            </Button>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              aria-label="Notification"
-              onClick={() => {
-                window.location.hash = '#/customer/notification'
-              }}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10"
-            >
-              <NotificationBellIndicator unreadCount={customerNotifUnread} countOnDarkBg>
-                <Bell className="h-5 w-5" />
-              </NotificationBellIndicator>
-            </button>
-
-            <div ref={profileMenuRef} className="relative">
-              <button
-                type="button"
-                aria-label="Profile menu"
-                onClick={() => setProfileOpen((prev) => !prev)}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                  profileOpen ? 'bg-white/15 text-white' : 'bg-transparent text-white hover:bg-white/10'
-                }`}
-              >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-semibold leading-none text-white ring-1 ring-white/30">
-                  {(user.fullName || user.email || 'C').charAt(0).toUpperCase()}
-                </span>
-              </button>
-
-              {profileOpen && (
-                <div className="absolute right-0 z-110 mt-2 w-44 overflow-hidden rounded-md border border-border/80 bg-white shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false)
-                      window.location.hash = '#/customer/reviews-ratings'
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <Star className="h-4 w-4" />
-                    <span className="whitespace-nowrap">Reviews &amp; Ratings</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false)
-                      window.location.hash = '#/customer/account-settings'
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Account Settings</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(false)
-                      requestLogout()
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Log out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="min-h-screen overflow-x-hidden bg-linear-to-b from-sky-50 via-violet-50 to-indigo-100 pt-16 pb-10 sm:pt-16">
-        <div className="max-w-7xl mx-auto px-1 sm:px-3">
-          {detailLoading ? (
-            <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-white/60 px-6 py-12 text-center shadow-sm">
-              <p className="text-sm font-medium text-foreground">Loading service details…</p>
-              <p className="mt-1 max-w-md text-xs text-muted-foreground">Fetching the same catalog data shops use for this listing.</p>
-            </div>
-          ) : detailError ? (
-            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive">
-              <p>{detailError}</p>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4"
-                onClick={() => {
-                  window.location.hash = '#/customer/find-services'
-                }}
-              >
-                Back to Find Services
-              </Button>
-            </div>
-          ) : detail ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-0">
-              <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2">
-              <div className="relative isolate z-0 w-full min-h-[max(300px,min(480px,58vh))] overflow-hidden rounded-none border-x-0 border-t-0 border-b-0 border-[#081F5C]/10 bg-white/90 shadow-sm ring-1 ring-inset ring-black/5 dark:border-white/10 dark:bg-[#020818]/90 dark:ring-white/5">
-                <div className="absolute inset-0 z-0 flex min-h-0 flex-col">
-                  {mapPartsResolving ? (
-                    <div
-                      className="flex h-full min-h-[max(300px,min(480px,58vh))] w-full flex-1 items-center justify-center bg-slate-100/90 text-sm text-muted-foreground dark:bg-white/5"
-                      role="status"
-                      aria-live="polite"
+        ) : detail ? (
+          <div className="space-y-6 sm:space-y-8">
+            {/* Split Modern Hero Section: Service Details (Left) + Interactive Map & Shop Card (Right) */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+              {/* Left Column: Primary Service Info Banner */}
+              <div className="lg:col-span-7 flex flex-col justify-between rounded-none border border-slate-200 bg-white p-6 sm:p-7 shadow-[0_3px_8px_rgba(15,23,42,0.14)]">
+                <div className="space-y-4">
+                  {/* Badges Bar */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge className={categoryBadgeClass(detail.category)}>{detail.category || '—'}</Badge>
+                    {serviceTypeBadge(detail.type)}
+                    <span className="inline-flex items-center gap-1.5 rounded-none border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                      Active Listing
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="rounded-none border border-slate-200 bg-slate-100/90 text-[10px] font-bold uppercase tracking-wider text-[#081F5C]"
                     >
-                      Preparing map from shop address…
-                    </div>
-                  ) : (
-                    <div className="flex min-h-0 flex-1 flex-col">
-                      <ShopAddressGoogleMap
-                        addressParts={mapAddressParts}
-                        mapTitle={detail.shopName?.trim() ? `${detail.shopName.trim()} — shop location` : 'Shop location'}
-                        showHeading={false}
-                        flush
-                        secondaryPin={headerBookingLocationPin}
-                        emptyAddressHint="This shop has not added enough address detail to show a map pin. Use the written address below."
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="pointer-events-none absolute inset-y-2.5 left-0 right-0 z-10 sm:inset-y-4">
-                  <div className="mx-auto flex h-full w-full max-w-7xl items-start px-1 sm:px-3">
-                    <aside
-                      className="pointer-events-none flex max-h-full w-[min(19rem,100%)] max-w-full flex-col self-start sm:w-[min(22rem,100%)]"
-                      aria-label="Shop summary"
-                    >
-                  <div className="pointer-events-auto flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-xl border border-[#081F5C]/40 bg-white/58 shadow-lg shadow-black/10 ring-1 ring-[#081F5C]/12 dark:border-[#1447a6]/55 dark:bg-white/40 dark:shadow-black/30 dark:ring-[#1447a6]/20">
-                    <CardContent className="flex max-h-[min(32rem,72dvh)] flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 text-shadow-[0_1px_2px_rgba(255,255,255,0.88)] shadow-none dark:text-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
-                      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-3 pt-3 pb-2 sm:gap-4 sm:px-4 sm:pt-4 sm:pb-3">
-                      <div>
-                        <p className="flex items-start gap-2 text-sm font-semibold leading-snug sm:text-base">
-                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/70 text-slate-700 ring-1 ring-[#081F5C]/18 sm:h-9 sm:w-9 sm:rounded-xl dark:bg-white/45 dark:text-white dark:ring-[#1447a6]/35">
-                            <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
-                          </span>
-                          <span className="min-w-0 text-slate-900 dark:text-white">{detail.shopName?.trim() || '—'}</span>
-                        </p>
-                      </div>
-
-                      <div className="space-y-2.5 border-t border-dashed border-[#081F5C]/18 pt-2.5 dark:border-[#1447a6]/35 sm:space-y-3 sm:pt-3">
-                        <div className="flex gap-2 text-sm">
-                          <User className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-600 sm:h-4 sm:w-4 dark:text-white/75" aria-hidden />
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-600 sm:text-[11px] dark:text-white/65">
-                              Shop owner
-                            </p>
-                            <p className="text-xs font-medium text-slate-900 sm:text-sm dark:text-white">{detail.shopOwner?.trim() || '—'}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 text-sm">
-                          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-600 sm:h-4 sm:w-4 dark:text-white/75" aria-hidden />
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-medium uppercase tracking-wide text-slate-600 sm:text-[11px] dark:text-white/65">
-                              Address
-                            </p>
-                            <p className="text-xs leading-snug text-slate-900 sm:text-sm dark:text-white">{detail.shopAddress?.trim() || '—'}</p>
-                          </div>
-                        </div>
-
-                        {detail.shopLandmark?.trim() ? (
-                          <div className="flex gap-2 text-sm">
-                            <Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-600 sm:h-4 sm:w-4 dark:text-amber-200/90" aria-hidden />
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-medium uppercase tracking-wide text-slate-600 sm:text-[11px] dark:text-white/65">
-                                Landmark
-                              </p>
-                              <p className="text-xs leading-snug text-slate-900 sm:text-sm dark:text-white">{detail.shopLandmark.trim()}</p>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5 border-t border-dashed border-[#081F5C]/18 pt-2.5 dark:border-[#1447a6]/35 sm:gap-2 sm:pt-3">
-                        {serviceTypeBadge(detail.type)}
-                        <Badge
-                          variant="outline"
-                          className="inline-flex items-center gap-1 border-[#081F5C]/30 bg-white/65 text-[10px] font-medium text-slate-800 sm:gap-1 sm:text-[11px] dark:border-[#1447a6]/45 dark:bg-white/35 dark:text-white"
-                        >
-                          <CalendarCheck className="h-2.5 w-2.5 shrink-0 opacity-90 sm:h-3 sm:w-3" aria-hidden />
-                          {detail.completedJobs ?? 0} bookings
-                        </Badge>
-                        <Badge
-                          variant="outline"
-                          className="inline-flex items-center gap-0.5 border-[#081F5C]/30 bg-white/65 text-[10px] font-medium text-slate-800 sm:gap-1 sm:text-[11px] dark:border-[#1447a6]/45 dark:bg-white/35 dark:text-white"
-                        >
-                          <Star className="h-2.5 w-2.5 shrink-0 text-slate-700 dark:text-amber-200/90 sm:h-3 sm:w-3" aria-hidden />
-                          {typeof detail.shopRating === 'number' && detail.shopRating > 0
-                            ? `${detail.shopRating.toFixed(1)} rating`
-                            : 'No ratings yet'}
-                        </Badge>
-                      </div>
-                      </div>
-
-                      <div className="shrink-0 border-t border-dashed border-[#081F5C]/18 bg-white/40 px-3 py-2.5 dark:border-[#1447a6]/35 dark:bg-white/15 sm:px-4">
-                        <Button
-                          type="button"
-                          aria-label="Open messages to contact this shop"
-                          className="h-9 w-full gap-2 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] text-xs font-medium text-white shadow-sm hover:opacity-95 sm:h-10 sm:text-sm"
-                          onClick={() => {
-                            const ownerId = detail?.shopOwnerId
-                            if (ownerId) {
-                              try {
-                                sessionStorage.setItem(
-                                  'epaayos_message_recipient',
-                                  JSON.stringify({
-                                    fullName: detail.shopName?.trim() || 'Shop',
-                                    shopName: detail.shopName?.trim() || '',
-                                    ownerName: detail.shopOwner?.trim() || '',
-                                    role: 'Shop',
-                                    isOnline: false,
-                                    otherUserId: String(ownerId),
-                                  }),
-                                )
-                              } catch {
-                                /* ignore */
-                              }
-                            }
-                            window.location.hash = '#/customer/messages'
-                          }}
-                        >
-                          <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
-                          Message shop
-                        </Button>
-                      </div>
-                    </CardContent>
+                      <CalendarCheck className="mr-1 h-3 w-3 text-[#081F5C]" aria-hidden />
+                      {detail.completedJobs ?? 0} jobs done
+                    </Badge>
                   </div>
-                    </aside>
-                  </div>
-                </div>
-              </div>
-              </div>
 
-              <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2">
-              <div
-                className="overflow-x-auto rounded-none border-x-0 border-b border-t-0 border-zinc-400/45 bg-linear-to-r from-zinc-300 via-zinc-200 to-zinc-300 px-0 py-2 shadow-sm ring-1 ring-inset ring-zinc-400/30 dark:border-zinc-500/40 dark:bg-linear-to-r dark:from-zinc-700 dark:via-zinc-600 dark:to-zinc-700 dark:ring-zinc-500/25 sm:py-2.5"
-                role="region"
-                aria-label="Shop summary table"
-              >
-                <div className="mx-auto w-full max-w-7xl pl-20 pr-1 sm:pl-28 sm:pr-3">
-                <table className="w-full min-w-[36rem] border-separate border-spacing-x-1 border-spacing-y-0 text-sm text-zinc-900 dark:text-zinc-100 sm:min-w-[42rem] sm:border-spacing-x-2 md:border-spacing-x-3">
-                  <tbody>
-                    <tr>
-                      <td className="w-[24%] whitespace-nowrap py-1.5 align-top sm:py-2">
-                        <ShopTableLabel icon={Layers} variant="dark">
-                          No. of Services:
-                        </ShopTableLabel>
-                      </td>
-                      <td className="w-[22%] py-1.5 align-top font-medium tabular-nums sm:py-2">
-                        {shopContext?.activeServiceCount != null ? shopContext.activeServiceCount : '—'}
-                      </td>
-                      <td className="w-[24%] whitespace-nowrap border-l border-zinc-400/55 py-1.5 pl-6 align-top dark:border-zinc-500/50 sm:py-2 sm:pl-10 md:pl-14">
-                        <ShopTableLabel icon={Clock} variant="dark">
-                          Operating Hours:
-                        </ShopTableLabel>
-                      </td>
-                      <td className="min-w-0 py-1.5 align-top font-medium wrap-break-word sm:py-2">
-                        {detail.shopOperatingHours?.trim() ? detail.shopOperatingHours.trim() : '—'}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="whitespace-nowrap py-1.5 align-top sm:py-2">
-                        <ShopTableLabel icon={Tag} variant="dark">
-                          Service Type:
-                        </ShopTableLabel>
-                      </td>
-                      <td className="py-1.5 align-top font-medium sm:py-2">
-                        {SERVICE_TYPES.find((x) => x.value === detail.type)?.label ?? '—'}
-                      </td>
-                      <td className="whitespace-nowrap border-l border-zinc-400/55 py-1.5 pl-6 align-top dark:border-zinc-500/50 sm:py-2 sm:pl-10 md:pl-14">
-                        <ShopTableLabel icon={Star} variant="dark">
-                          Ratings:
-                        </ShopTableLabel>
-                      </td>
-                      <td className="min-w-0 py-1.5 align-top font-medium tabular-nums sm:py-2">
-                        {(() => {
-                          const shopAvg = Number(shopContext?.shopAverageRating) || 0
-                          const svc = Number(detail.shopRating) || 0
-                          if (shopAvg > 0) return `${shopAvg.toFixed(1)} / 5`
-                          if (svc > 0) return `${svc.toFixed(1)} / 5`
-                          return '—'
-                        })()}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="whitespace-nowrap py-1.5 align-top sm:py-2">
-                        <ShopTableLabel icon={Users} variant="dark">
-                          {noOfTechnicianMechanicLabel(detail.category)}
-                        </ShopTableLabel>
-                      </td>
-                      <td className="py-1.5 align-top font-medium tabular-nums sm:py-2">
-                        {(detail.staff ?? []).length}
-                      </td>
-                      <td className="whitespace-nowrap border-l border-zinc-400/55 py-1.5 pl-6 align-top dark:border-zinc-500/50 sm:py-2 sm:pl-10 md:pl-14">
-                        <ShopTableLabel icon={CalendarDays} variant="dark">
-                          Date Joined:
-                        </ShopTableLabel>
-                      </td>
-                      <td className="min-w-0 py-1.5 align-top font-medium sm:py-2">
-                        {formatShopOwnerJoinedAt(detail.shopOwnerJoinedAt)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                </div>
-              </div>
-              </div>
-              </div>
-
-              <Card className="gap-0 py-0 overflow-hidden rounded-2xl border border-[#081F5C]/10 bg-white/95 shadow-sm ring-1 ring-black/5 dark:border-white/10 dark:bg-[#020818]/95">
-                <CardContent className="px-3 py-3 sm:px-4 sm:py-3.5">
-                  <div className="flex flex-col gap-2 sm:gap-2.5">
-                    <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
-                      <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#081F5C]/12 text-[#081F5C] sm:h-11 sm:w-11">
-                        <CategoryIcon className="h-5 w-5 sm:h-5 sm:w-5" />
+                  {/* Title & Category Header */}
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
+                        <CategoryIcon className="h-6 w-6" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-base font-semibold leading-snug text-foreground sm:text-lg">{detail.serviceName}</p>
-                        <div className="mt-1 space-y-0">
-                          <p className="text-sm font-semibold text-[#04133d] dark:text-slate-100">{detail.category || '—'}</p>
-                          {detail.subcategory?.trim() ? (
-                            <p className="text-sm text-muted-foreground">{detail.subcategory.trim()}</p>
-                          ) : null}
-                        </div>
-                        <div className="mt-2 flex w-full min-w-0 items-center gap-2">
-                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1.5 sm:gap-x-2 sm:gap-y-2">
-                            <Badge className={categoryBadgeClass(detail.category)}>{detail.category || '—'}</Badge>
-                            {serviceTypeBadge(detail.type)}
-                            <Badge className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
-                              Active
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className="inline-flex items-center gap-1 border-[#081F5C]/15 bg-white/90 text-[11px] font-medium text-[#081F5C] dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
-                            >
-                              <CalendarCheck className="h-3 w-3 shrink-0 opacity-90" aria-hidden />
-                              {detail.completedJobs ?? 0} bookings
-                            </Badge>
-                            <Badge
-                              variant="outline"
-                              className="border-[#081F5C]/15 bg-white/90 text-[11px] font-medium text-[#081F5C] dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
-                            >
-                              {typeof detail.shopRating === 'number' && detail.shopRating > 0
-                                ? `${detail.shopRating.toFixed(1)} rating`
-                                : 'No ratings yet'}
-                            </Badge>
-                          </div>
-                          <Button
-                            type="button"
-                            aria-label="Book this service now"
-                            title={bookingFieldsTooltip(detail.type)}
-                            className="h-9 shrink-0 gap-1.5 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] px-4 text-xs font-semibold text-white shadow-sm hover:opacity-95 sm:px-5 sm:text-sm"
-                            onClick={openBookDialog}
-                          >
-                            <CalendarCheck className="h-3.5 w-3.5 shrink-0 opacity-95" aria-hidden />
-                            Book Now
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-[#081F5C]/10 pt-2.5 dark:border-white/10">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {(detail.staff ?? []).length ? (
-                          <>
-                            <Users
-                              className="h-4 w-4 shrink-0 text-[#081F5C]/70 dark:text-sky-300/80"
-                              aria-hidden
-                            />
-                            <div className="inline-flex items-center gap-1.5">
-                              {(detail.staff ?? []).slice(0, 4).map((name, idx) => (
-                                <span
-                                  key={`${String(name)}-${idx}`}
-                                  title={String(name)}
-                                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-semibold text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                                >
-                                  {initialsFromName(name)}
-                                </span>
-                              ))}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {staffAssignedLabel(detail.category, (detail.staff ?? []).length)}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Users className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
-                            No mechanics or technicians assigned to this service yet.
-                          </span>
-                        )}
+                        <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold uppercase tracking-wide text-slate-900 leading-tight">
+                          {detail.serviceName}
+                        </h1>
+                        <p className="text-xs font-bold text-[#081F5C] mt-0.5">
+                          Category: <span className="text-slate-800">{detail.category || '—'}</span>
+                          {detail.subcategory?.trim() ? ` · ${detail.subcategory.trim()}` : ''}
+                        </p>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
 
-              <div className="space-y-4">
-                  <p className="flex gap-2.5 text-sm leading-relaxed text-foreground">
-                    <FileText
-                      className="mt-0.5 h-4 w-4 shrink-0 text-[#081F5C]/65 dark:text-sky-300/75"
-                      aria-hidden
-                    />
-                    <span className="min-w-0">{detail.description || '—'}</span>
-                  </p>
+                  {/* Quick specs pills */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 border-t border-b border-slate-100 py-3.5 text-xs">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rating</p>
+                      <p className="flex items-center gap-1 font-bold text-slate-900 mt-0.5">
+                        <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-400 shrink-0" />
+                        {typeof detail.shopRating === 'number' && detail.shopRating > 0
+                          ? `${detail.shopRating.toFixed(1)} / 5.0`
+                          : 'New listing'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Service Scope</p>
+                      <p className="font-bold text-slate-900 truncate mt-0.5">
+                        {SERVICE_TYPES.find((x) => x.value === detail.type)?.label ?? 'Standard'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Staff Assigned</p>
+                      <p className="font-bold text-slate-900 mt-0.5">
+                        {(detail.staff ?? []).length} {noOfTechnicianMechanicLabel(detail.category).toLowerCase().replace('no. of ', '')}
+                      </p>
+                    </div>
+                  </div>
 
-                  <section className="pt-2" aria-labelledby="completed-works-heading">
-                    <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                      <div>
-                        <h2
-                          id="completed-works-heading"
-                          className="flex items-center gap-2 text-base font-semibold tracking-tight text-[#081F5C] dark:text-slate-50 sm:text-lg"
-                        >
-                          <ClipboardList className="h-5 w-5 shrink-0 text-[#081F5C]/80 dark:text-sky-300/85" aria-hidden />
-                          Completed works
-                        </h2>
+                  {/* Assigned Staff Preview */}
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      Assigned Personnel
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {(detail.staff ?? []).length ? (
+                        <>
+                          <div className="inline-flex items-center gap-1.5">
+                            {(detail.staff ?? []).slice(0, 4).map((name, idx) => (
+                              <span
+                                key={`${String(name)}-${idx}`}
+                                title={String(name)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-none border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[11px] font-bold text-white shadow-2xs ring-1 ring-black/5"
+                              >
+                                {initialsFromName(name)}
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-xs font-semibold text-slate-600">
+                            {staffAssignedLabel(detail.category, (detail.staff ?? []).length)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs font-medium text-slate-500">
+                          No dedicated staff specified; provided directly by shop owner.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary CTA Buttons */}
+                <div className="mt-6 flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100">
+                  <Button
+                    type="button"
+                    aria-label="Book this service now"
+                    title={bookingFieldsTooltip(detail.type)}
+                    className="h-11 flex-1 gap-2 rounded-none bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-6 text-xs sm:text-sm font-bold uppercase tracking-wider text-white shadow-[0_4px_12px_rgba(8,31,92,0.35)] hover:shadow-[0_6px_16px_rgba(8,31,92,0.5)] transition-all hover:scale-[1.005] hover:opacity-95"
+                    onClick={openBookDialog}
+                  >
+                    <CalendarCheck className="h-4 w-4 shrink-0" aria-hidden />
+                    Book Service Now
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-label="Contact Shop"
+                    className="h-11 gap-2 rounded-none border border-slate-300 bg-white px-5 text-xs sm:text-sm font-bold uppercase tracking-wider text-[#081F5C] hover:bg-slate-100 hover:border-[#081F5C] transition-all"
+                    onClick={() => {
+                      storeShopRecipientForMessages(detail)
+                      window.location.hash = '#/customer/messages'
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4 shrink-0 text-[#081F5C]" />
+                    Message Shop
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right Column: Google Map + Shop Profile Card */}
+              <div className="lg:col-span-5 flex flex-col gap-4">
+                <div className="overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)]">
+                  {/* Shop Header Bar */}
+                  <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <OwnerThumb
+                        src={resolveOwnerThumbSrc(detail)}
+                        ownerName={detail.shopOwner?.trim() || detail.shopName?.trim() || ''}
+                      />
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold leading-snug text-slate-900 truncate">
+                          {detail.shopName?.trim() || 'Shop Location'}
+                        </h3>
+                        <p className="text-[11px] font-medium text-slate-500 truncate">
+                          Owner: {detail.shopOwner?.trim() || '—'}
+                        </p>
                       </div>
                     </div>
-                    <div
-                      className="flex flex-nowrap gap-4 overflow-x-auto overscroll-x-contain pt-0.5 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden"
-                      role="list"
-                      aria-label="Completed work entries"
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 rounded-none border-slate-300 text-[11px] font-bold uppercase tracking-wider text-[#081F5C] hover:border-[#081F5C]"
+                      onClick={() => {
+                        if (serviceId) window.location.hash = `#/customer/view-shop/${encodeURIComponent(serviceId)}`
+                      }}
                     >
-                      {MOCK_COMPLETED_WORKS.map((job) => {
-                        const { time, date } = formatCompletedWorkDateTime(job.completedAt)
-                        return (
+                      <Store className="mr-1 h-3.5 w-3.5" /> View Shop
+                    </Button>
+                  </div>
+
+                  {/* Google Map Box */}
+                  <div className="relative isolate z-0 h-[260px] sm:h-[290px] w-full bg-slate-100">
+                    {mapPartsResolving ? (
+                      <div className="flex h-full w-full items-center justify-center text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Preparing map from shop address…
+                      </div>
+                    ) : (
+                      <div className="relative h-full w-full">
+                        <ShopAddressGoogleMap
+                          addressParts={mapAddressParts}
+                          mapTitle={detail.shopName?.trim() ? `${detail.shopName.trim()} — shop location` : 'Shop location'}
+                          showHeading={false}
+                          flush
+                          secondaryPin={headerMapSecondaryPin}
+                          showRouteLine={Boolean(headerMapSecondaryPin)}
+                          emptyAddressHint="This shop has not added enough address detail to show a map pin. Use the written address below."
+                        />
+                        <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex flex-col items-end gap-1.5">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="pointer-events-auto h-8 gap-1.5 rounded-none border border-slate-200 bg-white/95 text-[11px] font-bold text-[#081F5C] shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:bg-white hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)]"
+                            disabled={mapLocationLoading}
+                            onClick={captureMapUserLocation}
+                          >
+                            <Navigation className="h-3 w-3 shrink-0" aria-hidden />
+                            {mapLocationLoading ? 'Getting location…' : headerMapSecondaryPin ? 'Update location' : 'Route from my location'}
+                          </Button>
+                          {headerMapSecondaryPin ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="pointer-events-auto h-6 rounded-none bg-white/90 px-2 text-[10px] font-semibold text-slate-600 shadow-2xs hover:bg-white"
+                              onClick={clearMapUserLocation}
+                            >
+                              Clear route
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Shop Location Info Footer */}
+                  <div className="p-4 space-y-2 border-t border-slate-200 bg-white text-xs">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#081F5C]" />
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shop Address</p>
+                        <p className="font-semibold text-slate-800 leading-snug">{detail.shopAddress?.trim() || '—'}</p>
+                      </div>
+                    </div>
+                    {detail.shopLandmark?.trim() ? (
+                      <div className="flex items-start gap-2 pt-1 border-t border-slate-100">
+                        <Landmark className="mt-0.5 h-4 w-4 shrink-0 text-[#081F5C]" />
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Landmark</p>
+                          <p className="font-semibold text-slate-800 leading-snug">{detail.shopLandmark.trim()}</p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Statistics Strip Grid */}
+            <div
+              id="customer-shop-summary-table"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4"
+              role="region"
+              aria-label="Shop key statistics"
+            >
+              <div className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_2px_5px_rgba(15,23,42,0.12)]">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-[#081F5C]/10 text-[#081F5C]">
+                    <Layers className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Services</p>
+                    <p className="text-sm font-extrabold text-slate-900 tabular-nums">
+                      {shopContext?.activeServiceCount != null ? shopContext.activeServiceCount : '—'} Active
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_2px_5px_rgba(15,23,42,0.12)]">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-[#081F5C]/10 text-[#081F5C]">
+                    <Clock className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Operating Hours</p>
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {detail.shopOperatingHours?.trim() ? detail.shopOperatingHours.trim() : 'Mon - Sat'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_2px_5px_rgba(15,23,42,0.12)]">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-[#081F5C]/10 text-[#081F5C]">
+                    <Star className="h-4 w-4 fill-amber-300 text-amber-400" />
+                  </span>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shop Rating</p>
+                    <p className="text-sm font-extrabold text-slate-900 tabular-nums">
+                      {(() => {
+                        const shopAvg = Number(shopContext?.shopAverageRating) || 0
+                        const svc = Number(detail.shopRating) || 0
+                        if (shopAvg > 0) return `${shopAvg.toFixed(1)} / 5.0`
+                        if (svc > 0) return `${svc.toFixed(1)} / 5.0`
+                        return 'Unrated'
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_2px_5px_rgba(15,23,42,0.12)]">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-[#081F5C]/10 text-[#081F5C]">
+                    <CalendarDays className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Date Joined</p>
+                    <p className="text-xs font-bold text-slate-900">
+                      {formatShopOwnerJoinedAt(detail.shopOwnerJoinedAt)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Structured 2-Column Content Layout: Main Info (Left) + How It Works / Overview (Right) */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+              {/* Left Main Content Column */}
+              <div className="lg:col-span-8 space-y-6 sm:space-y-8">
+                {/* Description Card */}
+                <div className="rounded-none border border-slate-200 bg-white p-6 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2.5">
+                    <FileText className="h-4 w-4 text-[#081F5C]" /> Service Description
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-medium pt-1">
+                    {detail.description || 'No description available for this service.'}
+                  </p>
+                </div>
+
+                {/* Completed Works Showcase */}
+                <section aria-labelledby="completed-works-heading" className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2
+                      id="completed-works-heading"
+                      className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-900 sm:text-base"
+                    >
+                      <ClipboardList className="h-5 w-5 text-[#081F5C]" aria-hidden />
+                      Completed Works Showcase
+                    </h2>
+                    <span className="text-xs font-medium text-slate-500">Sample finished repair jobs</span>
+                  </div>
+                  <div
+                    className="flex flex-nowrap gap-4 overflow-x-auto overscroll-x-contain pb-2 scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    role="list"
+                    aria-label="Completed work entries"
+                  >
+                    {MOCK_COMPLETED_WORKS.map((job) => {
+                      const { time, date } = formatCompletedWorkDateTime(job.completedAt)
+                      return (
                         <article
                           key={job.id}
                           role="listitem"
-                          className="w-[min(420px,calc(100vw-3rem))] shrink-0 snap-start rounded-xl border border-[#081F5C]/12 bg-white/95 p-5 shadow-sm dark:border-white/10 dark:bg-[#020818]/90 sm:w-[min(440px,calc(100vw-4rem))] md:w-[460px]"
+                          className="w-[min(380px,calc(100vw-3rem))] shrink-0 snap-start rounded-none border border-slate-200 bg-white p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)]"
                         >
                           <div className="flex items-center gap-3">
                             <div
-                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white ring-2 ring-white/80 shadow-sm dark:ring-white/20"
+                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white shadow-2xs"
                               aria-hidden
                             >
                               {initialsFromName(job.customerName)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-foreground">{job.customerName}</p>
-                              <p className="text-[11px] text-muted-foreground">Customer</p>
+                              <p className="truncate text-sm font-bold text-slate-900">{job.customerName}</p>
+                              <p className="text-[11px] font-medium text-slate-500">Verified Customer</p>
                             </div>
                           </div>
-                          <div className="mt-3 border-t border-dashed border-[#081F5C]/15 pt-3 dark:border-white/10">
-                            <p className="text-[11px] font-normal leading-snug text-muted-foreground/80 dark:text-muted-foreground/70">
-                              Work completed for customer
+                          <div className="mt-3 border-t border-slate-100 pt-3">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Work completed
                             </p>
-                            <p className="mt-2 text-sm font-normal leading-relaxed text-foreground">{job.whatWasFixed}</p>
+                            <p className="mt-1 text-xs sm:text-sm font-medium leading-relaxed text-slate-800">
+                              {job.whatWasFixed}
+                            </p>
                           </div>
-                          <div className="mt-3 flex items-center justify-between gap-3 border-t border-dashed border-[#081F5C]/15 pt-3 text-sm tabular-nums dark:border-white/10">
-                            <span className="shrink-0 font-semibold text-[#04133d] dark:text-slate-100">{time}</span>
-                            <span className="min-w-0 text-right font-medium text-muted-foreground">{date}</span>
+                          <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-2 text-xs tabular-nums">
+                            <span className="shrink-0 font-bold text-[#081F5C]">{time}</span>
+                            <span className="min-w-0 text-right font-semibold text-slate-500">{date}</span>
                           </div>
                         </article>
-                        )
-                      })}
-                    </div>
-                  </section>
+                      )
+                    })}
+                  </div>
+                </section>
+              </div>
 
-                  <section className="pt-2" aria-labelledby="service-reviews-heading">
-                    <div className="overflow-hidden rounded-2xl border border-[#081F5C]/10 bg-white/95 shadow-sm ring-1 ring-black/5 dark:border-white/10 dark:bg-[#020818]/95">
-                      <div className="px-4 py-4 sm:px-5 sm:py-5">
-                        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                          <h2
-                            id="service-reviews-heading"
-                            className="flex items-center gap-2 text-lg font-semibold text-[#081F5C] dark:text-slate-100 sm:text-xl"
-                          >
-                            <Star className="h-5 w-5 shrink-0 fill-amber-400/30 text-amber-500 dark:fill-amber-400/20 dark:text-amber-300/90" aria-hidden />
-                            Reviews & Ratings
-                          </h2>
-                          <div className="flex shrink-0 items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                window.location.hash = '#/customer/reviews-ratings'
-                              }}
-                              className="text-sm font-medium text-[#1447a6] hover:text-[#081F5C] dark:text-sky-300 dark:hover:text-sky-200"
-                            >
-                              View all ›
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="mb-3 flex flex-wrap items-center gap-3">
-                          <div className="text-xl font-bold text-foreground">
-                            {hasServiceRatings ? `${serviceRatingAverage.toFixed(1)} out of 5` : 'No ratings yet'}
-                          </div>
-                          <div className="flex items-center" aria-hidden>
-                            {[0, 1, 2, 3, 4].map((i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < Math.floor(hasServiceRatings ? serviceRatingAverage : 0)
-                                    ? 'fill-amber-400 text-amber-400'
-                                    : 'text-muted-foreground/35'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <div className="hidden h-4 w-px bg-border sm:block" />
-                          <span className="text-sm text-muted-foreground">
-                            {hasServiceRatings
-                              ? `${serviceRatingCount} Review${serviceRatingCount === 1 ? '' : 's'}`
-                              : 'No reviews yet'}
-                          </span>
-                        </div>
-
-                        {serviceReviewsList.length > 0 ? (
-                          <div className="mb-3 flex flex-wrap gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setServiceReviewFilter('all')}
-                              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-                                serviceReviewFilter === 'all'
-                                  ? 'border border-[#081F5C] bg-[#081F5C]/10 text-[#081F5C] dark:border-sky-400/60 dark:bg-sky-500/15 dark:text-sky-200'
-                                  : 'border border-[#081F5C]/20 text-muted-foreground hover:border-[#081F5C]/40 dark:border-white/15 dark:hover:border-white/25'
-                              }`}
-                            >
-                              All ({serviceRatingCount})
-                            </button>
-                            {[5, 4, 3, 2, 1].map((star) => (
-                              <button
-                                key={star}
-                                type="button"
-                                onClick={() => setServiceReviewFilter(String(star))}
-                                className={`rounded px-2.5 py-1 text-xs transition-colors ${
-                                  serviceReviewFilter === String(star)
-                                    ? 'border border-[#081F5C] bg-[#081F5C]/10 text-[#081F5C] dark:border-sky-400/60 dark:bg-sky-500/15 dark:text-sky-200'
-                                    : 'border border-[#081F5C]/20 text-muted-foreground hover:border-[#081F5C]/40 dark:border-white/15 dark:hover:border-white/25'
-                                }`}
-                              >
-                                {star} Star ({serviceReviewStats.stars[star] || 0})
-                              </button>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => setServiceReviewFilter('comments')}
-                              className={`rounded px-2.5 py-1 text-xs transition-colors ${
-                                serviceReviewFilter === 'comments'
-                                  ? 'border border-[#081F5C] bg-[#081F5C]/10 text-[#081F5C] dark:border-sky-400/60 dark:bg-sky-500/15 dark:text-sky-200'
-                                  : 'border border-[#081F5C]/20 text-muted-foreground hover:border-[#081F5C]/40 dark:border-white/15 dark:hover:border-white/25'
-                              }`}
-                            >
-                              With comments ({serviceReviewStats.withComments})
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setServiceReviewFilter('media')}
-                              className={`rounded px-2.5 py-1 text-xs transition-colors ${
-                                serviceReviewFilter === 'media'
-                                  ? 'border border-[#081F5C] bg-[#081F5C]/10 text-[#081F5C] dark:border-sky-400/60 dark:bg-sky-500/15 dark:text-sky-200'
-                                  : 'border border-[#081F5C]/20 text-muted-foreground hover:border-[#081F5C]/40 dark:border-white/15 dark:hover:border-white/25'
-                              }`}
-                            >
-                              With media ({serviceReviewStats.withMedia})
-                            </button>
-                          </div>
-                        ) : null}
-
-                        <div className="border-t border-[#081F5C]/10 pt-3 dark:border-white/10">
-                          {filteredServiceReviews.length > 0 ? (
-                            <ul className="divide-y divide-[#081F5C]/10 dark:divide-white/10">
-                              {filteredServiceReviews.map((review) => {
-                                const normalizedRating = Math.max(
-                                  0,
-                                  Math.min(5, Math.round(reviewRatingValue(review))),
-                                )
-                                const when = review.createdAt ? new Date(review.createdAt) : null
-                                const dateStr =
-                                  when && !Number.isNaN(when.getTime())
-                                    ? `${when.toLocaleDateString('en-CA')} ${when.toLocaleTimeString('en-GB', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                      })}`
-                                    : '—'
-                                const displayName =
-                                  typeof review.customerName === 'string' && review.customerName.trim()
-                                    ? review.customerName.trim()
-                                    : 'Customer'
-                                return (
-                                  <li key={review.id} className="flex gap-3 py-4 first:pt-0">
-                                    <div
-                                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white"
-                                      aria-hidden
-                                    >
-                                      {initialsFromName(displayName)}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-sm font-medium text-foreground">{displayName}</p>
-                                      <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                                        <div className="flex items-center" aria-label={`${normalizedRating} out of 5 stars`}>
-                                          {[0, 1, 2, 3, 4].map((i) => (
-                                            <Star
-                                              key={i}
-                                              className={`h-3 w-3 ${
-                                                i < normalizedRating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/35'
-                                              }`}
-                                            />
-                                          ))}
-                                        </div>
-                                        <span className="text-xs text-muted-foreground">{dateStr}</span>
-                                      </div>
-                                      {typeof review.comment === 'string' && review.comment.trim().length > 0 ? (
-                                        <p className="mt-2 text-sm leading-relaxed text-foreground">{review.comment.trim()}</p>
-                                      ) : null}
-                                      {Array.isArray(review.images) && review.images.length > 0 ? (
-                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                          {review.images.slice(0, 4).map((src, imgIndex) => (
-                                            <div
-                                              key={`${review.id}-img-${imgIndex}`}
-                                              className="h-12 w-12 overflow-hidden rounded border border-[#081F5C]/10 dark:border-white/10"
-                                            >
-                                              <img
-                                                src={src}
-                                                alt=""
-                                                className="h-full w-full object-cover"
-                                                loading="lazy"
-                                                onError={(e) => {
-                                                  e.currentTarget.style.display = 'none'
-                                                }}
-                                              />
-                                            </div>
-                                          ))}
-                                        </div>
-                                      ) : null}
-                                      {typeof review.shopResponse === 'string' && review.shopResponse.trim().length > 0 ? (
-                                        <div className="mt-2 rounded-md border border-[#081F5C]/10 bg-muted/40 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-                                          <p className="text-xs font-medium text-muted-foreground">Shop response</p>
-                                          <p className="mt-1 text-sm text-foreground">{review.shopResponse.trim()}</p>
-                                        </div>
-                                      ) : null}
-                                      <div className="mt-2">
-                                        <button
-                                          type="button"
-                                          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                                        >
-                                          <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
-                                          Helpful?
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          ) : serviceReviewsList.length > 0 ? (
-                            <p className="py-4 text-center text-sm text-muted-foreground">No reviews match this filter.</p>
-                          ) : (
-                            <div className="py-6 text-center">
-                              <p className="text-sm text-muted-foreground">No reviews yet</p>
-                              <p className="mt-1 text-xs text-muted-foreground">Ratings will appear here after customers leave feedback.</p>
-                            </div>
-                          )}
-                        </div>
+              {/* Right Sidebar Column */}
+              <div className="lg:col-span-4 space-y-6">
+                {/* How Booking Works Checklist Card */}
+                <div className="rounded-none border border-slate-200 bg-white p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2.5 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Booking Guide &amp; Process
+                  </h3>
+                  <ol className="space-y-3 text-xs font-medium text-slate-700">
+                    <li className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] font-bold text-white">1</span>
+                      <div>
+                        <p className="font-bold text-slate-900">Choose Schedule &amp; Contact</p>
+                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">Provide preferred date, time, and active mobile number.</p>
                       </div>
-                    </div>
-                  </section>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] font-bold text-white">2</span>
+                      <div>
+                        <p className="font-bold text-slate-900">Select Service Option</p>
+                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">In-shop visit or home service with optional GPS pin.</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] font-bold text-white">3</span>
+                      <div>
+                        <p className="font-bold text-slate-900">Describe Issue &amp; Upload Photos</p>
+                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">Attach clear photos of symptoms for accurate assessment.</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] font-bold text-white">4</span>
+                      <div>
+                        <p className="font-bold text-slate-900">Provider Confirmation</p>
+                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">Track booking status under "My Bookings" in real-time.</p>
+                      </div>
+                    </li>
+                  </ol>
+                </div>
+
+                {/* Direct Action Card */}
+                <div className="rounded-none border border-slate-200 bg-white p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3 text-center">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-900">Ready to schedule repair?</p>
+                  <p className="text-xs font-medium text-slate-500 leading-relaxed">
+                    Submit your booking request directly to <span className="font-bold text-slate-800">{detail.shopName?.trim() || 'the shop'}</span>.
+                  </p>
+                  <Button
+                    type="button"
+                    className="w-full h-10 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] transition-all"
+                    onClick={openBookDialog}
+                  >
+                    <CalendarCheck className="mr-1.5 h-4 w-4" /> Book Service Now
+                  </Button>
+                </div>
               </div>
             </div>
-          ) : null}
-        </div>
-      </div>
 
+            {/* Full Width: Customer Reviews & Ratings Section */}
+            <section aria-labelledby="service-reviews-heading" className="w-full space-y-3">
+              <div className="w-full rounded-none border border-slate-200 bg-white p-6 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-4">
+                  <h2
+                    id="service-reviews-heading"
+                    className="flex items-center gap-2 text-base sm:text-lg font-bold uppercase tracking-wider text-slate-900"
+                  >
+                    <Star className="h-5 w-5 fill-amber-300 text-amber-400" aria-hidden />
+                    Customer Reviews &amp; Ratings
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.hash = '#/customer/reviews-ratings'
+                    }}
+                    className="text-xs font-bold uppercase tracking-wider text-[#081F5C] hover:underline"
+                  >
+                    View all ›
+                  </button>
+                </div>
+
+                {/* Overall Rating Score Header */}
+                <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-4 border border-slate-200">
+                  <div className="text-3xl sm:text-4xl font-extrabold text-slate-900 tabular-nums">
+                    {hasServiceRatings ? serviceRatingAverage.toFixed(1) : '0.0'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1" aria-hidden>
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                            i < Math.floor(hasServiceRatings ? serviceRatingAverage : 0)
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-slate-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1 text-xs font-semibold text-slate-600">
+                      Based on {serviceRatingCount} customer review{serviceRatingCount === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Filters Bar */}
+                {serviceReviewsList.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setServiceReviewFilter('all')}
+                      className={`px-3 py-1 text-xs font-bold uppercase tracking-wider transition-all ${
+                        serviceReviewFilter === 'all'
+                          ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
+                      }`}
+                    >
+                      All ({serviceRatingCount})
+                    </button>
+                    {[5, 4, 3, 2, 1].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setServiceReviewFilter(String(star))}
+                        className={`px-3 py-1 text-xs font-bold uppercase tracking-wider transition-all ${
+                          serviceReviewFilter === String(star)
+                            ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
+                            : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
+                        }`}
+                      >
+                        {star} ★ ({serviceReviewStats.stars[star] || 0})
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setServiceReviewFilter('comments')}
+                      className={`px-3 py-1 text-xs font-bold uppercase tracking-wider transition-all ${
+                        serviceReviewFilter === 'comments'
+                          ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
+                      }`}
+                    >
+                      With comments ({serviceReviewStats.withComments})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setServiceReviewFilter('media')}
+                      className={`px-3 py-1 text-xs font-bold uppercase tracking-wider transition-all ${
+                        serviceReviewFilter === 'media'
+                          ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
+                          : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
+                      }`}
+                    >
+                      With photos ({serviceReviewStats.withMedia})
+                    </button>
+                  </div>
+                ) : null}
+
+                {/* Review Cards List */}
+                <div className="border-t border-slate-100 pt-3">
+                  {filteredServiceReviews.length > 0 ? (
+                    <ul className="divide-y divide-slate-100">
+                      {filteredServiceReviews.map((review) => {
+                        const normalizedRating = Math.max(
+                          0,
+                          Math.min(5, Math.round(reviewRatingValue(review))),
+                        )
+                        const when = review.createdAt ? new Date(review.createdAt) : null
+                        const dateStr =
+                          when && !Number.isNaN(when.getTime())
+                            ? `${when.toLocaleDateString('en-CA')} ${when.toLocaleTimeString('en-GB', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}`
+                            : '—'
+                        const displayName =
+                          typeof review.customerName === 'string' && review.customerName.trim()
+                            ? review.customerName.trim()
+                            : 'Customer'
+                        return (
+                          <li key={review.id} className="flex gap-3 py-4 first:pt-0">
+                            <div
+                              className="flex h-9 w-9 shrink-0 items-center justify-center bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white shadow-2xs"
+                              aria-hidden
+                            >
+                              {initialsFromName(displayName)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-bold text-slate-900">{displayName}</p>
+                                <span className="text-xs font-medium text-slate-400">{dateStr}</span>
+                              </div>
+                              <div className="mt-1 flex items-center gap-1" aria-label={`${normalizedRating} out of 5 stars`}>
+                                {[0, 1, 2, 3, 4].map((i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-3.5 w-3.5 ${
+                                      i < normalizedRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              {typeof review.comment === 'string' && review.comment.trim().length > 0 ? (
+                                <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-slate-700">
+                                  {review.comment}
+                                </p>
+                              ) : null}
+                              {Array.isArray(review.images) && review.images.length > 0 ? (
+                                <div className="mt-2.5 flex flex-wrap gap-2">
+                                  {review.images.map((imgUrl, imgIdx) => (
+                                    <div
+                                      key={imgIdx}
+                                      className="h-16 w-16 overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs"
+                                    >
+                                      <img src={imgUrl} alt="" className="h-full w-full object-cover" />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {review.shopResponse ? (
+                                <div className="mt-3 border-l-2 border-[#081F5C] bg-slate-50 p-3 text-xs">
+                                  <p className="font-bold uppercase tracking-wider text-[#081F5C] text-[10px]">
+                                    Shop Response
+                                  </p>
+                                  <p className="mt-1 font-medium text-slate-700 leading-snug">{review.shopResponse}</p>
+                                </div>
+                              ) : null}
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="py-6 text-center text-xs font-medium text-slate-500">
+                      No reviews match the selected filter.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </main>
+
+      {/* Booking Dialog Modal */}
       <Dialog
         open={bookDialogOpen}
         onOpenChange={(open) => {
+          if (!open && bookSubmitting) return
           setBookDialogOpen(open)
-          if (!open) {
-            setBookError('')
-            setBookSuccess('')
-            setBookingConfirmOpen(false)
-          }
         }}
       >
-        <DialogContent
-          className="fixed top-1/2 left-1/2 z-50 mt-6 flex max-h-[min(84dvh,calc(100dvh-2rem))] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl p-0 sm:mt-8 sm:max-w-xl lg:max-w-2xl"
-          showCloseButton={!bookSubmitting}
-        >
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-5 pt-3 [scrollbar-gutter:stable] sm:px-5 sm:pb-6 sm:pt-4">
-          <DialogHeader className="space-y-1.5 pr-10 text-center sm:text-left">
-            <DialogTitle className="text-base text-[#081F5C] dark:text-sky-100 sm:text-lg">
-              {bookSuccess ? 'Booking Completed' : 'Book this service'}
-            </DialogTitle>
-            <DialogDescription className="text-xs leading-relaxed sm:text-sm">
-              {bookSuccess ? (
-                <>
-                  Thank you — your request has been sent successfully.{' '}
-                  {detail ? (
-                    <>
-                      <span className="font-medium text-foreground">{detail.shopName?.trim() || 'The shop'}</span> has received
-                      your booking for <span className="font-medium text-foreground">{detail.serviceName}</span> and will review
-                      it shortly.
-                    </>
-                  ) : (
-                    'The service provider has received your booking and will review it shortly.'
-                  )}{' '}
-                  They may reach out using the contact details you provided. You can review this and other requests anytime under{' '}
-                  <span className="font-medium text-foreground">My bookings</span>.
-                </>
-              ) : detail ? (
-                <>
-                  Complete all required fields so{' '}
-                  <span className="font-medium text-foreground">{detail.shopName?.trim() || 'the shop'}</span> can review your
-                  request for <span className="font-medium text-foreground">{detail.serviceName}</span>. Include your contact
-                  details, preferred schedule, and a clear description of the issue
-                  {detail.type === 'home'
-                    ? '. A full service address is required for this home-service booking.'
-                    : detail.type === 'both'
-                      ? '. Choose in-shop or home service; a full address is required if you select home service.'
-                      : '. You will bring the item to the shop — the shop address is shown on this page.'}
-                </>
-              ) : (
-                'Complete the booking form below.'
-              )}
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="flex max-h-[min(90dvh,42rem)] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-[0_6px_16px_rgba(8,31,92,0.22)] sm:max-w-xl">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-5 sm:p-6">
+            <DialogHeader className="space-y-1 text-left">
+              <DialogTitle className="text-base font-bold uppercase tracking-wider text-[#081F5C] sm:text-lg">
+                {bookSuccess ? 'Booking Completed' : 'Book this service'}
+              </DialogTitle>
+              <DialogDescription className="text-xs leading-relaxed text-slate-600 font-medium sm:text-sm">
+                {bookSuccess ? (
+                  <>
+                    Thank you — your request has been sent successfully.{' '}
+                    {detail ? (
+                      <>
+                        <span className="font-bold text-slate-900">{detail.shopName?.trim() || 'The shop'}</span> has
+                        received your booking for <span className="font-bold text-slate-900">{detail.serviceName}</span> and
+                        will review it shortly.
+                      </>
+                    ) : (
+                      'The service provider has received your booking and will review it shortly.'
+                    )}{' '}
+                    They may reach out using the contact details you provided. You can review this and other requests anytime under{' '}
+                    <span className="font-bold text-slate-900">My bookings</span>.
+                  </>
+                ) : detail ? (
+                  <>
+                    Complete all required fields so{' '}
+                    <span className="font-bold text-slate-900">{detail.shopName?.trim() || 'the shop'}</span> can review your
+                    request for <span className="font-bold text-slate-900">{detail.serviceName}</span>. Include your contact
+                    details, preferred schedule, and a clear description of the issue
+                    {detail.type === 'home'
+                      ? '. A full service address is required for this home-service booking.'
+                      : detail.type === 'both'
+                        ? '. Choose in-shop or home service; a full address is required if you select home service.'
+                        : '. You will bring the item to the shop — the shop address is shown on this page.'}
+                  </>
+                ) : (
+                  'Complete the booking form below.'
+                )}
+              </DialogDescription>
+            </DialogHeader>
 
-          {detail && shouldShowProviderNote(detail.requirements) && !bookSuccess ? (
-            <div className="rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-foreground dark:border-amber-400/30 dark:bg-amber-500/10">
-              <span className="font-semibold text-amber-900 dark:text-amber-100">Provider note: </span>
-              {String(detail.requirements).trim()}
-            </div>
-          ) : null}
+            {detail && shouldShowProviderNote(detail.requirements) && !bookSuccess ? (
+              <div className="rounded-none border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 font-medium">
+                <span className="font-bold uppercase tracking-wider text-amber-950">Provider note: </span>
+                {String(detail.requirements).trim()}
+              </div>
+            ) : null}
 
-          {bookSuccess ? (
-            <div className="space-y-3">
-              <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-900 dark:border-emerald-500/35 dark:bg-emerald-500/10 dark:text-emerald-100 sm:text-sm">
-                {bookSuccess}
-              </p>
-              <DialogFooter className="mx-0 mb-0 mt-0 flex w-full max-w-full flex-row flex-wrap items-center justify-end gap-2 border-0 bg-transparent p-0 pt-3 sm:pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="shrink-0"
-                  onClick={() => {
-                    setBookDialogOpen(false)
-                    window.location.hash = '#/customer/my-bookings'
-                  }}
-                >
-                  View my bookings
-                </Button>
-                <Button
-                  type="button"
-                  className="shrink-0 bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white"
-                  onClick={() => setBookDialogOpen(false)}
-                >
-                  Close
-                </Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <form onSubmit={handleBookingFormSubmit} className="space-y-3">
-              {bookError ? (
-                <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive" role="alert">
-                  {bookError}
+            {bookSuccess ? (
+              <div className="space-y-4 pt-2">
+                <p className="rounded-none border border-emerald-300 bg-emerald-50 p-3 text-xs font-semibold text-emerald-900 sm:text-sm">
+                  {bookSuccess}
                 </p>
-              ) : null}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="book-contact-name">Contact full name</Label>
-                <Input
-                  id="book-contact-name"
-                  name="contactName"
-                  autoComplete="name"
-                  required
-                  value={bookForm.contactName}
-                  onChange={(ev) => setBookForm((f) => ({ ...f, contactName: ev.target.value }))}
-                  placeholder="Enter the name we should use for this booking"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="book-contact-phone">Mobile / phone number</Label>
-                <Input
-                  id="book-contact-phone"
-                  name="contactPhone"
-                  type="tel"
-                  autoComplete="tel"
-                  required
-                  value={bookForm.contactPhone}
-                  onChange={(ev) => setBookForm((f) => ({ ...f, contactPhone: ev.target.value }))}
-                  placeholder="e.g. 09XX XXX XXXX"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="book-pref-date">Preferred service date</Label>
-                  <Input
-                    id="book-pref-date"
-                    name="preferredDate"
-                    type="date"
-                    required
-                    min={localDateInputMin()}
-                    value={bookForm.preferredDate}
-                    onChange={(ev) => setBookForm((f) => ({ ...f, preferredDate: ev.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="book-pref-time">Preferred time</Label>
-                  <Input
-                    id="book-pref-time"
-                    name="preferredTime"
-                    type="time"
-                    required
-                    value={bookForm.preferredTime}
-                    onChange={(ev) => setBookForm((f) => ({ ...f, preferredTime: ev.target.value }))}
-                  />
-                </div>
-              </div>
-
-              {detail?.type === 'both' ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="book-service-mode">Service option</Label>
-                  <NativeSelect
-                    id="book-service-mode"
-                    name="serviceMode"
-                    className="w-full"
-                    required
-                    value={bookForm.serviceMode}
-                    onChange={(ev) => {
-                      const mode = ev.target.value
-                      setBookForm((f) => ({
-                        ...f,
-                        serviceMode: mode,
-                        ...(mode !== 'home'
-                          ? { serviceLatitude: null, serviceLongitude: null }
-                          : {}),
-                      }))
-                      if (mode !== 'home') {
-                        setLocationCaptureError('')
-                        setLocationCaptureLoading(false)
-                      }
+                <DialogFooter className="flex flex-row flex-wrap items-center justify-end gap-2 border-0 bg-transparent p-0 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0 rounded-none border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100"
+                    onClick={() => {
+                      setBookDialogOpen(false)
+                      window.location.hash = '#/customer/my-bookings'
                     }}
                   >
-                    <option value="in-shop">In-shop visit </option>
-                    <option value="home">Home service</option>
-                  </NativeSelect>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  {detail?.type === 'home'
-                    ? 'This service is offered as home service only.'
-                    : detail?.type === 'in-shop'
-                      ? 'This service is in-shop only — please bring your item to the shop.'
-                      : null}
-                </p>
-              )}
+                    View my bookings
+                  </Button>
+                  <Button
+                    type="button"
+                    className="shrink-0 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] transition-all"
+                    onClick={() => {
+                      if (detail?.shopOwnerId) storeShopRecipientForMessages(detail)
+                      setBookDialogOpen(false)
+                      window.location.hash = '#/customer/messages'
+                    }}
+                  >
+                    Close
+                  </Button>
+                </DialogFooter>
+              </div>
+            ) : (
+              <form onSubmit={handleBookingFormSubmit} className="space-y-3.5">
+                {bookError ? (
+                  <p className="rounded-none border border-rose-300 bg-rose-50 p-3 text-xs font-bold text-rose-800" role="alert">
+                    {bookError}
+                  </p>
+                ) : null}
 
-              {bookForm.serviceMode === 'home' ? (
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="book-service-address">Service address</Label>
-                    <Textarea
-                      id="book-service-address"
-                      name="serviceAddress"
+                <div className="space-y-1">
+                  <Label htmlFor="book-contact-name" className="text-xs font-bold uppercase tracking-wider text-slate-700">Contact full name</Label>
+                  <Input
+                    id="book-contact-name"
+                    name="contactName"
+                    autoComplete="name"
+                    required
+                    value={bookForm.contactName}
+                    onChange={(ev) => setBookForm((f) => ({ ...f, contactName: ev.target.value }))}
+                    placeholder="Enter the name we should use for this booking"
+                    className={dialogInputClass}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="book-contact-phone" className="text-xs font-bold uppercase tracking-wider text-slate-700">Mobile / phone number</Label>
+                  <Input
+                    id="book-contact-phone"
+                    name="contactPhone"
+                    type="tel"
+                    autoComplete="tel"
+                    required
+                    value={bookForm.contactPhone}
+                    onChange={(ev) => setBookForm((f) => ({ ...f, contactPhone: ev.target.value }))}
+                    placeholder="e.g. 09XX XXX XXXX"
+                    className={dialogInputClass}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="book-pref-date" className="text-xs font-bold uppercase tracking-wider text-slate-700">Preferred service date</Label>
+                    <Input
+                      id="book-pref-date"
+                      name="preferredDate"
+                      type="date"
                       required
-                      rows={2}
-                      value={bookForm.serviceAddress}
-                      onChange={(ev) => setBookForm((f) => ({ ...f, serviceAddress: ev.target.value }))}
-                      placeholder="Street, barangay, city, landmarks or building access details"
-                      className="min-h-[4.25rem] resize-y"
+                      min={localDateInputMin()}
+                      value={bookForm.preferredDate}
+                      onChange={(ev) => setBookForm((f) => ({ ...f, preferredDate: ev.target.value }))}
+                      className={dialogInputClass}
                     />
                   </div>
-                  <div className="rounded-lg border border-[#081F5C]/15 bg-muted/25 px-3 py-3 dark:border-white/10 dark:bg-white/5">
-                    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 space-y-1">
-                        <p className="text-xs font-semibold text-foreground">Location pin (GPS)</p>
-                        <p className="text-[11px] leading-snug text-muted-foreground">
-                          Share your current position so the technician can open it on a map. Your browser will ask for
-                          permission. The written address above is still required.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9 shrink-0 gap-1.5 self-start border-[#081F5C]/20 bg-white/90 text-[#081F5C] hover:bg-white dark:border-white/15 dark:bg-transparent dark:text-slate-100"
-                        disabled={locationCaptureLoading || bookSubmitting}
-                        onClick={captureCustomerLocation}
-                      >
-                        <Navigation className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {locationCaptureLoading ? 'Getting location…' : 'Use current location'}
-                      </Button>
-                    </div>
-                    {locationCaptureError ? (
-                      <p className="mt-2 text-xs text-destructive" role="alert">
-                        {locationCaptureError}
-                      </p>
-                    ) : null}
-                    {typeof bookForm.serviceLatitude === 'number' &&
-                    Number.isFinite(bookForm.serviceLatitude) &&
-                    typeof bookForm.serviceLongitude === 'number' &&
-                    Number.isFinite(bookForm.serviceLongitude) ? (
-                      <div className="mt-2 flex flex-col gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-2 text-xs dark:border-emerald-500/30 dark:bg-emerald-500/10">
-                        <p className="font-medium text-emerald-900 dark:text-emerald-100">
-                          Location saved for this request
-                        </p>
-                        <p className="font-mono text-[11px] text-muted-foreground">
-                          {bookForm.serviceLatitude.toFixed(6)}, {bookForm.serviceLongitude.toFixed(6)}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <a
-                            href={`https://www.google.com/maps?q=${bookForm.serviceLatitude},${bookForm.serviceLongitude}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[11px] font-medium text-[#081F5C] underline-offset-2 hover:underline dark:text-sky-300"
-                          >
-                            <MapPin className="h-3 w-3 shrink-0" aria-hidden />
-                            Open in Google Maps
-                          </a>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-muted-foreground"
-                            onClick={() => {
-                              setBookForm((f) => ({ ...f, serviceLatitude: null, serviceLongitude: null }))
-                              setLocationCaptureError('')
-                            }}
-                          >
-                            Clear pin
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
+                  <div className="space-y-1">
+                    <Label htmlFor="book-pref-time" className="text-xs font-bold uppercase tracking-wider text-slate-700">Preferred time</Label>
+                    <Input
+                      id="book-pref-time"
+                      name="preferredTime"
+                      type="time"
+                      required
+                      value={bookForm.preferredTime}
+                      onChange={(ev) => setBookForm((f) => ({ ...f, preferredTime: ev.target.value }))}
+                      className={dialogInputClass}
+                    />
                   </div>
                 </div>
-              ) : null}
 
-              <div className="space-y-1.5">
-                <Label htmlFor="book-issue-photos">Upload photos of the item to be repaired (optional)</Label>
-                <Input
-                  id="book-issue-photos"
-                  name="issuePhotos"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(ev) => {
-                    const files = Array.from(ev.target.files || [])
-                    setIssuePhotos(files)
-                  }}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Add clear photos so the service provider can better assess the issue before your schedule.
-                </p>
-                {issuePhotoPreviews.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-xs text-foreground">
-                      {issuePhotoPreviews.length} photo{issuePhotoPreviews.length === 1 ? '' : 's'} selected
-                    </p>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {issuePhotoPreviews.map((photo, photoIndex) => (
-                        <div
-                          key={photo.id}
-                          className="group relative overflow-hidden rounded-md border border-[#081F5C]/20 bg-white/90 dark:border-white/15 dark:bg-white/5"
-                        >
-                          <button
-                            type="button"
-                            aria-label={`Remove ${photo.name}`}
-                            onClick={() => {
-                              setIssuePhotos((prev) => prev.filter((_, idx) => idx !== photoIndex))
-                            }}
-                            className="absolute right-1.5 top-1.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-sm font-bold leading-none text-white opacity-0 shadow-sm transition-opacity hover:bg-black/80 group-hover:opacity-100 focus-visible:opacity-100"
-                          >
-                            ×
-                          </button>
-                          <div className="aspect-square w-full bg-muted/40">
-                            <img src={photo.url} alt={photo.name} className="h-full w-full object-cover" />
-                          </div>
-                          <p className="truncate border-t border-[#081F5C]/10 px-2 py-1 text-[10px] text-muted-foreground dark:border-white/10">
-                            {photo.name}
+                {detail?.type === 'both' ? (
+                  <div className="space-y-1">
+                    <Label htmlFor="book-service-mode" className="text-xs font-bold uppercase tracking-wider text-slate-700">Service option</Label>
+                    <NativeSelect
+                      id="book-service-mode"
+                      name="serviceMode"
+                      className={dialogInputClass}
+                      required
+                      value={bookForm.serviceMode}
+                      onChange={(ev) => {
+                        const mode = ev.target.value
+                        setBookForm((f) => ({
+                          ...f,
+                          serviceMode: mode,
+                          ...(mode !== 'home'
+                            ? { serviceLatitude: null, serviceLongitude: null }
+                            : {}),
+                        }))
+                        if (mode !== 'home') {
+                          setLocationCaptureError('')
+                          setLocationCaptureLoading(false)
+                        }
+                      }}
+                    >
+                      <option value="in-shop">In-shop visit </option>
+                      <option value="home">Home service</option>
+                    </NativeSelect>
+                  </div>
+                ) : (
+                  <p className="text-xs font-medium text-slate-500">
+                    {detail?.type === 'home'
+                      ? 'This service is offered as home service only.'
+                      : detail?.type === 'in-shop'
+                        ? 'This service is in-shop only — please bring your item to the shop.'
+                        : null}
+                  </p>
+                )}
+
+                {bookForm.serviceMode === 'home' ? (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="book-service-address" className="text-xs font-bold uppercase tracking-wider text-slate-700">Service address</Label>
+                      <Textarea
+                        id="book-service-address"
+                        name="serviceAddress"
+                        required
+                        rows={2}
+                        value={bookForm.serviceAddress}
+                        onChange={(ev) => setBookForm((f) => ({ ...f, serviceAddress: ev.target.value }))}
+                        placeholder="Street, barangay, city, landmarks or building access details"
+                        className={`${dialogInputClass} min-h-[4.25rem] resize-y`}
+                      />
+                    </div>
+                    <div className="rounded-none border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 space-y-1">
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-900">Location pin (GPS)</p>
+                          <p className="text-[11px] leading-snug font-medium text-slate-500">
+                            Share your current position so the technician can open it on a map. Your browser will ask for
+                            permission. The written address above is still required.
                           </p>
                         </div>
-                      ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 shrink-0 gap-1.5 rounded-none border border-slate-200 bg-white text-xs font-bold uppercase tracking-wider text-[#081F5C] shadow-2xs hover:bg-slate-100"
+                          disabled={locationCaptureLoading || bookSubmitting}
+                          onClick={captureCustomerLocation}
+                        >
+                          <Navigation className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          {locationCaptureLoading ? 'Getting location…' : 'Use current location'}
+                        </Button>
+                      </div>
+                      {locationCaptureError ? (
+                        <p className="mt-2 text-xs font-bold text-rose-600" role="alert">
+                          {locationCaptureError}
+                        </p>
+                      ) : null}
+                      {typeof bookForm.serviceLatitude === 'number' &&
+                      Number.isFinite(bookForm.serviceLatitude) &&
+                      typeof bookForm.serviceLongitude === 'number' &&
+                      Number.isFinite(bookForm.serviceLongitude) ? (
+                        <div className="mt-2 flex flex-col gap-2 rounded-none border border-emerald-300 bg-emerald-50 p-2.5 text-xs">
+                          <p className="font-bold text-emerald-900 uppercase tracking-wider">
+                            Location saved for this request
+                          </p>
+                          <p className="font-mono text-[11px] text-slate-600">
+                            {bookForm.serviceLatitude.toFixed(6)}, {bookForm.serviceLongitude.toFixed(6)}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <a
+                              href={`https://www.google.com/maps?q=${bookForm.serviceLatitude},${bookForm.serviceLongitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#081F5C] underline-offset-2 hover:underline"
+                            >
+                              <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+                              Open in Google Maps
+                            </a>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-100"
+                              onClick={() => {
+                                setBookForm((f) => ({ ...f, serviceLatitude: null, serviceLongitude: null }))
+                                setLocationCaptureError('')
+                              }}
+                            >
+                              Clear pin
+                            </Button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
-              </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="book-problem">Issue or service description</Label>
-                <Textarea
-                  id="book-problem"
-                  name="problemDescription"
-                  required
-                  rows={3}
-                  value={bookForm.problemDescription}
-                  onChange={(ev) => setBookForm((f) => ({ ...f, problemDescription: ev.target.value }))}
-                  placeholder="Describe the device or item, brand/model if known, symptoms, and when the issue began"
-                  className="min-h-[5rem] resize-y"
-                />
-              </div>
+                <div className="space-y-1">
+                  <Label htmlFor="book-issue-photos" className="text-xs font-bold uppercase tracking-wider text-slate-700">Upload photos of the item to be repaired (optional)</Label>
+                  <Input
+                    id="book-issue-photos"
+                    name="issuePhotos"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(ev) => {
+                      const files = Array.from(ev.target.files || [])
+                      setIssuePhotos(files)
+                    }}
+                    className={dialogInputClass}
+                  />
+                  <p className="text-[11px] font-medium text-slate-500">
+                    Add clear photos so the service provider can better assess the issue before your schedule.
+                  </p>
+                  {issuePhotoPreviews.length > 0 ? (
+                    <div className="space-y-2 pt-1">
+                      <p className="text-xs font-bold text-slate-800">
+                        {issuePhotoPreviews.length} photo{issuePhotoPreviews.length === 1 ? '' : 's'} selected
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {issuePhotoPreviews.map((photo, photoIndex) => (
+                          <div
+                            key={photo.id}
+                            className="group relative overflow-hidden rounded-none border border-slate-200 bg-white"
+                          >
+                            <button
+                              type="button"
+                              aria-label={`Remove ${photo.name}`}
+                              onClick={() => {
+                                setIssuePhotos((prev) => prev.filter((_, idx) => idx !== photoIndex))
+                              }}
+                              className="absolute right-1.5 top-1.5 z-10 inline-flex h-6 w-6 items-center justify-center rounded-none bg-black/65 text-sm font-bold leading-none text-white opacity-0 shadow-sm transition-opacity hover:bg-black/80 group-hover:opacity-100 focus-visible:opacity-100"
+                            >
+                              ×
+                            </button>
+                            <div className="aspect-square w-full bg-slate-100">
+                              <img src={photo.url} alt={photo.name} className="h-full w-full object-cover" />
+                            </div>
+                            <p className="truncate border-t border-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">
+                              {photo.name}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="book-notes">Additional notes (optional)</Label>
-                <Textarea
-                  id="book-notes"
-                  name="notes"
-                  rows={2}
-                  value={bookForm.notes}
-                  onChange={(ev) => setBookForm((f) => ({ ...f, notes: ev.target.value }))}
-                  placeholder="e.g. gate codes, parking, preferred times to call"
-                  className="min-h-12 resize-y"
-                />
-              </div>
+                <div className="space-y-1">
+                  <Label htmlFor="book-problem" className="text-xs font-bold uppercase tracking-wider text-slate-700">Issue or service description</Label>
+                  <Textarea
+                    id="book-problem"
+                    name="problemDescription"
+                    required
+                    rows={3}
+                    value={bookForm.problemDescription}
+                    onChange={(ev) => setBookForm((f) => ({ ...f, problemDescription: ev.target.value }))}
+                    placeholder="Describe the device or item, brand/model if known, symptoms, and when the issue began"
+                    className={`${dialogInputClass} min-h-[5rem] resize-y`}
+                  />
+                </div>
 
-              <DialogFooter className="mx-0 mb-0 mt-0 flex w-full max-w-full flex-row flex-wrap items-center justify-end gap-2 border-0 bg-transparent p-0 pt-3 sm:pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="shrink-0"
-                  disabled={bookSubmitting}
-                  onClick={() => setBookDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={bookSubmitting}
-                  className="shrink-0 bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white"
-                >
-                  {bookSubmitting ? 'Submitting…' : 'Submit booking request'}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
+                <div className="space-y-1">
+                  <Label htmlFor="book-notes" className="text-xs font-bold uppercase tracking-wider text-slate-700">Additional notes (optional)</Label>
+                  <Textarea
+                    id="book-notes"
+                    name="notes"
+                    rows={2}
+                    value={bookForm.notes}
+                    onChange={(ev) => setBookForm((f) => ({ ...f, notes: ev.target.value }))}
+                    placeholder="e.g. gate codes, parking, preferred times to call"
+                    className={`${dialogInputClass} min-h-12 resize-y`}
+                  />
+                </div>
+
+                <DialogFooter className="flex flex-row flex-wrap items-center justify-end gap-2 border-0 bg-transparent p-0 pt-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0 rounded-none border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100"
+                    disabled={bookSubmitting}
+                    onClick={() => setBookDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={bookSubmitting}
+                    className="shrink-0 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] transition-all"
+                  >
+                    {bookSubmitting ? 'Submitting…' : 'Submit booking request'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Confirmation Alert Dialog */}
       <AlertDialog
         open={bookingConfirmOpen}
         onOpenChange={(open) => {
@@ -1818,52 +1754,52 @@ export default function CustomerServiceDetails({ serviceId }) {
           setBookingConfirmOpen(open)
         }}
       >
-        <AlertDialogContent className="flex max-h-[min(58dvh,22rem)] w-full max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-hidden border border-[#081F5C]/10 p-4 shadow-lg sm:max-h-[min(62dvh,24rem)] sm:max-w-xl sm:p-5 lg:max-w-2xl dark:border-white/10">
-          <AlertDialogHeader className="shrink-0 space-y-1.5 text-left sm:text-left">
-            <AlertDialogTitle className="text-base font-semibold text-[#081F5C] dark:text-sky-100">
+        <AlertDialogContent className="flex max-h-[min(90dvh,32rem)] w-full max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-hidden rounded-none border border-slate-200 bg-white p-5 shadow-[0_6px_16px_rgba(8,31,92,0.22)] sm:max-w-xl">
+          <AlertDialogHeader className="shrink-0 space-y-1 text-left">
+            <AlertDialogTitle className="text-base font-bold uppercase tracking-wider text-[#081F5C]">
               Confirm your booking request
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-left text-xs leading-snug text-muted-foreground sm:text-sm">
+            <AlertDialogDescription className="text-left text-xs leading-snug font-medium text-slate-600">
               Please review the summary below. By confirming, you certify that the information is correct to the best of your
               knowledge and that you wish to submit this booking request to the service provider for review.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {detail ? (
             <div
-              className="min-h-0 max-h-[min(28dvh,9.5rem)] shrink overflow-y-auto overscroll-contain rounded-lg border border-border/80 bg-muted/40 px-3 py-2.5 text-left text-foreground [-webkit-overflow-scrolling:touch] sm:max-h-[min(32dvh,11rem)] dark:bg-white/5"
+              className="min-h-0 shrink overflow-y-auto overscroll-contain rounded-none border border-slate-200 bg-slate-50 p-3.5 text-left text-slate-900"
               role="region"
               aria-label="Request summary"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Request summary</p>
-              <dl className="mt-1.5 space-y-1.5 text-xs sm:space-y-2 sm:text-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Request summary</p>
+              <dl className="mt-2 space-y-2 text-xs sm:text-sm">
                 <div>
-                  <dt className="text-muted-foreground">Service</dt>
-                  <dd className="font-medium">{detail.serviceName}</dd>
+                  <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Service</dt>
+                  <dd className="font-bold text-slate-900">{detail.serviceName}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Provider</dt>
-                  <dd className="font-medium">{detail.shopName?.trim() || '—'}</dd>
+                  <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Provider</dt>
+                  <dd className="font-semibold text-slate-800">{detail.shopName?.trim() || '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Contact</dt>
-                  <dd className="font-medium">
+                  <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Contact</dt>
+                  <dd className="font-semibold text-slate-800">
                     {bookForm.contactName.trim() || '—'} · {bookForm.contactPhone.trim() || '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Preferred schedule</dt>
-                  <dd className="font-medium">
+                  <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Preferred schedule</dt>
+                  <dd className="font-semibold text-slate-800">
                     {formatDateForConfirm(bookForm.preferredDate)} · {bookForm.preferredTime || '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Service option</dt>
-                  <dd className="font-medium">{bookForm.serviceMode === 'home' ? 'Home service' : 'In-shop visit'}</dd>
+                  <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Service option</dt>
+                  <dd className="font-semibold text-slate-800">{bookForm.serviceMode === 'home' ? 'Home service' : 'In-shop visit'}</dd>
                 </div>
                 {bookForm.serviceMode === 'home' ? (
                   <div>
-                    <dt className="text-muted-foreground">Service address</dt>
-                    <dd className="whitespace-pre-wrap font-medium">{truncateForSummary(bookForm.serviceAddress, 220)}</dd>
+                    <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Service address</dt>
+                    <dd className="whitespace-pre-wrap font-semibold text-slate-800">{truncateForSummary(bookForm.serviceAddress, 220)}</dd>
                   </div>
                 ) : null}
                 {bookForm.serviceMode === 'home' &&
@@ -1872,33 +1808,37 @@ export default function CustomerServiceDetails({ serviceId }) {
                 typeof bookForm.serviceLongitude === 'number' &&
                 Number.isFinite(bookForm.serviceLongitude) ? (
                   <div>
-                    <dt className="text-muted-foreground">Location pin</dt>
-                    <dd className="font-medium text-emerald-800 dark:text-emerald-200/90">
+                    <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Location pin</dt>
+                    <dd className="font-bold text-emerald-800">
                       GPS coordinates will be shared with this request.
                     </dd>
                   </div>
                 ) : null}
                 <div>
-                  <dt className="text-muted-foreground">Issue / service details</dt>
-                  <dd className="whitespace-pre-wrap font-medium">{truncateForSummary(bookForm.problemDescription, 280)}</dd>
+                  <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Issue / service details</dt>
+                  <dd className="whitespace-pre-wrap font-semibold text-slate-800">{truncateForSummary(bookForm.problemDescription, 280)}</dd>
                 </div>
                 {bookForm.notes.trim() ? (
                   <div>
-                    <dt className="text-muted-foreground">Additional notes</dt>
-                    <dd className="whitespace-pre-wrap font-medium">{truncateForSummary(bookForm.notes, 180)}</dd>
+                    <dt className="font-bold text-slate-500 text-[10px] uppercase tracking-wider">Additional notes</dt>
+                    <dd className="whitespace-pre-wrap font-semibold text-slate-800">{truncateForSummary(bookForm.notes, 180)}</dd>
                   </div>
                 ) : null}
               </dl>
             </div>
           ) : null}
-          <AlertDialogFooter className="shrink-0 border-0 bg-transparent p-0 pt-1 sm:justify-end">
-            <AlertDialogCancel type="button" disabled={bookSubmitting} className="mt-0 border-[#081F5C]/20 sm:mt-0">
+          <AlertDialogFooter className="shrink-0 border-0 bg-transparent p-0 pt-1 flex flex-row flex-wrap items-center justify-end gap-2">
+            <AlertDialogCancel
+              type="button"
+              disabled={bookSubmitting}
+              className="mt-0 border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100"
+            >
               Go back and edit
             </AlertDialogCancel>
             <Button
               type="button"
               disabled={bookSubmitting}
-              className="bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white"
+              className="bg-linear-to-r from-[#04133d] to-[#081F5C] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] transition-all"
               onClick={() => {
                 void performBookingSubmit()
               }}
@@ -1908,7 +1848,6 @@ export default function CustomerServiceDetails({ serviceId }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {LogoutDialog}
-    </>
+    </CustomerLayout>
   )
 }

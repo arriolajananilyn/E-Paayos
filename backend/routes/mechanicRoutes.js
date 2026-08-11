@@ -5,6 +5,7 @@ import {
   listMechanicReviewsRatings,
   listTechnicianBookings,
   patchMechanicBookingReviewResponse,
+  patchMechanicBookingServiceFee,
   patchTechnicianBookingAction,
 } from "../controllers/bookingController.js"
 
@@ -14,6 +15,7 @@ router.use(protect, requireMechanicTechnician)
 router.get("/bookings", listTechnicianBookings)
 router.get("/reviews-ratings", listMechanicReviewsRatings)
 router.patch("/bookings/:id/review-response", patchMechanicBookingReviewResponse)
+router.patch("/bookings/:id/service-fee", patchMechanicBookingServiceFee)
 router.patch("/bookings/:id", patchTechnicianBookingAction)
 
 export default router

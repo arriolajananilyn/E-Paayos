@@ -134,7 +134,7 @@ function MechanicTechnicianReviewRatings() {
     }
     try {
       const parsed = JSON.parse(raw)
-      if (parsed.role !== 'mechanic-technician' && parsed.role !== 'independent-mechanic-technician') {
+      if (parsed.role !== 'mechanic-technician' && parsed.role !== 'oncall-mechanic-technician') {
         window.location.hash = '#/login'
         return
       }

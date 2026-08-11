@@ -34,10 +34,10 @@ import {
   UserRound,
 } from 'lucide-react';
 import logoEpaayos from '../../assets/epaayosLOGO.png';
+import loginBackground from '../../assets/loginbackground.jpg';
 import AddressTabsSelector from '../../components/AddressTabsSelector.jsx';
 
 // Match landing page palette
-const navyDeep = '#04133d';
 const navy = '#081F5C';
 const navyMuted = '#0b2b73';
 const navyBright = '#1447a6';
@@ -52,17 +52,6 @@ const bvViolet = '#a5b4fc';
 const borderNavySoft = 'rgba(8, 31, 92, 0.12)';
 const borderBvSoft = 'rgba(99, 102, 241, 0.18)';
 const textBodyOnLight = 'rgba(8, 31, 92, 0.72)';
-
-/** Gradient navy blue — match landing page hero */
-const gradientNavyBlue = `linear-gradient(135deg, ${navyDeep} 0%, ${navy} 35%, ${navyMuted} 62%, ${navyBright} 100%)`;
-
-/** Hero mesh: navy atmosphere + light blue-violet glows (landing page) */
-const gradientHeroMesh = `
-  radial-gradient(ellipse 85% 65% at 100% -8%, rgba(147, 197, 253, 0.28) 0%, transparent 52%),
-  radial-gradient(ellipse 75% 55% at -5% 105%, rgba(167, 139, 250, 0.22) 0%, transparent 50%),
-  radial-gradient(ellipse 55% 45% at 88% 92%, ${navyGlow}44 0%, transparent 52%),
-  radial-gradient(ellipse 70% 50% at 15% 20%, rgba(255, 255, 255, 0.07) 0%, transparent 48%)
-`;
 
 const gradientNavyButton = `linear-gradient(135deg, ${navy} 0%, ${navyMuted} 42%, ${navyBright} 78%, ${navyGlow} 100%)`;
 const gradientLightBlueViolet = `linear-gradient(155deg, #ffffff 0%, ${bvIce} 28%, ${bvPeriwinkle} 55%, ${bvLilac} 100%)`;
@@ -207,8 +196,8 @@ const Register = () => {
       iconBgActive: 'linear-gradient(145deg, rgba(15,118,110,0.28) 0%, rgba(13,148,136,0.42) 100%)',
     },
     {
-      value: 'independent-mechanic-technician',
-      label: 'Independent Mechanic / Technician',
+      value: 'oncall-mechanic-technician',
+      label: 'On-call Mechanic/Technician',
       description: 'No shop of your own—work independently and offer services like a shop owner.',
       Icon: HardHat,
       iconColor: '#b45309',
@@ -343,8 +332,8 @@ const Register = () => {
   ];
 
   const isMechanic = formData.role === 'mechanic-technician';
-  const isIndependentMechanic = formData.role === 'independent-mechanic-technician';
-  const isShopOwnerFlow = formData.role === 'shop-owner' || isIndependentMechanic;
+  const isOnCallMechanic = formData.role === 'oncall-mechanic-technician';
+  const isShopOwnerFlow = formData.role === 'shop-owner' || isOnCallMechanic;
   const isExtendedRegistration = isMechanic || isShopOwnerFlow;
 
   const getActiveSteps = () => {
@@ -359,7 +348,7 @@ const Register = () => {
       ];
     }
     if (isShopOwnerFlow) {
-      if (isIndependentMechanic) {
+      if (isOnCallMechanic) {
         return [
           { number: 1, title: 'Personal Info' },
           { number: 2, title: 'Business Information' },
@@ -581,7 +570,7 @@ const Register = () => {
         role: roleValue,
         employedByShopOwnerId: '',
       };
-      if (roleValue === 'independent-mechanic-technician') {
+      if (roleValue === 'oncall-mechanic-technician') {
         next = {
           ...next,
           shopName: '',
@@ -712,7 +701,7 @@ const Register = () => {
       if (!formData.courseProgram.trim()) newErrors.courseProgram = 'Course/Program is required';
     }
 
-    if (isIndependentMechanic && step === 4) {
+    if (isOnCallMechanic && step === 4) {
       if (!formData.highestEducationalLevel) newErrors.highestEducationalLevel = 'Highest educational level is required';
       if (formData.yearGraduatedLastAttended.trim()) {
         const v = formData.yearGraduatedLastAttended.trim();
@@ -725,7 +714,9 @@ const Register = () => {
     }
 
     if (isShopOwnerFlow && step === 2) {
-      if (!isIndependentMechanic && !formData.shopName.trim()) newErrors.shopName = 'Shop name is required';
+      if (!formData.shopName.trim()) {
+        newErrors.shopName = isOnCallMechanic ? 'Business name is required' : 'Shop name is required';
+      }
       if (!formData.businessType) newErrors.businessType = 'Type of business is required';
 
       const repair = Array.isArray(formData.repairServicesOffered) ? formData.repairServicesOffered : [];
@@ -739,7 +730,7 @@ const Register = () => {
         newErrors.yearsOfOperation = 'Enter a valid number of years';
       }
 
-      if (!isIndependentMechanic) {
+      if (!isOnCallMechanic) {
         if (!String(formData.numberOfEmployees || '').trim()) {
           newErrors.numberOfEmployees = 'Number of employees/mechanics is required';
         } else if (!/^\d{1,3}$/.test(String(formData.numberOfEmployees).trim())) {
@@ -782,14 +773,14 @@ const Register = () => {
       // removed: available equipment & specialization (per requirement)
     }
 
-    if ((isMechanic || isIndependentMechanic) && step === 4) {
+    if ((isMechanic || isOnCallMechanic) && step === 4) {
       const skills = Array.isArray(formData.skillsSelfAssessment) ? formData.skillsSelfAssessment : [];
       if (skills.length !== 5) newErrors.skillsSelfAssessment = 'Please check exactly five (5) skills';
       const tech = Array.isArray(formData.technicalSkillsNoFormalTraining) ? formData.technicalSkillsNoFormalTraining : [];
       if (tech.length < 1) newErrors.technicalSkillsNoFormalTraining = 'Select at least one technical skill';
     }
 
-    if (isShopOwnerFlow && step === 4 && !isIndependentMechanic) {
+    if (isShopOwnerFlow && step === 4 && !isOnCallMechanic) {
       if (!formData.dtiSecRegistrationNumber.trim()) newErrors.dtiSecRegistrationNumber = 'DTI/SEC registration number is required';
       if (!formData.businessPermitNumber.trim()) newErrors.businessPermitNumber = 'Business permit number is required';
       if (!formData.tinNumber.trim()) newErrors.tinNumber = 'TIN is required';
@@ -1524,7 +1515,7 @@ const Register = () => {
     <div className="space-y-4">
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">
-          {isIndependentMechanic ? 'Location Address *' : 'Shop Address *'}
+          {isOnCallMechanic ? 'Location Address *' : 'Shop Address *'}
         </Label>
         <AddressTabsSelector
           {...addressSelectorCommonProps}
@@ -1603,20 +1594,20 @@ const Register = () => {
 
   const renderShopOwnerStep2BusinessInfo = () => (
     <div className="space-y-4">
-      {!isIndependentMechanic ? (
-        <div className="space-y-2">
-          <Label htmlFor="shopName" className="text-sm font-medium text-gray-700">Shop Name *</Label>
-          <Input
-            id="shopName"
-            type="text"
-            placeholder="Enter shop name"
-            value={formData.shopName}
-            onChange={(e) => handleInputChange('shopName', e.target.value)}
-            className={`h-10 ${validationAttempted && errors.shopName ? 'border-red-500' : ''}`}
-          />
-          {validationAttempted && errors.shopName && <p className="text-sm text-red-600">{errors.shopName}</p>}
-        </div>
-      ) : null}
+      <div className="space-y-2">
+        <Label htmlFor="shopName" className="text-sm font-medium text-gray-700">
+          {isOnCallMechanic ? 'Business Name *' : 'Shop Name *'}
+        </Label>
+        <Input
+          id="shopName"
+          type="text"
+          placeholder={isOnCallMechanic ? 'Enter business name' : 'Enter shop name'}
+          value={formData.shopName}
+          onChange={(e) => handleInputChange('shopName', e.target.value)}
+          className={`h-10 ${validationAttempted && errors.shopName ? 'border-red-500' : ''}`}
+        />
+        {validationAttempted && errors.shopName && <p className="text-sm text-red-600">{errors.shopName}</p>}
+      </div>
 
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">Type of Business *</Label>
@@ -1662,7 +1653,7 @@ const Register = () => {
             <SelectValue placeholder="Select service type" />
           </SelectTrigger>
           <SelectContent>
-            {isIndependentMechanic
+            {isOnCallMechanic
               ? INDEPENDENT_SERVICE_TYPE_OPTIONS.map(({ value, label }) => (
                   <SelectItem key={value} value={value}>{label}</SelectItem>
                 ))
@@ -1674,7 +1665,7 @@ const Register = () => {
         {validationAttempted && errors.serviceType && <p className="text-sm text-red-600">{errors.serviceType}</p>}
       </div>
 
-      <div className={`grid grid-cols-1 gap-4 ${isIndependentMechanic ? '' : 'md:grid-cols-2'}`}>
+      <div className={`grid grid-cols-1 gap-4 ${isOnCallMechanic ? '' : 'md:grid-cols-2'}`}>
         <div className="space-y-2">
           <Label htmlFor="yearsOfOperation" className="text-sm font-medium text-gray-700">Years of Operation *</Label>
           <Input
@@ -1691,7 +1682,7 @@ const Register = () => {
           {validationAttempted && errors.yearsOfOperation && <p className="text-sm text-red-600">{errors.yearsOfOperation}</p>}
         </div>
 
-        {!isIndependentMechanic ? (
+        {!isOnCallMechanic ? (
           <div className="space-y-2">
             <Label htmlFor="numberOfEmployees" className="text-sm font-medium text-gray-700">Number of Technicians/Mechanics *</Label>
             <Input
@@ -1837,11 +1828,11 @@ const Register = () => {
 
       <div className="space-y-2">
         <Label htmlFor="shopDescription" className="text-sm font-medium text-gray-700">
-          {isIndependentMechanic ? 'Business description (optional)' : 'Shop Description (optional)'}
+          {isOnCallMechanic ? 'Business description (optional)' : 'Shop Description (optional)'}
         </Label>
         <Textarea
           id="shopDescription"
-          placeholder={isIndependentMechanic ? 'Tell customers about you Business.' : 'Tell customers about your shop (optional)'}
+          placeholder={isOnCallMechanic ? 'Tell customers about you Business.' : 'Tell customers about your shop (optional)'}
           value={formData.shopDescription}
           onChange={(e) => handleInputChange('shopDescription', e.target.value)}
           className="w-full h-24 resize-none"
@@ -2380,29 +2371,29 @@ const Register = () => {
 
             {isShopOwnerFlow ? (
               <div className="space-y-1 pt-2 border-t border-blue-200">
-                {!isIndependentMechanic ? (
+                {!isOnCallMechanic ? (
                   <p><strong>Shop Name:</strong> {formData.shopName || 'Not provided'}</p>
                 ) : null}
                 <p><strong>Type of Business:</strong> {formData.businessType || 'Not provided'}</p>
                 <p><strong>Repair Services Offered:</strong> {(formData.repairServicesOffered || []).join(', ') || 'Not provided'}</p>
                 <p><strong>Service Type:</strong>{' '}
-                  {isIndependentMechanic
+                  {isOnCallMechanic
                     ? INDEPENDENT_SERVICE_TYPE_OPTIONS.find((o) => o.value === formData.serviceType)?.label ||
                       formData.serviceType ||
                       'Not provided'
                     : formData.serviceType || 'Not provided'}
                 </p>
                 <p><strong>Years of Operation:</strong> {formData.yearsOfOperation || 'Not provided'}</p>
-                {!isIndependentMechanic ? (
+                {!isOnCallMechanic && (
                   <p><strong>Number of Employees / Mechanics:</strong> {formData.numberOfEmployees || 'Not provided'}</p>
-                ) : null}
+                )}
                 <p><strong>Operating Hours:</strong> {formData.operatingHours || 'Not provided'}</p>
                 <p><strong>Days of Operation:</strong> {(formData.daysOfOperation || []).join(', ') || 'Not provided'}</p>
                 <p><strong>Shop Description:</strong> {formData.shopDescription || '—'}</p>
 
                 <div className="pt-2 border-t border-blue-200 space-y-1">
                   <p>
-                    <strong>{isIndependentMechanic ? 'Location address' : 'Shop Location'}:</strong>{' '}
+                    <strong>{isOnCallMechanic ? 'Location address' : 'Shop Location'}:</strong>{' '}
                     {formatAddressFrom({
                     regionCode: formData.shopRegion,
                     provinceCode: formData.shopProvince,
@@ -2415,7 +2406,7 @@ const Register = () => {
                   {/* removed: available equipment & specialization (per requirement) */}
                 </div>
 
-                {isIndependentMechanic ? (
+                {isOnCallMechanic ? (
                   <div className="space-y-1 pt-2 border-t border-blue-200">
                     <p><strong>Highest Educational Level:</strong> {formData.highestEducationalLevel || 'Not provided'}</p>
                     <p><strong>Year Graduated/Last Attended:</strong> {formData.yearGraduatedLastAttended || 'Not provided'}</p>
@@ -2426,7 +2417,7 @@ const Register = () => {
                   </div>
                 ) : null}
 
-                {!isIndependentMechanic ? (
+                {!isOnCallMechanic ? (
                   <div className="pt-2 border-t border-blue-200 space-y-1">
                     <p><strong>DTI/SEC Registration No.:</strong> {formData.dtiSecRegistrationNumber || 'Not provided'}</p>
                     <p><strong>Business Permit No.:</strong> {formData.businessPermitNumber || 'Not provided'}</p>
@@ -2486,31 +2477,18 @@ const Register = () => {
   return (
     <div
       className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden p-4"
-      style={{ backgroundImage: gradientNavyBlue, color: '#ffffff' }}
+      style={{
+        backgroundImage: `url(${loginBackground})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        color: '#ffffff',
+      }}
     >
-      <style>{`
-        @keyframes epaayosSlowGradientMove {
-          0% { background-position: 0% 0%, 0% 50%; transform: translate3d(0, 0, 0) scale(1.02); }
-          50% { background-position: 0% 0%, 100% 50%; transform: translate3d(-1.2%, 0.8%, 0) scale(1.04); }
-          100% { background-position: 0% 0%, 0% 50%; transform: translate3d(0, 0, 0) scale(1.02); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .epaayos-animated-bg { animation: none !important; transform: none !important; }
-        }
-      `}</style>
       <div
         aria-hidden="true"
-        className="absolute inset-0 z-0 epaayos-animated-bg"
-        style={{
-          backgroundImage: `${gradientHeroMesh},
-            radial-gradient(ellipse 70% 60% at 50% 40%, rgba(255, 255, 255, 0.10) 0%, transparent 55%),
-            linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.14) 50%, transparent 60%)`,
-          backgroundSize: 'auto, 140% 140%, 240% 240%',
-          animation: 'epaayosSlowGradientMove 32s ease-in-out infinite',
-          opacity: 0.92,
-          filter: 'saturate(1.05) brightness(1.08)',
-          willChange: 'background-position, transform'
-        }}
+        className="absolute inset-0 z-0"
+        style={{ backgroundColor: 'rgba(4, 19, 61, 0.35)' }}
       />
       <div className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center">
         <div
@@ -2777,9 +2755,9 @@ const Register = () => {
                   {isMechanic && currentStep === 3 && renderMechanicStep3WorkExperience()}
                   {isShopOwnerFlow && currentStep === 3 && renderShopOwnerStep3LocationFacilities()}
                   {isMechanic && currentStep === 4 && renderMechanicStep4Skills()}
-                  {isIndependentMechanic && currentStep === 4 && renderMechanicStep2Educational()}
-                  {isIndependentMechanic && currentStep === 4 && renderMechanicStep4Skills()}
-                  {isShopOwnerFlow && currentStep === 4 && !isIndependentMechanic && renderShopOwnerStep4BusinessRegistration()}
+                  {isOnCallMechanic && currentStep === 4 && renderMechanicStep2Educational()}
+                  {isOnCallMechanic && currentStep === 4 && renderMechanicStep4Skills()}
+                  {isShopOwnerFlow && currentStep === 4 && !isOnCallMechanic && renderShopOwnerStep4BusinessRegistration()}
                   {(!isExtendedRegistration && currentStep === 3) && renderStep3()}
                   {(!isExtendedRegistration && currentStep === 4) && renderStep4()}
                   {(isExtendedRegistration && currentStep === 5) && renderStep3()}

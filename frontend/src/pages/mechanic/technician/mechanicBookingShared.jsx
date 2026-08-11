@@ -81,6 +81,25 @@ export function mapBookingFromApi(row) {
     startingPrice: row.startingPrice,
     serviceName: row.serviceName || row.shopService?.name || '',
     serviceCategory: row.serviceCategory || row.shopService?.category || '',
+    serviceFeeLaborRateAtCalc:
+      row.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(row.serviceFeeLaborRateAtCalc))
+        ? Number(row.serviceFeeLaborRateAtCalc)
+        : null,
+    serviceFeeMaterialsAmount:
+      row.serviceFeeMaterialsAmount != null && Number.isFinite(Number(row.serviceFeeMaterialsAmount))
+        ? Number(row.serviceFeeMaterialsAmount)
+        : null,
+    serviceFeeMaterialsDescription:
+      typeof row.serviceFeeMaterialsDescription === 'string' ? row.serviceFeeMaterialsDescription : '',
+    serviceFeeReplacementParts: Array.isArray(row.serviceFeeReplacementParts)
+      ? row.serviceFeeReplacementParts
+          .map((x) => ({
+            name: typeof x?.name === 'string' ? x.name : '',
+            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+          }))
+          .filter((x) => x.name)
+      : [],
+    serviceFeeConfirmedAt: row.serviceFeeConfirmedAt || null,
   }
 }
 

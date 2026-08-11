@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import IndependentMechanicLayout from './IndependentMechanicLayout.jsx'
+import OnCallMechanicLayout from './OnCallMechanicLayout.jsx'
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -200,7 +200,7 @@ function preferredDateSortValue(b) {
 
 const FOCUS_KEY = 'epaayosIndependentHistoryFocusBookingId'
 
-function IndependentMechanicServiceHistory() {
+function OnCallMechanicServiceHistory() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [listError, setListError] = useState('')
@@ -309,7 +309,7 @@ function IndependentMechanicServiceHistory() {
   }, [bookings, search, sortBy])
 
   return (
-    <IndependentMechanicLayout
+    <OnCallMechanicLayout
       activeSection="service-history"
       pageMeta={{
         title: 'Service history',
@@ -527,8 +527,8 @@ function IndependentMechanicServiceHistory() {
           )}
         </div>
       </div>
-    </IndependentMechanicLayout>
+    </OnCallMechanicLayout>
   )
 }
 
-export default IndependentMechanicServiceHistory
+export default OnCallMechanicServiceHistory

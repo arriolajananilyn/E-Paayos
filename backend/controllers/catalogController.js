@@ -7,7 +7,25 @@ import { formatReadableShopAddress } from "../utils/psgcResolve.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 
 const shopOwnerSelect =
-  "fullName shopName shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress shopLandmark accountApprovalStatus role operatingHours createdAt"
+  "fullName shopName profileImage selfieImage shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress shopLandmark shopPlacePhoto accountApprovalStatus role operatingHours laborRatingMin laborRatingMax createdAt"
+
+function normalizeBuffer(raw) {
+  if (!raw) return null
+  if (Buffer.isBuffer(raw)) return raw
+  if (raw?.type === "Buffer" && Array.isArray(raw.data)) return Buffer.from(raw.data)
+  try {
+    return Buffer.from(raw)
+  } catch {
+    return null
+  }
+}
+
+function bufferToDataUrl(raw, contentType) {
+  const buf = normalizeBuffer(raw)
+  if (!buf) return ""
+  const ct = contentType || "application/octet-stream"
+  return `data:${ct};base64,${buf.toString("base64")}`
+}
 
 function isApprovedShopOwner(u) {
   if (!u || !isServiceProviderRole(u.role)) return false
@@ -79,6 +97,7 @@ function mapServiceToCustomerDto(svc, owner, nameMap, shopAddressReadable) {
         : 0,
     shopName: ownerDoc?.shopName?.trim() || ownerDoc?.fullName?.trim() || "—",
     shopOwner: ownerDoc?.fullName?.trim() || "—",
+    shopOwnerRole: ownerDoc?.role ? String(ownerDoc.role) : "",
     shopAddress: shopAddressReadable || "—",
     shopRegion: ownerDoc?.shopRegion != null ? String(ownerDoc.shopRegion).trim() : "",
     shopProvince: ownerDoc?.shopProvince != null ? String(ownerDoc.shopProvince).trim() : "",
@@ -88,6 +107,14 @@ function mapServiceToCustomerDto(svc, owner, nameMap, shopAddressReadable) {
     shopDetailedAddress:
       typeof ownerDoc?.shopDetailedAddress === "string" ? ownerDoc.shopDetailedAddress.trim() : "",
     shopLandmark: typeof ownerDoc?.shopLandmark === "string" ? ownerDoc.shopLandmark.trim() : "",
+    shopPlacePhoto:
+      typeof ownerDoc?.shopPlacePhoto === "string" ? ownerDoc.shopPlacePhoto.trim() : "",
+    shopOwnerProfileImage:
+      typeof ownerDoc?.profileImage === "string" ? ownerDoc.profileImage.trim() : "",
+    shopOwnerSelfieImage:
+      ownerDoc?.selfieImage?.data != null
+        ? bufferToDataUrl(ownerDoc.selfieImage.data, ownerDoc.selfieImage.contentType)
+        : "",
     shopRating: Math.min(5, Math.max(0, Number(svc.ratingAvg) || 0)),
     completedJobs: Math.max(0, Number(svc.bookingsCount) || 0),
     description: svc.description || "",
@@ -96,6 +123,22 @@ function mapServiceToCustomerDto(svc, owner, nameMap, shopAddressReadable) {
     shopOwnerId: ownerDoc?._id != null ? String(ownerDoc._id) : "",
     shopOperatingHours:
       typeof ownerDoc?.operatingHours === "string" ? ownerDoc.operatingHours.trim() : "",
+    laborRatingMin: (() => {
+      if (svc.laborRatingMin != null && Number.isFinite(Number(svc.laborRatingMin))) {
+        return Number(svc.laborRatingMin)
+      }
+      return ownerDoc?.laborRatingMin != null && Number.isFinite(Number(ownerDoc.laborRatingMin))
+        ? Number(ownerDoc.laborRatingMin)
+        : null
+    })(),
+    laborRatingMax: (() => {
+      if (svc.laborRatingMax != null && Number.isFinite(Number(svc.laborRatingMax))) {
+        return Number(svc.laborRatingMax)
+      }
+      return ownerDoc?.laborRatingMax != null && Number.isFinite(Number(ownerDoc.laborRatingMax))
+        ? Number(ownerDoc.laborRatingMax)
+        : null
+    })(),
     shopOwnerJoinedAt: (() => {
       const c = ownerDoc?.createdAt
       if (c == null) return null

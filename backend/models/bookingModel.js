@@ -66,6 +66,30 @@ const bookingSchema = new mongoose.Schema(
     /** Shop owner or assigned technician reply visible to customers on the review. */
     providerReviewResponse: { type: String, default: "", trim: true, maxlength: 4000 },
     providerReviewRespondedAt: { type: Date, default: null },
+    /** Labor price entered by provider during fee calculation (PHP). */
+    serviceFeeLaborRateAtCalc: { type: Number, default: null, min: 0 },
+    /** Parts, materials, or replacement costs on top of labor (PHP, computed from replacement parts). */
+    serviceFeeMaterialsAmount: { type: Number, default: null, min: 0 },
+    /** What was spent or replaced (e.g. oil filter, screen module). */
+    serviceFeeMaterialsDescription: { type: String, default: "", trim: true, maxlength: 2000 },
+    /** Detailed replacement parts list entered by provider. */
+    serviceFeeReplacementParts: [
+      {
+        name: { type: String, trim: true, default: "", maxlength: 200 },
+        price: { type: Number, default: 0, min: 0 },
+      },
+    ],
+    /** Set when provider saves the calculate-fee step; required before completed. */
+    serviceFeeConfirmedAt: { type: Date, default: null },
+    paymentStatus: {
+      type: String,
+      enum: ["unpaid", "paid"],
+      default: "unpaid",
+      index: true,
+    },
+    paymentMethod: { type: String, default: "", trim: true },
+    paymentProofImage: { type: String, default: "", trim: true },
+    paidAt: { type: Date, default: null },
   },
   { timestamps: true }
 )

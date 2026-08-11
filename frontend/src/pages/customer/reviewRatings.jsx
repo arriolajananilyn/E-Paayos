@@ -2,13 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
-import { ArrowLeft, Bell, CalendarDays, Camera, Clock3, Image as ImageIcon, LogOut, MapPin, MessageSquareText, Phone, Settings, Star, User, Video as VideoIcon } from 'lucide-react'
-import logoEpaayos from '../../assets/epaayos_logo.png'
-import {
-  NotificationBellIndicator,
-  useCustomerNotificationUnreadCount,
-} from '../../components/notifications/NotificationFeed.jsx'
-import { useLogoutConfirmation } from '../../hooks/useLogoutConfirmation.jsx'
+import { CalendarDays, Camera, Clock3, Image as ImageIcon, MapPin, MessageSquareText, Phone, Star, User, Video as VideoIcon } from 'lucide-react'
+import CustomerLayout, { readCustomerUserSession } from '../../layout/customerlayout.jsx'
 
 const MAX_MEDIA = 5
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
@@ -129,8 +124,7 @@ function formatDateLabel(value) {
 }
 
 function CustomerReviewsRatings() {
-  const [user, setUser] = useState(null)
-  const [profileOpen, setProfileOpen] = useState(false)
+  const [user, setUser] = useState(readCustomerUserSession)
   const [activeTab, setActiveTab] = useState('toRate')
   const [toRate, setToRate] = useState([])
   const [myReviews, setMyReviews] = useState([])
@@ -142,24 +136,6 @@ function CustomerReviewsRatings() {
   const [bookingsError, setBookingsError] = useState('')
   const profileMenuRef = useRef(null)
 
-  useEffect(() => {
-    const raw = localStorage.getItem('user')
-    const token = localStorage.getItem('token')
-    if (!token || !raw) {
-      window.location.hash = '#/login'
-      return
-    }
-    try {
-      const parsed = JSON.parse(raw)
-      if (parsed.role !== 'customer') {
-        window.location.hash = '#/login'
-        return
-      }
-      setUser(parsed)
-    } catch {
-      window.location.hash = '#/login'
-    }
-  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -225,26 +201,8 @@ function CustomerReviewsRatings() {
     return () => { cancelled = true }
   }, [user])
 
-  useEffect(() => {
-    if (!profileOpen) return
-    const handleClickOutside = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-        setProfileOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [profileOpen])
 
-  const { unreadCount: customerNotifUnread } = useCustomerNotificationUnreadCount(user)
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    window.location.hash = '#/'
-  }
-
-  const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
 
   const resetForm = () => {
     ratingMedia.forEach((file) => file.url && URL.revokeObjectURL(file.url))
@@ -341,107 +299,18 @@ function CustomerReviewsRatings() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-b from-sky-50 via-violet-50 to-indigo-100">
-        <p className="text-gray-600 text-sm">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-600 text-xs font-semibold uppercase tracking-wider">Loading reviews…</p>
       </div>
     )
   }
 
   return (
-    <>
-      <div className="fixed top-0 left-0 right-0 z-100 min-h-16 border-b border-transparent bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6]">
-        <div className="mx-auto flex h-full min-h-16 max-w-7xl items-center justify-between gap-3 px-1 py-2 sm:px-3 sm:py-2.5">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => {
-                window.location.hash = '#/customer/dashboard'
-              }}
-              aria-label="Back"
-              className="text-white hover:text-white/90 shrink-0"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              className="flex shrink-0 items-center min-w-0"
-              aria-label="E-PAAYOS"
-              onClick={() => {
-                window.location.hash = '#/customer/dashboard'
-              }}
-            >
-              <img
-                src={logoEpaayos}
-                alt="E-PAAYOS"
-                className="h-8 w-auto max-h-10 max-w-[min(48vw,200px)] object-contain object-left sm:h-9"
-                decoding="async"
-              />
-            </button>
-            <span className="hidden sm:block h-6 w-px bg-white/40 ml-1 mr-1 shrink-0" />
-            <div className="hidden sm:grid h-10 w-10 rounded-lg bg-white/15 border border-white/30 place-items-center shrink-0">
-              <MessageSquareText className="h-5 w-5 text-white" />
-            </div>
-            <div className="leading-tight min-w-0">
-              <div className="text-base sm:text-xl font-bold text-white truncate">Reviews &amp; Ratings</div>
-              <div className="text-[10px] sm:text-xs text-white/90 leading-snug sm:max-w-md truncate">
-                Share feedback and manage your service reviews.
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              aria-label="Notification"
-              onClick={() => {
-                window.location.hash = '#/customer/notification'
-              }}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-white transition-colors hover:bg-white/10"
-            >
-              <NotificationBellIndicator unreadCount={customerNotifUnread} countOnDarkBg>
-                <Bell className="h-5 w-5" />
-              </NotificationBellIndicator>
-            </button>
-
-            <div ref={profileMenuRef} className="relative">
-              <button
-                type="button"
-                aria-label="Profile menu"
-                onClick={() => setProfileOpen((prev) => !prev)}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                  profileOpen ? 'bg-white/15 text-white' : 'bg-transparent text-white hover:bg-white/10'
-                }`}
-              >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-semibold leading-none text-white ring-1 ring-white/30">
-                  {(user.fullName || user.email || 'C').charAt(0).toUpperCase()}
-                </span>
-              </button>
-
-              {profileOpen && (
-                <div className="absolute right-0 z-110 mt-2 w-44 overflow-hidden rounded-md border border-border/80 bg-white shadow-lg">
-                  <button type="button" onClick={() => { setProfileOpen(false); window.location.hash = '#/customer/reviews-ratings' }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-                    <Star className="h-4 w-4" />
-                    <span className="whitespace-nowrap">Reviews &amp; Ratings</span>
-                  </button>
-                  <button type="button" onClick={() => { setProfileOpen(false); window.location.hash = '#/customer/account-settings' }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-                    <Settings className="h-4 w-4" />
-                    <span>Account Settings</span>
-                  </button>
-                  <button type="button" onClick={() => { setProfileOpen(false); requestLogout() }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
-                    <LogOut className="h-4 w-4" />
-                    <span>Log out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="min-h-screen overflow-x-hidden bg-linear-to-b from-sky-50 via-violet-50 to-indigo-100 pt-16">
-        <main className="w-full px-6 sm:px-10 md:px-14 lg:px-20 pt-4 pb-5 space-y-4">
-        <section
-          className="mb-1 flex w-full items-stretch overflow-x-auto rounded-lg border border-gray-200 bg-white p-1 shadow-sm sm:overflow-visible"
+    <CustomerLayout activePage="reviews-ratings">
+      <main className="w-full px-6 sm:px-10 md:px-16 pt-6 pb-8 space-y-6 max-w-[1440px] mx-auto">
+        {/* Sharp Tab Switcher matching findServices.jsx */}
+        <div
+          className="mb-4 flex w-full items-stretch overflow-x-auto rounded-none border border-slate-200 bg-white p-1 shadow-[0_2px_5px_rgba(15,23,42,0.08)] sm:overflow-visible"
           role="tablist"
           aria-label="Review tabs"
         >
@@ -450,209 +319,324 @@ function CustomerReviewsRatings() {
             role="tab"
             aria-selected={activeTab === 'toRate'}
             onClick={() => setActiveTab('toRate')}
-            className={`flex-none whitespace-nowrap rounded-md px-3 py-2 text-center text-xs transition-colors sm:flex-1 sm:px-4 sm:text-sm ${
+            className={`flex-none whitespace-nowrap rounded-none px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider transition-all sm:flex-1 sm:px-4 sm:text-xs ${
               activeTab === 'toRate'
-                ? 'bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-sm ring-1 ring-[#081F5C]/25'
-                : 'text-gray-700 hover:bg-gray-50'
+                ? 'bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white shadow-sm ring-1 ring-[#081F5C]/25'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-[#081F5C]'
             }`}
           >
-            To Rate
+            To Rate ({toRate.length})
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={activeTab === 'myReviews'}
             onClick={() => setActiveTab('myReviews')}
-            className={`flex-none whitespace-nowrap rounded-md px-3 py-2 text-center text-xs transition-colors sm:flex-1 sm:px-4 sm:text-sm ${
+            className={`flex-none whitespace-nowrap rounded-none px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider transition-all sm:flex-1 sm:px-4 sm:text-xs ${
               activeTab === 'myReviews'
-                ? 'bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-sm ring-1 ring-[#081F5C]/25'
-                : 'text-gray-700 hover:bg-gray-50'
+                ? 'bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white shadow-sm ring-1 ring-[#081F5C]/25'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-[#081F5C]'
             }`}
           >
-            My Reviews
+            My Reviews ({myReviews.length})
           </button>
-        </section>
+        </div>
 
         {activeTab === 'toRate' && (
           <section className="grid gap-4">
             {bookingsError && (
-              <Card className="border-destructive/25 bg-destructive/5">
-                <CardContent className="py-4 text-center text-sm text-destructive">{bookingsError}</CardContent>
-              </Card>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800 shadow-2xs">
+                <span>{bookingsError}</span>
+              </div>
             )}
             {loadingBookings && (
-              <Card>
-                <CardContent className="py-10 text-center text-sm text-slate-500">Loading completed services...</CardContent>
-              </Card>
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">Loading completed services…</p>
+              </div>
             )}
             {!loadingBookings && !bookingsError && toRate.length === 0 && (
-              <Card>
-                <CardContent className="py-10 text-center text-sm text-slate-500">No completed services yet. Completed bookings will appear here for rating.</CardContent>
-              </Card>
+              <div className="flex min-h-[180px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm">
+                <Star className="h-8 w-8 text-slate-300" />
+                <p className="mt-2 text-sm font-medium text-foreground">No completed services yet</p>
+                <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                  Completed booking requests will automatically show up here for rating and feedback.
+                </p>
+              </div>
             )}
 
-            {!loadingBookings && toRate.map((item) => (
-              <Card key={item.id} className="gap-0 overflow-hidden rounded-2xl border border-[#081F5C]/10 bg-white/95 py-0 shadow-sm ring-1 ring-black/5 transition-all duration-200 hover:border-[#1447a6]/30 hover:shadow-md">
-                <CardHeader className="border-b border-slate-100 bg-slate-50/65 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <CardTitle className="truncate text-[15px] font-semibold text-[#081F5C]">{item.shop}</CardTitle>
-                      <CardDescription className="truncate text-[13px] text-slate-600">{item.service}</CardDescription>
+            {!loadingBookings &&
+              toRate.map((item) => (
+                <Card
+                  key={item.id}
+                  className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5"
+                >
+                  <CardHeader className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <CardTitle className="truncate text-base font-bold uppercase tracking-wide text-[#081F5C]">
+                          {item.shop}
+                        </CardTitle>
+                        <CardDescription className="truncate text-xs font-medium text-slate-600">
+                          {item.service}
+                        </CardDescription>
+                      </div>
+                      <Badge variant="outline" className="rounded-none border border-slate-300 bg-white font-mono text-xs font-bold text-[#081F5C]">
+                        {item.orderId || 'N/A'}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="border-[#081F5C]/20 bg-white/90 font-mono text-[11px] text-[#081F5C]">{item.orderId || 'N/A'}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 py-4">
-                  <div className="flex items-start gap-3">
-                    <ServiceMediaPreview images={item.images} />
-                    <p className="pt-1 text-xs text-slate-500">Uploaded issue photos</p>
-                  </div>
-                  <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
-                    <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2"><CalendarDays className="h-3.5 w-3.5 text-slate-500" />Completed: {formatDateLabel(item.completedAt)}</div>
-                    <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2"><Clock3 className="h-3.5 w-3.5 text-slate-500" />Preferred: {item.preferredTime || 'N/A'}</div>
-                    <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2"><User className="h-3.5 w-3.5 text-slate-500" />Contact: {item.contactName || 'N/A'}</div>
-                    <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2"><Phone className="h-3.5 w-3.5 text-slate-500" />Phone: {item.contactPhone || 'N/A'}</div>
-                  </div>
-                  {item.serviceAddress && (
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-                      <span className="inline-flex items-center gap-1.5 font-medium text-slate-700"><MapPin className="h-3.5 w-3.5" />Service address</span>
-                      <p className="mt-1">{item.serviceAddress}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-4 p-4">
+                    <div className="flex items-start gap-3">
+                      <ServiceMediaPreview images={item.images} />
+                      <p className="pt-1 text-xs font-medium text-slate-500">Uploaded issue photos</p>
                     </div>
-                  )}
-                  {item.problemDescription && (
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-                      <p className="font-medium text-slate-700">Issue reported</p>
-                      <p className="mt-1">{item.problemDescription}</p>
+                    <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
+                      <div className="inline-flex items-center gap-1.5 rounded-none border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-medium">
+                        <CalendarDays className="h-3.5 w-3.5 text-[#081F5C]" />
+                        <span>Completed: {formatDateLabel(item.completedAt)}</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 rounded-none border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-medium">
+                        <Clock3 className="h-3.5 w-3.5 text-[#081F5C]" />
+                        <span>Preferred: {item.preferredTime || 'N/A'}</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 rounded-none border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-medium">
+                        <User className="h-3.5 w-3.5 text-[#081F5C]" />
+                        <span>Contact: {item.contactName || 'N/A'}</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 rounded-none border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-medium">
+                        <Phone className="h-3.5 w-3.5 text-[#081F5C]" />
+                        <span>Phone: {item.contactPhone || 'N/A'}</span>
+                      </div>
                     </div>
-                  )}
-                  {item.isReviewed ? (
-                    <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                      <span>Review submitted</span>
-                      <Button variant="ghost" size="sm" onClick={() => setActiveTab('myReviews')}>View</Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-sm text-slate-600">Rate your experience for this completed service.</p>
-                        <Button variant="outline" size="sm" onClick={() => handleToggleRateForm(item.id)}>
-                          {openRateId === item.id ? 'Close Form' : 'Rate Service'}
+
+                    {item.serviceAddress && (
+                      <div className="rounded-none border border-slate-200 bg-slate-50/50 p-2.5 text-xs text-slate-700">
+                        <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#081F5C]">
+                          <MapPin className="h-3.5 w-3.5" />
+                          Service address
+                        </span>
+                        <p className="mt-1 font-medium">{item.serviceAddress}</p>
+                      </div>
+                    )}
+
+                    {item.problemDescription && (
+                      <div className="rounded-none border border-slate-200 bg-slate-50/50 p-2.5 text-xs text-slate-700">
+                        <p className="font-bold uppercase tracking-wider text-[#081F5C]">Issue reported</p>
+                        <p className="mt-1 font-medium">{item.problemDescription}</p>
+                      </div>
+                    )}
+
+                    {item.isReviewed ? (
+                      <div className="flex items-center justify-between rounded-none border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold uppercase tracking-wider text-emerald-800">
+                        <span>Review submitted</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveTab('myReviews')}
+                          className="rounded-none border-emerald-400 bg-white text-emerald-800 hover:bg-emerald-100"
+                        >
+                          View Review
                         </Button>
                       </div>
-
-                      {openRateId === item.id && (
-                        <div className="space-y-4 rounded-xl border border-[#081F5C]/15 bg-slate-50/80 p-4">
-                          <div>
-                            <p className="text-xs font-medium text-slate-600 mb-1">Overall Rating</p>
-                            <Stars value={ratingValue} interactive onChange={setRatingValue} size="h-5 w-5" />
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-medium text-slate-600 mb-1">Comment</p>
-                            <textarea
-                              rows={4}
-                              value={ratingComment}
-                              onChange={(e) => setRatingComment(e.target.value)}
-                              placeholder="Write your honest feedback..."
-                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-300"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <p className="text-xs font-medium text-slate-600">Attach media (optional)</p>
-                              <p className="text-xs text-slate-500">{ratingMedia.length}/{MAX_MEDIA}</p>
-                            </div>
-                            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs text-slate-600 hover:bg-slate-50">
-                              <ImageIcon className="h-3.5 w-3.5" />
-                              <VideoIcon className="h-3.5 w-3.5" />
-                              Upload photos/videos
-                              <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={(e) => handleAddMedia(e.target.files)} />
-                            </label>
-                            {ratingMedia.length > 0 && (
-                              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                                {ratingMedia.map((file, index) => (
-                                  <div key={`${file.name}-${index}`} className="relative h-20 overflow-hidden rounded-md border border-slate-200 bg-white">
-                                    {file.type === 'video' ? (
-                                      <video src={file.url} className="h-full w-full object-cover" />
-                                    ) : (
-                                      <img src={file.url} alt={file.name} className="h-full w-full object-cover" />
-                                    )}
-                                    <button
-                                      type="button"
-                                      className="absolute right-1 top-1 rounded bg-black/60 px-1 text-[10px] text-white"
-                                      onClick={() => setRatingMedia((prev) => prev.filter((_, idx) => idx !== index))}
-                                    >
-                                      x
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-3">
-                            <Button variant="ghost" size="sm" onClick={resetForm}>Cancel</Button>
-                            <Button size="sm" onClick={() => submitReview(item.id)}>Submit Review</Button>
-                          </div>
+                    ) : (
+                      <div className="space-y-3 pt-1 border-t border-slate-100">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-slate-700">
+                            Rate your repair experience for this completed service.
+                          </p>
+                          <Button
+                            type="button"
+                            onClick={() => handleToggleRateForm(item.id)}
+                            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none bg-[#081F5C] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:bg-[#0a2770]"
+                          >
+                            <Star className="h-3.5 w-3.5 fill-amber-300 text-amber-300" />
+                            {openRateId === item.id ? 'Close Form' : 'Rate Service'}
+                          </Button>
                         </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+
+                        {openRateId === item.id && (
+                          <div className="space-y-4 rounded-none border border-[#081F5C]/20 bg-slate-50/90 p-4 shadow-sm">
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wider text-[#081F5C] mb-1.5">
+                                Overall Rating
+                              </p>
+                              <Stars value={ratingValue} interactive onChange={setRatingValue} size="h-5 w-5" />
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-bold uppercase tracking-wider text-[#081F5C] mb-1.5">
+                                Comment &amp; Feedback
+                              </p>
+                              <textarea
+                                rows={4}
+                                value={ratingComment}
+                                onChange={(e) => setRatingComment(e.target.value)}
+                                placeholder="Write your honest review and repair feedback…"
+                                className="w-full rounded-none border border-slate-200 bg-white p-3 text-xs sm:text-sm outline-none shadow-2xs focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C]"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-bold uppercase tracking-wider text-[#081F5C]">
+                                  Attach photos/videos (optional)
+                                </p>
+                                <p className="text-xs font-semibold text-slate-500">
+                                  {ratingMedia.length}/{MAX_MEDIA}
+                                </p>
+                              </div>
+                              <label className="inline-flex cursor-pointer items-center gap-2 rounded-none border border-dashed border-slate-300 bg-white px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-[#081F5C] hover:bg-slate-50 transition-colors shadow-2xs">
+                                <ImageIcon className="h-4 w-4" />
+                                <VideoIcon className="h-4 w-4" />
+                                Upload photos or videos
+                                <input
+                                  type="file"
+                                  accept="image/*,video/*"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => handleAddMedia(e.target.files)}
+                                />
+                              </label>
+
+                              {ratingMedia.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 pt-1">
+                                  {ratingMedia.map((file, index) => (
+                                    <div
+                                      key={`${file.name}-${index}`}
+                                      className="relative h-20 overflow-hidden rounded-none border border-slate-200 bg-white shadow-2xs"
+                                    >
+                                      {file.type === 'video' ? (
+                                        <video src={file.url} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <img src={file.url} alt={file.name} className="h-full w-full object-cover" />
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="absolute right-1 top-1 rounded-none bg-[#081F5C] px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm"
+                                        onClick={() =>
+                                          setRatingMedia((prev) => prev.filter((_, idx) => idx !== index))
+                                        }
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-3">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={resetForm}
+                                className="rounded-none border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 shadow-2xs hover:bg-slate-50"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => submitReview(item.id)}
+                                className="rounded-none bg-[#081F5C] px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:bg-[#0a2770]"
+                              >
+                                Submit Review
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
           </section>
         )}
 
         {activeTab === 'myReviews' && (
           <section className="grid gap-4">
             {myReviews.length === 0 ? (
-              <Card>
-                <CardContent className="py-10 text-center text-sm text-slate-500">No reviews yet. Start rating your completed bookings.</CardContent>
-              </Card>
+              <div className="flex min-h-[180px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm">
+                <Star className="h-8 w-8 text-slate-300" />
+                <p className="mt-2 text-sm font-medium text-foreground">No submitted reviews yet</p>
+                <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                  Your submitted ratings and shop feedback will appear here.
+                </p>
+              </div>
             ) : (
               myReviews.map((review) => (
-                <Card key={review.id} className="gap-0 overflow-hidden rounded-2xl border border-[#081F5C]/10 bg-white/95 py-0 shadow-sm ring-1 ring-black/5 transition-all duration-200 hover:border-[#1447a6]/30 hover:shadow-md">
-                  <CardHeader className="border-b border-slate-100 bg-slate-50/65 py-3">
+                <Card
+                  key={review.id}
+                  className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5"
+                >
+                  <CardHeader className="border-b border-slate-200 bg-slate-50/80 px-4 py-3">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <CardTitle className="truncate text-[15px] font-semibold text-[#081F5C]">{review.shop}</CardTitle>
-                        <CardDescription className="truncate text-[13px] text-slate-600">{review.service}</CardDescription>
+                        <CardTitle className="truncate text-base font-bold uppercase tracking-wide text-[#081F5C]">
+                          {review.shop}
+                        </CardTitle>
+                        <CardDescription className="truncate text-xs font-medium text-slate-600">
+                          {review.service}
+                        </CardDescription>
                       </div>
-                      <Badge variant="outline" className="border-[#081F5C]/20 bg-white/90 text-[11px] text-[#081F5C]">{review.date}</Badge>
+                      <Badge variant="outline" className="rounded-none border border-slate-300 bg-white font-mono text-xs font-bold text-[#081F5C]">
+                        {review.date}
+                      </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3 py-4">
-                    <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
-                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2"><CalendarDays className="h-3.5 w-3.5 text-slate-500" />Booking date: {formatDateLabel(review.bookingDate)}</div>
-                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-2"><Clock3 className="h-3.5 w-3.5 text-slate-500" />Preferred: {review.preferredTime || 'N/A'}</div>
+                  <CardContent className="space-y-3.5 p-4">
+                    <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
+                      <div className="inline-flex items-center gap-1.5 rounded-none border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-medium">
+                        <CalendarDays className="h-3.5 w-3.5 text-[#081F5C]" />
+                        <span>Booking date: {formatDateLabel(review.bookingDate)}</span>
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 rounded-none border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-medium">
+                        <Clock3 className="h-3.5 w-3.5 text-[#081F5C]" />
+                        <span>Preferred: {review.preferredTime || 'N/A'}</span>
+                      </div>
                     </div>
+
                     <div className="flex items-center gap-2">
                       <Stars value={review.rating} />
-                      <span className="text-sm font-semibold text-slate-700">{Number(review.rating).toFixed(1)}</span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {Number(review.rating).toFixed(1)} / 5.0
+                      </span>
                     </div>
-                    <p className="text-sm text-slate-700">{review.text}</p>
+
+                    <p className="text-xs sm:text-sm font-medium text-slate-700 leading-relaxed">{review.text}</p>
+
                     {typeof review.shopResponse === 'string' && review.shopResponse.trim().length > 0 ? (
-                      <div className="rounded-lg border border-[#081F5C]/15 bg-[#081F5C]/4 px-3 py-2.5">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#081F5C]/80">Reply from provider</p>
-                        <p className="mt-1 text-sm text-slate-800">{review.shopResponse.trim()}</p>
+                      <div className="rounded-none border-l-4 border-l-[#081F5C] border border-slate-200 bg-slate-50 p-3 space-y-1">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#081F5C]">
+                          Reply from repair provider
+                        </p>
+                        <p className="text-xs font-semibold text-slate-800">{review.shopResponse.trim()}</p>
                         {review.providerReviewRespondedAt ? (
-                          <p className="mt-1 text-[11px] text-slate-500">
-                            {new Date(review.providerReviewRespondedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                          <p className="text-[10px] font-medium text-slate-500 pt-0.5">
+                            {new Date(review.providerReviewRespondedAt).toLocaleString(undefined, {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
                           </p>
                         ) : null}
                       </div>
                     ) : null}
+
                     {review.serviceAddress && (
-                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-                        <span className="inline-flex items-center gap-1.5 font-medium text-slate-700"><MapPin className="h-3.5 w-3.5" />Service address</span>
-                        <p className="mt-1">{review.serviceAddress}</p>
+                      <div className="rounded-none border border-slate-200 bg-slate-50/50 p-2.5 text-xs text-slate-700">
+                        <span className="inline-flex items-center gap-1.5 font-bold uppercase tracking-wider text-[#081F5C]">
+                          <MapPin className="h-3.5 w-3.5" />
+                          Service address
+                        </span>
+                        <p className="mt-1 font-medium">{review.serviceAddress}</p>
                       </div>
                     )}
+
                     {Array.isArray(review.media) && review.media.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 pt-1">
                         {review.media.map((item, idx) => (
-                          <div key={`${review.id}-${idx}`} className="h-20 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+                          <div key={`${review.id}-${idx}`} className="h-20 overflow-hidden rounded-none border border-slate-200 bg-slate-50">
                             {item.type === 'video' ? (
                               <video src={item.url} className="h-full w-full object-cover" />
                             ) : (
@@ -668,10 +652,8 @@ function CustomerReviewsRatings() {
             )}
           </section>
         )}
-        </main>
-      </div>
-      {LogoutDialog}
-    </>
+      </main>
+    </CustomerLayout>
   )
 }
 

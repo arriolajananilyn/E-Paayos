@@ -1,9 +1,56 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, Bell, MessageSquare, Package, Truck } from 'lucide-react'
+import {
+  AlertCircle,
+  Bell,
+  Calendar,
+  CheckCheck,
+  ChevronDown,
+  Loader2,
+  MessageSquare,
+  Package,
+  Search,
+  Trash2,
+  Truck,
+} from 'lucide-react'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
-const NOTIFICATION_FILTERS = ['All', 'booking', 'status', 'message', 'system']
+const NOTIFICATION_TABS = [
+  { id: 'All', label: 'All activity' },
+  { id: 'booking', label: 'Bookings' },
+  { id: 'status', label: 'Status updates' },
+  { id: 'message', label: 'Messages' },
+]
+
+const selectShell =
+  'h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-2xs focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] appearance-none pr-8 transition-all hover:border-slate-300'
+
+function NotificationSearchBar({ value, onChange }) {
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-2">
+      <div className="relative h-9 w-full min-w-0 shrink-0">
+        <Input
+          className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-4 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300"
+          placeholder="Search by keyword, shop, or notification detail…"
+          value={value}
+          onChange={onChange}
+          aria-label="Search notifications"
+        />
+        <Button
+          type="button"
+          size="icon-sm"
+          className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-none bg-[#081F5C] hover:bg-[#0a2770] p-0 shadow-sm"
+          aria-hidden
+          tabIndex={-1}
+        >
+          <Search className="h-4 w-4 text-white" />
+        </Button>
+      </div>
+    </div>
+  )
+}
 
 const ICON_MAP = {
   booking: Package,
@@ -352,29 +399,29 @@ export function NotificationBellIndicator({ unreadCount, children, className = '
  * Main notifications list — same layout as customer notification page body.
  * @param {{ user: object, readScope: string, bookingsUrl?: string, routes: { bookings: string, messages: string, dashboard: string }, variant: 'customer' | 'technician' | 'shopOwner', onUnreadCountChange?: (count: number) => void }} props
  */
-export function NotificationFeedContent({ user, readScope, bookingsUrl, routes, variant, onUnreadCountChange }) {
-  const [filter, setFilter] = useState('All')
+export function NotificationFeedContent({
+  user,
+  readScope = 'customer',
+  bookingsUrl,
+  routes = { bookings: '#/customer/my-bookings', messages: '#/customer/messages', dashboard: '#/customer/dashboard' },
+  variant = 'customer',
+  onUnreadChange,
+}) {
   const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('All')
+  const [readFilter, setReadFilter] = useState('All')
+  const [sortBy, setSortBy] = useState('newest')
+  const [q, setQ] = useState('')
 
   const url = bookingsUrl || `${API_URL}/api/catalog/bookings`
+  const unread = useMemo(() => items.filter((x) => x.unread).length, [items])
 
-  const list = useMemo(() => {
-    const base = filter === 'All' ? items : items.filter((i) => i.type === filter)
-    return base
-      .map((item) => ({
-        ...item,
-        Icon: ICON_MAP[item.type] || Bell,
-        timeLabel: formatRelativeTime(item.timestamp),
-      }))
-      .sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0))
-  }, [items, filter])
-
-  const unread = useMemo(() => items.filter((i) => i.unread).length, [items])
-
-  const onUnreadCbRef = useRef(onUnreadCountChange)
-  onUnreadCbRef.current = onUnreadCountChange
+  const onUnreadCbRef = useRef(onUnreadChange)
+  useEffect(() => {
+    onUnreadCbRef.current = onUnreadChange
+  }, [onUnreadChange])
 
   useEffect(() => {
     onUnreadCbRef.current?.(unread)
@@ -388,9 +435,7 @@ export function NotificationFeedContent({ user, readScope, bookingsUrl, routes, 
     try {
       const res = await fetch(url, { headers: notificationAuthHeaders() })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(data?.message || 'Could not load notifications.')
-      }
+      if (!res.ok) throw new Error(data?.message || 'Could not load notifications.')
       const bookings = Array.isArray(data?.bookings) ? data.bookings : []
       const readMap = loadReadMap(readScope, user)
       setItems(flatMapBookings(bookings, readMap, routes, variant))
@@ -404,7 +449,6 @@ export function NotificationFeedContent({ user, readScope, bookingsUrl, routes, 
 
   useEffect(() => {
     void loadNotifications()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- routes object identity may vary; url/readScope/user/variant drive reloads
   }, [user, url, readScope, variant])
 
   const markOneRead = (id) => {
@@ -417,98 +461,113 @@ export function NotificationFeedContent({ user, readScope, bookingsUrl, routes, 
   const markAllRead = () => {
     if (!user) return
     const nextReadMap = { ...loadReadMap(readScope, user) }
-    items.forEach((item) => {
-      nextReadMap[item.id] = true
-    })
+    items.forEach((item) => { nextReadMap[item.id] = true })
     saveReadMap(readScope, user, nextReadMap)
     setItems((prev) => prev.map((i) => ({ ...i, unread: false })))
   }
 
   const clearAll = () => setItems([])
 
-  const handleNotificationClick = (notification) => {
-    if (notification.unread) markOneRead(notification.id)
-
-    if (notification.type === 'message') {
-      window.location.hash = routes.messages
-      return
-    }
-    if (notification.type === 'system') {
-      window.location.hash = notification.route || routes.dashboard
-      return
-    }
-    window.location.hash = notification.route || routes.bookings
+  const handleNotificationClick = (n) => {
+    if (n.unread) markOneRead(n.id)
+    window.location.hash = n.route || routes.bookings
   }
 
-  return (
-    <div className="space-y-3 sm:space-y-4 w-full min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <Bell className="h-5 w-5 text-[#081F5C] dark:text-blue-200 shrink-0" />
-          <h2 className="text-xl sm:text-2xl font-semibold text-[#081F5C] dark:text-slate-50">Notifications</h2>
-          <span className="ml-2 text-[12px] px-2 py-0.5 rounded-full bg-[#081F5C]/8 text-[#081F5C] border border-[#081F5C]/20 dark:bg-white/10 dark:text-blue-100 dark:border-white/15">
-            {unread} unread
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={markAllRead}
-            className="px-3 py-1.5 rounded-md border border-[#081F5C]/15 bg-white/90 text-sm text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100 dark:hover:bg-white/10"
-          >
-            Mark all read
-          </button>
-          <button
-            type="button"
-            onClick={clearAll}
-            className="px-3 py-1.5 rounded-md border border-[#081F5C]/15 bg-white/90 text-sm text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100 dark:hover:bg-white/10"
-          >
-            Clear all
-          </button>
-        </div>
-      </div>
+  const list = useMemo(() => {
+    if (activeTab === 'All') return items
+    return items.filter((n) => n.type === activeTab)
+  }, [items, activeTab])
 
-      <div className="flex w-full items-stretch rounded-lg border border-gray-200 bg-white p-1 shadow-sm overflow-x-auto sm:overflow-visible dark:border-white/10 dark:bg-slate-900/90">
-        {NOTIFICATION_FILTERS.map((t) => (
+  return (
+    <div className="space-y-4 w-full min-w-0">
+      {error ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-2xs">
+          <span>{error}</span>
+          <Button type="button" variant="outline" size="sm" onClick={() => void loadNotifications()} disabled={loading}>
+            Retry
+          </Button>
+        </div>
+      ) : null}
+
+      <div
+        className="mb-4 flex w-full items-stretch overflow-x-auto rounded-none border border-slate-200 bg-white p-1 shadow-[0_2px_5px_rgba(15,23,42,0.08)] sm:overflow-visible"
+        role="tablist"
+        aria-label="Notification activity type"
+      >
+        {NOTIFICATION_TABS.map((t) => (
           <button
-            key={t}
+            key={t.id}
             type="button"
-            onClick={() => setFilter(t)}
-            className={`whitespace-nowrap flex-none sm:flex-1 text-center px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm transition-colors ${
-              filter === t
-                ? 'bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-sm ring-1 ring-[#081F5C]/25 dark:from-[#04133d] dark:via-[#081F5C] dark:to-[#2a63cc]'
-                : 'text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-white/10'
+            role="tab"
+            aria-selected={activeTab === t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`flex-none whitespace-nowrap rounded-none px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider transition-all sm:flex-1 sm:px-4 sm:text-xs ${
+              activeTab === t.id
+                ? 'bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white shadow-sm ring-1 ring-[#081F5C]/25'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-[#081F5C]'
             }`}
           >
-            {t[0].toUpperCase() + t.slice(1)}
+            {t.label}
           </button>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-[#081F5C]/10 overflow-hidden dark:bg-[#020818]/95 dark:border-white/10 dark:ring-1 dark:ring-white/5">
-        <div className="hidden md:grid grid-cols-[2fr_5fr_1fr] gap-2 px-4 py-3 text-xs font-medium text-gray-600 bg-gray-50 items-center dark:bg-white/5 dark:text-slate-300">
-          <div className="text-left pl-2 sm:pl-4">Type</div>
-          <div className="text-left">Details</div>
-          <div className="text-right pr-2">Time</div>
+      <div className="min-w-0 max-w-full space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-base font-semibold text-[#081F5C]">Notifications &amp; Activity Log</p>
+            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+              {loading
+                ? 'Loading your notification feed from server…'
+                : items.length === 0
+                  ? 'No activity logs found for your account.'
+                  : list.length === items.length
+                    ? `Showing all ${items.length} notification${items.length === 1 ? '' : 's'}.`
+                    : `Showing ${list.length} of ${items.length} notifications.`}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              onClick={markAllRead}
+              disabled={loading || unread === 0}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none bg-[#081F5C] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] transition-all hover:bg-[#0a2770] hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] focus-visible:ring-1 focus-visible:ring-[#081F5C] sm:text-sm"
+            >
+              <CheckCheck className="h-4 w-4" />
+              Mark all read
+            </Button>
+          </div>
         </div>
-        <div className="divide-y">
-          {loading ? (
-            <div className="p-10 text-center text-gray-600 dark:text-slate-300">Loading notifications…</div>
-          ) : error ? (
-            <div className="p-6 text-center text-sm text-rose-600">
-              {error}
-              <button
-                type="button"
-                onClick={() => void loadNotifications()}
-                className="ml-2 text-[#1447a6] hover:underline dark:text-blue-300"
-              >
-                Retry
-              </button>
-            </div>
-          ) : list.length === 0 ? (
-            <div className="p-10 text-center text-gray-600 dark:text-slate-300">No notifications</div>
-          ) : (
-            list.map((n) => {
+
+        {loading ? (
+          <div className="flex min-h-[200px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-[#081F5C]" aria-hidden />
+            <p className="mt-3 text-sm font-medium text-foreground">Loading notifications…</p>
+            <p className="mt-1 max-w-sm text-xs text-muted-foreground">Syncing real-time repair and booking updates.</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex min-h-[180px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm">
+            <Bell className="h-8 w-8 text-slate-300" />
+            <p className="mt-2 text-sm font-medium text-foreground">No notifications yet</p>
+            <p className="mt-1 max-w-md text-xs text-muted-foreground">
+              Bookings, status updates, and messages from repair specialists will appear here.
+            </p>
+          </div>
+        ) : list.length === 0 ? (
+          <div className="flex min-h-[160px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm">
+            <p className="text-sm font-medium text-foreground">No notifications match your filter</p>
+            <p className="mt-1 max-w-md text-xs text-muted-foreground">Try selecting a different tab filter.</p>
+            <Button
+              type="button"
+              onClick={() => setActiveTab('All')}
+              className="mt-4 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none bg-[#081F5C] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:bg-[#0a2770]"
+            >
+              Reset tab
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {list.map((n) => {
               const Icon = n.Icon || Bell
               return (
                 <div
@@ -522,28 +581,39 @@ export function NotificationFeedContent({ user, readScope, bookingsUrl, routes, 
                     }
                   }}
                   onClick={() => handleNotificationClick(n)}
-                  className={`grid grid-cols-1 md:grid-cols-[2fr_5fr_1fr] gap-2 px-4 py-3 items-center cursor-pointer hover:bg-gray-50 transition-colors dark:hover:bg-white/5 ${
-                    n.unread ? 'bg-[#081F5C]/6 dark:bg-[#081F5C]/18' : ''
+                  className={`group relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 p-4 rounded-none border transition-all duration-300 cursor-pointer shadow-[0_3px_8px_rgba(15,23,42,0.14)] hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 ${
+                    n.unread
+                      ? 'border-l-4 border-l-[#081F5C] border-slate-200 bg-sky-50/70'
+                      : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 rounded-lg bg-gray-50 border border-gray-200 dark:bg-white/5 dark:border-white/10">
-                      <Icon className="h-4 w-4 text-gray-700 dark:text-blue-200" />
-                    </div>
-                    <span className="text-[12px] md:text-[13px] font-medium text-gray-900 dark:text-slate-100 capitalize">
-                      {n.type}
+                  <div className="flex min-w-0 flex-1 items-start gap-3.5">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[#081F5C]/10 text-[#081F5C] group-hover:bg-[#081F5C] group-hover:text-white transition-colors">
+                      <Icon className="h-5 w-5" aria-hidden />
                     </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm sm:text-base font-bold text-slate-900">{n.title}</p>
+                        {n.unread ? (
+                          <span className="inline-flex items-center rounded-none border border-sky-400 bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-900">
+                            Unread
+                          </span>
+                        ) : null}
+                        <span className="inline-flex items-center rounded-none border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                          {n.type}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs sm:text-sm font-medium text-slate-600 line-clamp-2">{n.desc}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-gray-900 dark:text-slate-50 truncate">{n.title}</div>
-                    <div className="text-[13px] text-gray-700 dark:text-slate-300 truncate">{n.desc}</div>
+                  <div className="flex shrink-0 items-center gap-2 self-end sm:self-center text-right">
+                    <span className="text-xs font-semibold text-slate-500">{n.timeLabel || '—'}</span>
                   </div>
-                  <div className="text-right text-[11px] text-gray-500 dark:text-slate-400 md:pr-2">{n.timeLabel || '—'}</div>
                 </div>
               )
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

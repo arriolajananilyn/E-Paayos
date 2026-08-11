@@ -1,4 +1,4 @@
-import IndependentMechanicLayout from './IndependentMechanicLayout.jsx'
+import OnCallMechanicLayout from './OnCallMechanicLayout.jsx'
 import { NotificationFeedContent } from '../../../components/notifications/NotificationFeed.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
@@ -9,9 +9,9 @@ const ROUTES = {
   dashboard: '#/independent/technician/dashboard',
 }
 
-export default function IndependentMechanicNotification() {
+export default function OnCallMechanicNotification() {
   return (
-    <IndependentMechanicLayout
+    <OnCallMechanicLayout
       activeSection="notification"
       pageMeta={{
         title: 'Notifications',
@@ -19,7 +19,7 @@ export default function IndependentMechanicNotification() {
       }}
     >
       <NotificationBootstrap readScope="mechanic_independent" />
-    </IndependentMechanicLayout>
+    </OnCallMechanicLayout>
   )
 }
 
@@ -28,7 +28,7 @@ function NotificationBootstrap({ readScope }) {
   let user = null
   try {
     const parsed = raw ? JSON.parse(raw) : null
-    if (parsed?.role === 'independent-mechanic-technician') user = parsed
+    if (parsed?.role === 'oncall-mechanic-technician') user = parsed
   } catch {
     user = null
   }

@@ -15,9 +15,27 @@ L.Icon.Default.mergeOptions({
 })
 
 const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search'
+const OSRM_ROUTE = 'https://router.project-osrm.org/route/v1/driving'
 const GEOCODE_DEBOUNCE_MS = 550
 /** Nominatim usage: spread requests (~1/s max for heavy use; safe gap for a few fallbacks). */
 const BETWEEN_TRY_MS = 650
+
+const ROUTE_LINE_STYLE = {
+  color: '#1447a6',
+  weight: 6,
+  opacity: 0.92,
+  lineCap: 'round',
+  lineJoin: 'round',
+}
+
+const ROUTE_FALLBACK_LINE_STYLE = {
+  color: '#64748b',
+  weight: 4,
+  opacity: 0.65,
+  dashArray: '8 10',
+  lineCap: 'round',
+  lineJoin: 'round',
+}
 
 const PH = 'Philippines'
 
@@ -147,12 +165,79 @@ async function geocodeWithFallbacks(candidates) {
   return null
 }
 
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const toRad = (d) => (d * Math.PI) / 180
+  const R = 6371
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function formatRouteDistance(meters) {
+  const m = Number(meters)
+  if (!Number.isFinite(m) || m <= 0) return '—'
+  if (m < 1000) return `${Math.round(m)} m`
+  return `${(m / 1000).toFixed(1)} km`
+}
+
+function formatRouteDuration(seconds) {
+  const s = Number(seconds)
+  if (!Number.isFinite(s) || s <= 0) return '—'
+  const mins = Math.max(1, Math.round(s / 60))
+  if (mins < 60) return `~${mins} min`
+  const h = Math.floor(mins / 60)
+  const rem = mins % 60
+  return rem ? `~${h} h ${rem} min` : `~${h} h`
+}
+
+/** OSRM driving route: origin → destination (OpenStreetMap road network). */
+async function fetchOsrmRoute(origin, destination) {
+  const { lat: oLat, lng: oLng } = origin
+  const { lat: dLat, lng: dLng } = destination
+  const url = `${OSRM_ROUTE}/${oLng},${oLat};${dLng},${dLat}?overview=full&geometries=geojson`
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error(`Routing unavailable (${res.status})`)
+  const data = await res.json()
+  if (data?.code !== 'Ok' || !Array.isArray(data.routes) || !data.routes.length) {
+    throw new Error('No driving route found between these points.')
+  }
+  const route = data.routes[0]
+  const coords = route?.geometry?.coordinates
+  if (!Array.isArray(coords) || coords.length < 2) {
+    throw new Error('Route geometry missing.')
+  }
+  const latLngs = coords.map(([lng, lat]) => [lat, lng])
+  return {
+    latLngs,
+    distanceM: route.distance,
+    durationS: route.duration,
+    approximate: false,
+  }
+}
+
+function buildStraightLineRoute(origin, destination) {
+  const km = haversineKm(origin.lat, origin.lng, destination.lat, destination.lng)
+  return {
+    latLngs: [
+      [origin.lat, origin.lng],
+      [destination.lat, destination.lng],
+    ],
+    distanceM: km * 1000,
+    durationS: null,
+    approximate: true,
+  }
+}
+
 /**
  * Embedded map (OpenStreetMap) + pin — no API key.
  * `addressParts`: structured PSGC labels + detailed line for clearer geocoding fallbacks.
  * `showHeading`: when false, only the map + status (for embedding as a page header band).
  * `flush`: full-width map frame only — no card border/padding; optional caption under map hidden.
- * `secondaryPin`: optional `{ lat, lng, label? }` (e.g. customer GPS preview) — second marker + fit bounds with shop.
+ * `secondaryPin`: optional `{ lat, lng, label? }` (e.g. customer GPS) — second marker + optional route line.
+ * `showRouteLine`: when true and `secondaryPin` is set, draw OSRM driving route (OpenStreetMap) between pins.
  */
 export default function ShopAddressGoogleMap({
   addressParts = null,
@@ -161,17 +246,23 @@ export default function ShopAddressGoogleMap({
   emptyAddressHint = null,
   flush = false,
   secondaryPin = null,
+  showRouteLine = false,
 }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
   const markerRef = useRef(null)
   const secondaryMarkerRef = useRef(null)
+  const routePolylineRef = useRef(null)
   const lastShopViewRef = useRef(null)
+  const routeRequestIdRef = useRef(0)
   const requestIdRef = useRef(0)
   const [status, setStatus] = useState('idle')
   const [resolvedLabel, setResolvedLabel] = useState('')
   const [approximate, setApproximate] = useState(false)
   const [googleDirectionsUrl, setGoogleDirectionsUrl] = useState('')
+  const [routeLoading, setRouteLoading] = useState(false)
+  const [routeInfo, setRouteInfo] = useState(null)
+  const [routeError, setRouteError] = useState('')
 
   const secondaryKey = useMemo(() => {
     if (
@@ -202,12 +293,16 @@ export default function ShopAddressGoogleMap({
       }
       markerRef.current = null
       secondaryMarkerRef.current = null
+      routePolylineRef.current = null
       lastShopViewRef.current = null
       queueMicrotask(() => {
         setStatus('empty')
         setResolvedLabel('')
         setApproximate(false)
         setGoogleDirectionsUrl('')
+        setRouteLoading(false)
+        setRouteInfo(null)
+        setRouteError('')
       })
       return undefined
     }
@@ -233,6 +328,7 @@ export default function ShopAddressGoogleMap({
             }
             markerRef.current = null
             secondaryMarkerRef.current = null
+            routePolylineRef.current = null
             lastShopViewRef.current = null
             setStatus('zero-results')
             return
@@ -289,6 +385,7 @@ export default function ShopAddressGoogleMap({
           }
           markerRef.current = null
           secondaryMarkerRef.current = null
+          routePolylineRef.current = null
           lastShopViewRef.current = null
           setStatus('error')
         }
@@ -303,10 +400,24 @@ export default function ShopAddressGoogleMap({
   useEffect(() => {
     if (!mapRef.current) {
       setGoogleDirectionsUrl('')
-      return
+      setRouteLoading(false)
+      setRouteInfo(null)
+      setRouteError('')
+      return undefined
     }
 
     const map = mapRef.current
+
+    const clearRouteLayer = () => {
+      if (routePolylineRef.current) {
+        try {
+          map.removeLayer(routePolylineRef.current)
+        } catch {
+          /* layer may already be removed */
+        }
+        routePolylineRef.current = null
+      }
+    }
 
     const clearSecondaryLayer = () => {
       if (secondaryMarkerRef.current) {
@@ -317,12 +428,16 @@ export default function ShopAddressGoogleMap({
         }
         secondaryMarkerRef.current = null
       }
+      clearRouteLayer()
     }
 
     if (status !== 'ready') {
       setGoogleDirectionsUrl('')
+      setRouteLoading(false)
+      setRouteInfo(null)
+      setRouteError('')
       clearSecondaryLayer()
-      return
+      return undefined
     }
 
     const pin = secondaryPin
@@ -334,14 +449,18 @@ export default function ShopAddressGoogleMap({
       Number.isFinite(pin.lng)
 
     if (!hasPin) {
+      routeRequestIdRef.current += 1
       clearSecondaryLayer()
       setGoogleDirectionsUrl('')
+      setRouteLoading(false)
+      setRouteInfo(null)
+      setRouteError('')
       const lv = lastShopViewRef.current
       if (lv && markerRef.current) {
         map.setView([lv.lat, lv.lng], lv.zoom)
         requestAnimationFrame(() => map.invalidateSize())
       }
-      return
+      return undefined
     }
 
     clearSecondaryLayer()
@@ -355,23 +474,75 @@ export default function ShopAddressGoogleMap({
       fillOpacity: 0.88,
     }).addTo(map)
     secMarker.bindPopup(
-      `<strong>${escapeHtml(popupLabel)}</strong><br/><span style="font-size:11px">Home service — booking preview (GPS)</span>`,
+      `<strong>${escapeHtml(popupLabel)}</strong><br/><span style="font-size:11px">Your current location</span>`,
     )
     secondaryMarkerRef.current = secMarker
 
     const shopLL = markerRef.current?.getLatLng?.()
+    const userPoint = { lat: pin.lat, lng: pin.lng }
+
     if (shopLL) {
       setGoogleDirectionsUrl(
-        `https://www.google.com/maps/dir/${shopLL.lat},${shopLL.lng}/${pin.lat},${pin.lng}`,
+        `https://www.google.com/maps/dir/${pin.lat},${pin.lng}/${shopLL.lat},${shopLL.lng}`,
       )
-      const bounds = L.latLngBounds(shopLL, L.latLng(pin.lat, pin.lng))
-      map.fitBounds(bounds.pad(0.14))
     } else {
       setGoogleDirectionsUrl(`https://www.google.com/maps?q=${pin.lat},${pin.lng}`)
       map.setView([pin.lat, pin.lng], 15)
+      requestAnimationFrame(() => map.invalidateSize())
+      return undefined
     }
-    requestAnimationFrame(() => map.invalidateSize())
-  }, [status, secondaryKey, candidateKey])
+
+    const shopPoint = { lat: shopLL.lat, lng: shopLL.lng }
+
+    if (!showRouteLine) {
+      setRouteLoading(false)
+      setRouteInfo(null)
+      setRouteError('')
+      const bounds = L.latLngBounds(shopLL, L.latLng(pin.lat, pin.lng))
+      map.fitBounds(bounds.pad(0.14))
+      requestAnimationFrame(() => map.invalidateSize())
+      return undefined
+    }
+
+    const routeId = (routeRequestIdRef.current += 1)
+    setRouteLoading(true)
+    setRouteInfo(null)
+    setRouteError('')
+
+    void (async () => {
+      let routeResult = null
+      try {
+        routeResult = await fetchOsrmRoute(userPoint, shopPoint)
+      } catch {
+        if (routeId !== routeRequestIdRef.current) return
+        routeResult = buildStraightLineRoute(userPoint, shopPoint)
+        setRouteError('Road route unavailable — showing straight-line distance.')
+      }
+
+      if (routeId !== routeRequestIdRef.current || !mapRef.current) return
+
+      const activeMap = mapRef.current
+      clearRouteLayer()
+
+      const lineStyle = routeResult.approximate ? ROUTE_FALLBACK_LINE_STYLE : ROUTE_LINE_STYLE
+      routePolylineRef.current = L.polyline(routeResult.latLngs, lineStyle).addTo(activeMap)
+
+      const bounds = routePolylineRef.current.getBounds()
+      activeMap.fitBounds(bounds.pad(0.12))
+
+      setRouteInfo({
+        distanceLabel: formatRouteDistance(routeResult.distanceM),
+        durationLabel: routeResult.durationS != null ? formatRouteDuration(routeResult.durationS) : null,
+        approximate: routeResult.approximate,
+      })
+      setRouteLoading(false)
+      requestAnimationFrame(() => activeMap.invalidateSize())
+    })()
+
+    return () => {
+      routeRequestIdRef.current += 1
+    }
+  }, [status, secondaryKey, candidateKey, showRouteLine])
 
   useEffect(() => {
     return () => {
@@ -382,6 +553,7 @@ export default function ShopAddressGoogleMap({
       }
       markerRef.current = null
       secondaryMarkerRef.current = null
+      routePolylineRef.current = null
     }
   }, [])
 
@@ -407,7 +579,7 @@ export default function ShopAddressGoogleMap({
           <div>
             <p className="text-sm font-medium text-foreground">Shop location on the map</p>
             <p className="text-xs text-muted-foreground">
-              Pin from your address (OpenStreetMap). Tap the marker for details.
+              OpenStreetMap with optional driving route (OSRM). Tap a marker for details.
             </p>
           </div>
         </div>
@@ -445,19 +617,41 @@ export default function ShopAddressGoogleMap({
               </p>
             </div>
           ) : null}
+          {routeLoading ? (
+            <div
+              className="pointer-events-none absolute bottom-3 left-1/2 z-500 -translate-x-1/2 rounded-full border border-[#081F5C]/15 bg-white/95 px-3 py-1.5 text-[11px] font-medium text-[#081F5C] shadow-sm dark:border-white/10 dark:bg-[#020818]/95 dark:text-sky-200"
+              role="status"
+              aria-live="polite"
+            >
+              Calculating route…
+            </div>
+          ) : null}
         </div>
       ) : null}
 
-      {flush && googleDirectionsUrl ? (
-        <div className="pointer-events-auto shrink-0 border-t border-[#081F5C]/15 bg-white/92 px-3 py-2 text-center dark:border-white/10 dark:bg-[#020818]/92">
-          <a
-            href={googleDirectionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] font-semibold text-[#081F5C] underline-offset-2 hover:underline dark:text-sky-300"
-          >
-            Open route in Google Maps (shop → your pin)
-          </a>
+      {flush && (routeInfo || googleDirectionsUrl || routeError) ? (
+        <div className="pointer-events-auto shrink-0 space-y-1 border-t border-[#081F5C]/15 bg-white/92 px-3 py-2 text-center dark:border-white/10 dark:bg-[#020818]/92">
+          {routeInfo ? (
+            <p className="text-[11px] font-semibold text-[#081F5C] dark:text-sky-200">
+              {routeInfo.distanceLabel}
+              {routeInfo.durationLabel ? ` · ${routeInfo.durationLabel}` : ''}
+              {routeInfo.approximate ? ' · straight line' : ' · driving route'}
+              <span className="font-normal text-muted-foreground"> · OpenStreetMap</span>
+            </p>
+          ) : null}
+          {routeError ? (
+            <p className="text-[10px] text-amber-800 dark:text-amber-200/90">{routeError}</p>
+          ) : null}
+          {googleDirectionsUrl ? (
+            <a
+              href={googleDirectionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-semibold text-[#081F5C] underline-offset-2 hover:underline dark:text-sky-300"
+            >
+              Also open in Google Maps
+            </a>
+          ) : null}
         </div>
       ) : null}
 

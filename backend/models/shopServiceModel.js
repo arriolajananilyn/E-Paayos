@@ -20,6 +20,9 @@ const shopServiceSchema = new mongoose.Schema(
     requirements: { type: String, default: "", trim: true },
     /** Optional starting price (PHP) shown to customers; omit or 0 = "price on request" in UI. */
     startingPrice: { type: Number, min: 0, default: null },
+    /** Labor fee range for this listing (PHP), set when the provider adds/edits the service. */
+    laborRatingMin: { type: Number, min: 0, default: null },
+    laborRatingMax: { type: Number, min: 0, default: null },
     status: {
       type: String,
       enum: ["active", "inactive"],

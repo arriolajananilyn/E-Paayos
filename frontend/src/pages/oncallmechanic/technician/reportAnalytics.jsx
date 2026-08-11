@@ -1,9 +1,9 @@
 import { BarChart3 } from 'lucide-react'
-import IndependentMechanicLayout, { IndependentPlaceholder } from './IndependentMechanicLayout.jsx'
+import OnCallMechanicLayout, { IndependentPlaceholder } from './OnCallMechanicLayout.jsx'
 
-export default function IndependentMechanicReportAnalytics() {
+export default function OnCallMechanicReportAnalytics() {
   return (
-    <IndependentMechanicLayout
+    <OnCallMechanicLayout
       activeSection="reports-analytics"
       pageMeta={{
         title: 'Report & Analytics',
@@ -15,6 +15,6 @@ export default function IndependentMechanicReportAnalytics() {
         title="Report & Analytics (placeholder)"
         body="Charts and exports — placeholder copy until real data is connected."
       />
-    </IndependentMechanicLayout>
+    </OnCallMechanicLayout>
   )
 }

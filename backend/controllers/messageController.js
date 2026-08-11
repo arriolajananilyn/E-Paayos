@@ -8,6 +8,7 @@ import { User } from "../models/userModel.js"
 import { Conversation } from "../models/conversationModel.js"
 import { Message } from "../models/messageModel.js"
 import { isUserOnline, markOnline } from "../utils/presenceStore.js"
+import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -34,7 +35,7 @@ function roleLabel(role) {
     "shop-owner": "Shop",
     customer: "Customer",
     "mechanic-technician": "Mechanic",
-    "independent-mechanic-technician": "Independent",
+    "oncall-mechanic-technician": "Independent",
     admin: "Admin",
   }
   return map[role] || (typeof role === "string" ? role.replace(/_/g, " ") : "User")
@@ -86,6 +87,15 @@ async function persistMessageAttachment(file) {
     }
   }
 
+  if (shouldStoreUploadsInline()) {
+    return {
+      url: toDataUrl(file.mimetype, fileBuffer),
+      mimetype: file.mimetype || "application/octet-stream",
+      originalName: orig,
+      size: file.size || 0,
+    }
+  }
+
   try {
     await fs.mkdir(MESSAGE_UPLOAD_DIR, { recursive: true })
     const fileName = `msg-${Date.now()}-${crypto.randomUUID()}${ext}`
@@ -131,8 +141,17 @@ export const listConversations = asyncHandler(async (req, res) => {
     .sort({ lastMessageAt: -1 })
     .lean()
 
+  const convIds = list.map((c) => c._id)
+  const idsWithMessages =
+    convIds.length === 0
+      ? []
+      : await Message.distinct("conversation", { conversation: { $in: convIds } })
+  const hasAtLeastOneMessage = new Set(idsWithMessages.map((id) => String(id)))
+
   const out = []
   for (const c of list) {
+    if (!hasAtLeastOneMessage.has(String(c._id))) continue
+
     const otherId = String(c.userA) === String(me) ? c.userB : c.userA
     const other = await User.findById(otherId).select(participantSelect).lean()
     if (!other || other.role === "admin") continue

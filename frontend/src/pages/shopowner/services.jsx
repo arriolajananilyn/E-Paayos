@@ -45,8 +45,8 @@ const SERVICE_LOCATIONS = [
 /** Same `value` keys as shop listings; labels match independent registration wording. */
 const SERVICE_LOCATIONS_INDEPENDENT = [
   { value: 'home', label: 'Home Service' },
-  { value: 'in-shop', label: 'Independent Mechanic/Technician location' },
-  { value: 'both', label: 'Both (Home Service, Independent Mechanic/Technician location)' },
+  { value: 'in-shop', label: 'On-call Mechanic/Technician location' },
+  { value: 'both', label: 'Both (Home Service, On-call Mechanic/Technician location)' },
 ]
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
@@ -71,6 +71,12 @@ function mapServiceFromApi(doc) {
   const sp = doc.startingPrice
   const startingPrice =
     sp != null && Number.isFinite(Number(sp)) && Number(sp) > 0 ? Number(sp) : null
+  const lm = doc.laborRatingMin
+  const lx = doc.laborRatingMax
+  const laborRatingMin =
+    lm != null && Number.isFinite(Number(lm)) && Number(lm) >= 0 ? Number(lm) : null
+  const laborRatingMax =
+    lx != null && Number.isFinite(Number(lx)) && Number(lx) >= 0 ? Number(lx) : null
   return {
     id: String(doc._id),
     name: doc.name,
@@ -84,7 +90,24 @@ function mapServiceFromApi(doc) {
     bookings: Number(doc.bookingsCount) || 0,
     rating: Number(doc.ratingAvg) || 0,
     startingPrice,
+    laborRatingMin,
+    laborRatingMax,
   }
+}
+
+function laborPriceInputsValid(minStr, maxStr) {
+  const minRaw = String(minStr || '').trim()
+  const maxRaw = String(maxStr || '').trim()
+  const moneyPattern = /^\d{1,7}(\.\d{1,2})?$/
+  if (!moneyPattern.test(minRaw) || !moneyPattern.test(maxRaw)) return false
+  return Number(minRaw) <= Number(maxRaw)
+}
+
+function formatLaborPriceRangePhrase(minNum, maxNum) {
+  const a = Number(minNum)
+  const b = Number(maxNum)
+  if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0) return ''
+  return `PHP ${a.toLocaleString()} – PHP ${b.toLocaleString()}`
 }
 
 function mapEmployeeFromApi(doc) {
@@ -132,14 +155,14 @@ function readProviderSelfEmployee() {
   if (!raw) return null
   try {
     const u = JSON.parse(raw)
-    if (u.role !== 'independent-mechanic-technician') return null
+    if (u.role !== 'oncall-mechanic-technician') return null
     const id = u.id != null ? String(u.id) : u._id != null ? String(u._id) : ''
     if (!id) return null
     return {
       id,
       name: u.fullName || u.email || 'You',
       skills: [],
-      jobTitle: 'Independent mechanic / technician',
+      jobTitle: 'On-call Mechanic/Technician',
       email: (u.email && String(u.email).trim()) || '',
       phone: '',
       technicalSkillsText: '',
@@ -281,6 +304,8 @@ const emptyForm = {
   location: '__',
   status: true, // switch
   technicianIds: [],
+  laborRatingMin: '',
+  laborRatingMax: '',
 }
 
 function ServicesSearchBar({ value, onChange }) {
@@ -312,6 +337,14 @@ function ServicesSearchBar({ value, onChange }) {
 }
 
 export function ServicesCatalogBody({ variant = 'shop' }) {
+  const sanitizePriceInput = useCallback((value) => {
+    const raw = String(value || '')
+    const digitsAndDot = raw.replace(/[^\d.]/g, '')
+    const [whole = '', decimal = ''] = digitsAndDot.split('.')
+    const cappedWhole = whole.slice(0, 7)
+    return decimal ? `${cappedWhole}.${decimal.slice(0, 2)}` : cappedWhole
+  }, [])
+
   const [services, setServices] = useState([])
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
@@ -455,6 +488,14 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
       location: service.location ?? '__',
       status: service.status === 'active',
       technicianIds: service.technicianIds ?? [],
+      laborRatingMin:
+        service.laborRatingMin != null && service.laborRatingMin !== ''
+          ? String(service.laborRatingMin)
+          : '',
+      laborRatingMax:
+        service.laborRatingMax != null && service.laborRatingMax !== ''
+          ? String(service.laborRatingMax)
+          : '',
     })
     setFormOpen(true)
   }
@@ -466,11 +507,17 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
     if (!form.category || form.category === '__') return
     if (!form.location || form.location === '__') return
     if (form.category === 'Others' && !form.otherCategory.trim()) return
+    if (!laborPriceInputsValid(form.laborRatingMin, form.laborRatingMax)) {
+      setActionError('Enter a valid labor price range (minimum and maximum in PHP).')
+      return
+    }
 
     const computedCategory = form.category === 'Others' ? form.otherCategory.trim() : form.category
     const selfId = readProviderSelfEmployee()?.id
     const technicianIds =
       variant === 'independent' ? (selfId ? [selfId] : []) : form.technicianIds
+    const minLabor = Number(String(form.laborRatingMin || '').trim())
+    const maxLabor = Number(String(form.laborRatingMax || '').trim())
     const payload = {
       name,
       category: computedCategory,
@@ -480,6 +527,8 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
       requirements: '',
       status: form.status ? 'active' : 'inactive',
       technicianIds,
+      laborRatingMin: minLabor,
+      laborRatingMax: maxLabor,
     }
 
     setActionError('')
@@ -771,6 +820,11 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                       {locationBadge(service.location, serviceLocations)}
                       {statusBadge(service.status)}
                     </div>
+                    {formatLaborPriceRangePhrase(service.laborRatingMin, service.laborRatingMax) ? (
+                      <p className="mt-2 text-[12px] font-medium text-[#081F5C]/90 dark:text-blue-100/95">
+                        Labor price: {formatLaborPriceRangePhrase(service.laborRatingMin, service.laborRatingMax)}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="flex items-center justify-between gap-3 border-t border-dashed border-[#081F5C]/12 bg-slate-50/40 px-4 py-3 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/4 sm:text-sm">
@@ -929,6 +983,41 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                 placeholder="What is included and what are the limitations?"
                 rows={3}
               />
+            </div>
+
+            <div className="grid gap-1.5">
+              <Label>Labor price range (PHP) *</Label>
+              <p className="text-xs text-muted-foreground">
+                Shown to customers on Find Services for this listing. Enter the typical labor fee range for this service.
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid gap-1">
+                  <Label htmlFor="svc-labor-min" className="text-xs text-muted-foreground">
+                    Minimum
+                  </Label>
+                  <Input
+                    id="svc-labor-min"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="e.g. 300"
+                    value={form.laborRatingMin}
+                    onChange={(e) => setForm((f) => ({ ...f, laborRatingMin: sanitizePriceInput(e.target.value) }))}
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label htmlFor="svc-labor-max" className="text-xs text-muted-foreground">
+                    Maximum
+                  </Label>
+                  <Input
+                    id="svc-labor-max"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="e.g. 1500"
+                    value={form.laborRatingMax}
+                    onChange={(e) => setForm((f) => ({ ...f, laborRatingMax: sanitizePriceInput(e.target.value) }))}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
@@ -1156,7 +1245,8 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                 form.category === '__' ||
                 !form.location ||
                 form.location === '__' ||
-                (form.category === 'Others' && !form.otherCategory.trim())
+                (form.category === 'Others' && !form.otherCategory.trim()) ||
+                !laborPriceInputsValid(form.laborRatingMin, form.laborRatingMax)
               }
               className="bg-linear-to-r from-[#081F5C] to-[#1447a6] hover:opacity-95"
             >
@@ -1204,6 +1294,14 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                         <p className="text-xs font-medium text-muted-foreground">Description</p>
                         <p className="mt-1 text-sm text-foreground">{viewing.description}</p>
                       </div>
+                      {formatLaborPriceRangePhrase(viewing.laborRatingMin, viewing.laborRatingMax) ? (
+                        <div className="rounded-xl border border-[#081F5C]/10 bg-slate-50/60 p-3 dark:border-white/10 dark:bg-white/4">
+                          <p className="text-xs font-medium text-muted-foreground">Labor price range</p>
+                          <p className="mt-1 text-sm font-semibold text-foreground">
+                            {formatLaborPriceRangePhrase(viewing.laborRatingMin, viewing.laborRatingMax)}
+                          </p>
+                        </div>
+                      ) : null}
                     </CardContent>
                   </Card>
 
@@ -1213,7 +1311,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                     </p>
                     {variant === 'independent' ? (
                       <div className="rounded-xl border border-[#081F5C]/10 bg-slate-50/60 p-4 text-sm text-foreground dark:border-white/10 dark:bg-white/4">
-                        You perform this service as the independent mechanic / technician for this listing.
+                        You perform this service as the On-call Mechanic/Technician for this listing.
                       </div>
                     ) : (
                       <div className="grid gap-3 sm:grid-cols-1">

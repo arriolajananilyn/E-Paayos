@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 const ROLE_LABELS = {
   customer: 'Customer',
   'shop-owner': 'Shop Owner',
-  'independent-mechanic-technician': 'Independent Mechanical / Technician',
+  'oncall-mechanic-technician': 'On-call Mechanical / Technician',
   'mechanic-technician': 'Mechanic / Technician',
 }
 
@@ -380,19 +380,19 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl }) {
   }
 
   /** Shop owner & independent provider: steps 1–6 from registration.jsx */
-  const isIndependentRegistration = profile.role === 'independent-mechanic-technician'
+  const isOnCallRegistration = profile.role === 'oncall-mechanic-technician'
 
   return (
     <div className="space-y-6">
       {extendedPersonalInfo}
 
-      <Section title={isIndependentRegistration ? 'Business Information' : 'Business / Shop Information'}>
-        {!isIndependentRegistration ? <Line label="Shop name" value={profile.shopName} /> : null}
+      <Section title={isOnCallRegistration ? 'Business Information' : 'Business / Shop Information'}>
+        {!isOnCallRegistration ? <Line label="Shop name" value={profile.shopName} /> : null}
         <Line label="Type of business" value={profile.businessType} />
         <Line label="Repair services offered" value={formatList(profile.repairServicesOffered)} />
         <Line label="Service type" value={profile.serviceType} />
         <Line label="Years of operation" value={profile.yearsOfOperation} />
-        {!isIndependentRegistration ? (
+        {!isOnCallRegistration ? (
           <Line label="Number of employees / mechanics" value={profile.numberOfEmployees} />
         ) : null}
         <Line label="Operating hours" value={profile.operatingHours} />
@@ -400,13 +400,13 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl }) {
         <Line label="Shop description" value={profile.shopDescription} />
       </Section>
 
-      <Section title={isIndependentRegistration ? 'Location & Address' : 'Shop Location & Address'}>
-        <Line label={isIndependentRegistration ? 'Location' : 'Shop location'} value={shopLocationLine} />
+      <Section title={isOnCallRegistration ? 'Location & Address' : 'Shop Location & Address'}>
+        <Line label={isOnCallRegistration ? 'Location' : 'Shop location'} value={shopLocationLine} />
         <Line label="Detailed address" value={profile.shopDetailedAddress} />
         <Line label="Landmark" value={profile.shopLandmark} />
       </Section>
 
-      {isIndependentRegistration ? (
+      {isOnCallRegistration ? (
         <Section title="Educational Background & 21st Century Skills">
           <Line label="Highest educational level" value={profile.highestEducationalLevel} />
           <Line label="Year graduated / last attended" value={profile.yearGraduatedLastAttended} />

@@ -8,9 +8,26 @@ import { User } from "../models/userModel.js"
 import { ShopService } from "../models/shopServiceModel.js"
 import { Booking } from "../models/bookingModel.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
+import { sendDirectMessage } from "../services/directMessage.js"
+import {
+  buildPaymentProofAttachments,
+  formatNewBookingCustomerToProvider,
+  formatPaymentToProvider,
+  formatServiceFeeToCustomer,
+  formatStatusUpdateToCustomer,
+  formatTechnicianActionToCustomer,
+  issuePhotosToMessageAttachments,
+} from "../utils/bookingAutoMessages.js"
+import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : ""
+}
+
+function isLikelyImageProof(value) {
+  const s = clean(value)
+  if (!s) return false
+  return /^data:image\//i.test(s) || s.startsWith("/uploads/") || /^https?:\/\//i.test(s)
 }
 
 function normalizeReviewMedia(value) {
@@ -64,6 +81,11 @@ async function persistIssuePhotoSource(src, req) {
   if (!ext) return src
   const base64Payload = src.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, "")
   if (!base64Payload) return ""
+
+  // Serverless / shared DB: never use `/uploads/...` paths — those files are not on every API host.
+  if (shouldStoreUploadsInline()) {
+    return src
+  }
 
   try {
     await fs.mkdir(BOOKING_UPLOAD_DIR, { recursive: true })
@@ -235,7 +257,7 @@ export const createCustomerBooking = asyncHandler(async (req, res) => {
     throw new Error("Service not found or not available for booking")
   }
 
-  const owner = await User.findById(svc.shopOwner).select("role accountApprovalStatus").lean()
+  const owner = await User.findById(svc.shopOwner).select("role accountApprovalStatus shopName fullName").lean()
   if (!isApprovedShopOwner(owner)) {
     res.status(404)
     throw new Error("This shop is not accepting bookings right now")
@@ -290,6 +312,24 @@ export const createCustomerBooking = asyncHandler(async (req, res) => {
     status: "pending",
   })
 
+  const shopDisplayName = (owner?.shopName && String(owner.shopName).trim()) || owner?.fullName || "Shop"
+  try {
+    const text = formatNewBookingCustomerToProvider({
+      booking: doc,
+      serviceName: svc.name || "Service",
+      shopName: shopDisplayName,
+    })
+    const photoAttachments = issuePhotosToMessageAttachments(doc.issuePhotos)
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: svc.shopOwner,
+      content: text,
+      attachments: photoAttachments,
+    })
+  } catch (err) {
+    console.error("Booking chat notification failed:", err?.message || err)
+  }
+
   return res.status(201).json({
     message: "Booking request sent. The shop will be notified.",
     bookingId: String(doc._id),
@@ -316,6 +356,7 @@ function mapBookingForCustomer(b) {
     shopServiceId: svc?._id != null ? String(svc._id) : "",
     serviceName: svc?.name || "Service",
     shopName,
+    acceptedPaymentMethods: Array.isArray(owner?.acceptedPaymentMethods) ? owner.acceptedPaymentMethods : [],
     category: svc?.category || "",
     subcategory: svc?.subcategory || "",
     listingType: svc?.location || "in-shop",
@@ -330,6 +371,27 @@ function mapBookingForCustomer(b) {
     notes: b.notes || "",
     status: b.status,
     rejectionReason: b.rejectionReason || "",
+    serviceFeeLaborRateAtCalc:
+      b.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(b.serviceFeeLaborRateAtCalc))
+        ? Number(b.serviceFeeLaborRateAtCalc)
+        : null,
+    serviceFeeMaterialsAmount:
+      b.serviceFeeMaterialsAmount != null && Number.isFinite(Number(b.serviceFeeMaterialsAmount))
+        ? Number(b.serviceFeeMaterialsAmount)
+        : null,
+    serviceFeeReplacementParts: Array.isArray(b.serviceFeeReplacementParts)
+      ? b.serviceFeeReplacementParts
+          .map((x) => ({
+            name: typeof x?.name === "string" ? x.name : "",
+            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+          }))
+          .filter((x) => x.name)
+      : [],
+    serviceFeeConfirmedAt: b.serviceFeeConfirmedAt || null,
+    paymentStatus: b.paymentStatus || "unpaid",
+    paymentMethod: b.paymentMethod || "",
+    paymentProofImage: b.paymentProofImage || "",
+    paidAt: b.paidAt || null,
     customerReviewRating:
       Number.isFinite(Number(b.customerReviewRating)) && Number(b.customerReviewRating) > 0
         ? Number(b.customerReviewRating)
@@ -358,11 +420,115 @@ export const listCustomerBookings = asyncHandler(async (req, res) => {
   const rows = await Booking.find(query)
     .sort({ createdAt: -1 })
     .populate("shopService", "name category subcategory location status startingPrice")
-    .populate("shopOwner", "fullName shopName")
+    .populate("shopOwner", "fullName shopName acceptedPaymentMethods")
     .lean()
 
   return res.json({
     bookings: rows.map((row) => mapBookingForCustomer(row)).filter(Boolean),
+  })
+})
+
+export const payCustomerBooking = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking")
+  }
+  const paymentMethod = clean(req.body?.paymentMethod)
+  const paymentProofImage = clean(req.body?.paymentProofImage)
+  if (!paymentMethod) {
+    res.status(400)
+    throw new Error("Please choose a payment method.")
+  }
+
+  const booking = await Booking.findOne({ _id: id, customer: req.user._id }).populate(
+    "shopOwner",
+    "acceptedPaymentMethods"
+  )
+  if (!booking) {
+    res.status(404)
+    throw new Error("Booking not found.")
+  }
+  if (!booking.serviceFeeConfirmedAt || booking.serviceFeeLaborRateAtCalc == null) {
+    res.status(400)
+    throw new Error("Service fee is not available yet.")
+  }
+  if (booking.paymentStatus === "paid") {
+    res.status(400)
+    throw new Error("This booking is already paid.")
+  }
+  const allowed = Array.isArray(booking.shopOwner?.acceptedPaymentMethods)
+    ? booking.shopOwner.acceptedPaymentMethods
+    : []
+  let chosen = allowed.find((m) => String(m?.id || "") === paymentMethod)
+  if (!chosen) {
+    // Cash on-site is always available as face-to-face fallback.
+    if (paymentMethod === "cash_on_service") {
+      chosen = { type: "cash_on_service" }
+    } else {
+      res.status(400)
+      throw new Error("Selected payment method is not available.")
+    }
+  }
+  if (chosen.type !== "cash_on_service") {
+    if (!paymentProofImage) {
+      res.status(400)
+      throw new Error("Please upload proof of payment.")
+    }
+    if (!isLikelyImageProof(paymentProofImage)) {
+      res.status(400)
+      throw new Error("Invalid proof of payment image.")
+    }
+  }
+
+  booking.paymentStatus = "paid"
+  booking.paymentMethod = chosen.type
+  booking.paymentProofImage = chosen.type === "cash_on_service" ? "" : paymentProofImage
+  booking.paidAt = new Date()
+  await booking.save()
+
+  try {
+    const ownerId =
+      booking.shopOwner && typeof booking.shopOwner === "object" && booking.shopOwner._id
+        ? booking.shopOwner._id
+        : booking.shopOwner
+    const svcDoc = await ShopService.findById(booking.shopService).select("name").lean()
+    const labor = booking.serviceFeeLaborRateAtCalc
+    const materials = booking.serviceFeeMaterialsAmount
+    const totalPaid =
+      labor != null && materials != null && Number.isFinite(Number(labor)) && Number.isFinite(Number(materials))
+        ? Number(labor) + Number(materials)
+        : null
+    const text = formatPaymentToProvider({
+      bookingRefId: booking._id,
+      customerName: req.user.fullName || req.user.email || "Customer",
+      serviceName: svcDoc?.name || "Service",
+      chosenMethod: chosen,
+      labor,
+      materials,
+      totalPaid,
+    })
+    const proofAttachments =
+      chosen.type !== "cash_on_service" && booking.paymentProofImage
+        ? buildPaymentProofAttachments(booking.paymentProofImage)
+        : []
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: ownerId,
+      content: text,
+      attachments: proofAttachments,
+    })
+  } catch (err) {
+    console.error("Booking chat notification failed:", err?.message || err)
+  }
+
+  const populated = await Booking.findById(booking._id)
+    .populate("shopService", "name category subcategory location status startingPrice")
+    .populate("shopOwner", "fullName shopName acceptedPaymentMethods")
+    .lean()
+  return res.json({
+    message: "Payment recorded successfully.",
+    booking: mapBookingForCustomer(populated),
   })
 })
 
@@ -735,6 +901,24 @@ function mapBookingForShopOwner(b) {
               : null,
         }
       : null,
+    serviceFeeLaborRateAtCalc:
+      b.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(b.serviceFeeLaborRateAtCalc))
+        ? Number(b.serviceFeeLaborRateAtCalc)
+        : null,
+    serviceFeeMaterialsAmount:
+      b.serviceFeeMaterialsAmount != null && Number.isFinite(Number(b.serviceFeeMaterialsAmount))
+        ? Number(b.serviceFeeMaterialsAmount)
+        : null,
+    serviceFeeMaterialsDescription: typeof b.serviceFeeMaterialsDescription === "string" ? b.serviceFeeMaterialsDescription : "",
+    serviceFeeReplacementParts: Array.isArray(b.serviceFeeReplacementParts)
+      ? b.serviceFeeReplacementParts
+          .map((x) => ({
+            name: typeof x?.name === "string" ? x.name : "",
+            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+          }))
+          .filter((x) => x.name)
+      : [],
+    serviceFeeConfirmedAt: b.serviceFeeConfirmedAt || null,
   }
 }
 
@@ -815,8 +999,34 @@ export const patchShopOwnerBookingStatus = asyncHandler(async (req, res) => {
     throw new Error("Mark the booking as working first, then complete when the job is done.")
   }
 
+  if (
+    nextStatus === "completed" &&
+    (!doc.serviceFeeConfirmedAt || doc.serviceFeeMaterialsAmount == null || doc.serviceFeeLaborRateAtCalc == null)
+  ) {
+    res.status(400)
+    throw new Error("Calculate and save the service fee before marking this job complete.")
+  }
+
   doc.status = nextStatus
   await doc.save()
+
+  try {
+    const actor = await User.findById(req.user._id).select("shopName fullName").lean()
+    const shopLabel = (actor?.shopName && String(actor.shopName).trim()) || actor?.fullName || "Provider"
+    const text = formatStatusUpdateToCustomer({
+      newStatus: nextStatus,
+      bookingRefId: doc._id,
+      shopName: shopLabel,
+      rejectionReason: nextStatus === "cancelled" ? doc.rejectionReason || rejectionReason : "",
+    })
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: doc.customer,
+      content: text,
+    })
+  } catch (err) {
+    console.error("Booking chat notification failed:", err?.message || err)
+  }
 
   const populated = await Booking.findById(doc._id)
     .populate("customer", "fullName email phoneCode phoneNumber")
@@ -825,6 +1035,109 @@ export const patchShopOwnerBookingStatus = asyncHandler(async (req, res) => {
 
   return res.json({
     message: "Booking updated.",
+    booking: mapBookingForShopOwner(populated),
+  })
+})
+
+/** Non-negative PHP amount; null if invalid. */
+function parseNonNegativeMoney(v) {
+  if (v === null || v === undefined) return null
+  if (typeof v === "number" && Number.isFinite(v)) return v < 0 ? null : v
+  const s = clean(String(v))
+  if (!s) return null
+  const n = Number(s)
+  if (!Number.isFinite(n) || n < 0) return null
+  return n
+}
+
+function normalizeReplacementParts(value) {
+  if (!Array.isArray(value)) return []
+  const out = []
+  for (const row of value) {
+    const name = clean(row?.name)
+    const price = parseNonNegativeMoney(row?.price)
+    if (!name && price === null) continue
+    if (!name) return { error: "Each replacement part must have a name." }
+    if (price === null) return { error: `Enter a valid price for replacement part "${name}".` }
+    out.push({ name, price })
+    if (out.length >= 20) break
+  }
+  return { parts: out }
+}
+
+/**
+ * PATCH body: { laborPrice:number(>=0), replacementParts?: [{name,price}] }
+ * Only when status is working. Provider encodes labor + replacement parts.
+ */
+export const patchShopOwnerBookingServiceFee = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  const laborPrice = parseNonNegativeMoney(req.body?.laborPrice)
+  const normalizedParts = normalizeReplacementParts(req.body?.replacementParts)
+
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking")
+  }
+  if (laborPrice === null) {
+    res.status(400)
+    throw new Error("Enter a valid labor price (0 or more PHP).")
+  }
+  if (normalizedParts.error) {
+    res.status(400)
+    throw new Error(normalizedParts.error)
+  }
+
+  const doc = await Booking.findOne({ _id: id, shopOwner: req.user._id }).populate(
+    "shopService",
+    "name startingPrice",
+  )
+  if (!doc) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+  if (doc.status !== "working") {
+    res.status(400)
+    throw new Error("You can only add a service fee while the booking is marked as working.")
+  }
+
+  const parts = normalizedParts.parts || []
+  const materialsTotal = parts.reduce((sum, x) => sum + Number(x.price || 0), 0)
+  doc.serviceFeeLaborRateAtCalc = laborPrice
+  doc.serviceFeeMaterialsAmount = materialsTotal
+  doc.serviceFeeMaterialsDescription = parts.map((x) => `${x.name} - ${x.price}`).join(", ")
+  doc.serviceFeeReplacementParts = parts
+  doc.serviceFeeConfirmedAt = new Date()
+  await doc.save()
+
+  try {
+    const actor = await User.findById(req.user._id).select("shopName fullName").lean()
+    const providerLabel = (actor?.shopName && String(actor.shopName).trim()) || actor?.fullName || "Provider"
+    const svc =
+      doc.shopService && typeof doc.shopService === "object" ? doc.shopService : null
+    const text = formatServiceFeeToCustomer({
+      bookingRefId: doc._id,
+      providerLabel,
+      labor: doc.serviceFeeLaborRateAtCalc,
+      materials: doc.serviceFeeMaterialsAmount,
+      replacementParts: doc.serviceFeeReplacementParts,
+      serviceName: svc?.name || "",
+    })
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: doc.customer,
+      content: text,
+    })
+  } catch (err) {
+    console.error("Booking chat notification failed:", err?.message || err)
+  }
+
+  const populated = await Booking.findById(doc._id)
+    .populate("customer", "fullName email phoneCode phoneNumber")
+    .populate("shopService", "name category subcategory location status startingPrice")
+    .lean()
+
+  return res.json({
+    message: "Service fee saved.",
     booking: mapBookingForShopOwner(populated),
   })
 })
@@ -878,6 +1191,24 @@ function mapBookingForTechnician(b) {
           location: svc.location,
         }
       : null,
+    serviceFeeLaborRateAtCalc:
+      b.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(b.serviceFeeLaborRateAtCalc))
+        ? Number(b.serviceFeeLaborRateAtCalc)
+        : null,
+    serviceFeeMaterialsAmount:
+      b.serviceFeeMaterialsAmount != null && Number.isFinite(Number(b.serviceFeeMaterialsAmount))
+        ? Number(b.serviceFeeMaterialsAmount)
+        : null,
+    serviceFeeMaterialsDescription: typeof b.serviceFeeMaterialsDescription === "string" ? b.serviceFeeMaterialsDescription : "",
+    serviceFeeReplacementParts: Array.isArray(b.serviceFeeReplacementParts)
+      ? b.serviceFeeReplacementParts
+          .map((x) => ({
+            name: typeof x?.name === "string" ? x.name : "",
+            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+          }))
+          .filter((x) => x.name)
+      : [],
+    serviceFeeConfirmedAt: b.serviceFeeConfirmedAt || null,
   }
 }
 
@@ -959,10 +1290,31 @@ export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
       res.status(400)
       throw new Error("Only working bookings can be marked complete.")
     }
+    if (!doc.serviceFeeConfirmedAt || doc.serviceFeeMaterialsAmount == null || doc.serviceFeeLaborRateAtCalc == null) {
+      res.status(400)
+      throw new Error("Calculate and save the service fee before marking this job complete.")
+    }
     doc.status = "completed"
   }
 
   await doc.save()
+
+  try {
+    const tech = await User.findById(techId).select("fullName").lean()
+    const techName = tech?.fullName?.trim() || "Technician"
+    const text = formatTechnicianActionToCustomer({
+      bookingRefId: doc._id,
+      action,
+      technicianName: techName,
+    })
+    await sendDirectMessage({
+      fromUserId: techId,
+      toUserId: doc.customer,
+      content: text,
+    })
+  } catch (err) {
+    console.error("Booking chat notification failed:", err?.message || err)
+  }
 
   const populated = await Booking.findById(doc._id)
     .populate("customer", "fullName email phoneCode phoneNumber")
@@ -972,6 +1324,89 @@ export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
 
   return res.json({
     message: "Booking updated.",
+    booking: mapBookingForTechnician(populated),
+  })
+})
+
+/**
+ * PATCH body: { laborPrice:number(>=0), replacementParts?: [{name,price}] }
+ * Assigned technician only; booking must be working.
+ */
+export const patchMechanicBookingServiceFee = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  const laborPrice = parseNonNegativeMoney(req.body?.laborPrice)
+  const normalizedParts = normalizeReplacementParts(req.body?.replacementParts)
+
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking")
+  }
+  if (laborPrice === null) {
+    res.status(400)
+    throw new Error("Enter a valid labor price (0 or more PHP).")
+  }
+  if (normalizedParts.error) {
+    res.status(400)
+    throw new Error(normalizedParts.error)
+  }
+
+  const techId = req.user._id
+  const doc = await Booking.findById(id).populate("shopService", "name technicianIds startingPrice")
+  if (!doc) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+
+  const svc = doc.shopService && typeof doc.shopService === "object" ? doc.shopService : null
+  const ids = Array.isArray(svc?.technicianIds) ? svc.technicianIds : []
+  const allowed = ids.some((x) => String(x) === String(techId))
+  if (!allowed) {
+    res.status(403)
+    throw new Error("You are not assigned to this booking’s service.")
+  }
+
+  if (doc.status !== "working") {
+    res.status(400)
+    throw new Error("You can only add a service fee while the booking is marked as working.")
+  }
+
+  const parts = normalizedParts.parts || []
+  const materialsTotal = parts.reduce((sum, x) => sum + Number(x.price || 0), 0)
+  doc.serviceFeeLaborRateAtCalc = laborPrice
+  doc.serviceFeeMaterialsAmount = materialsTotal
+  doc.serviceFeeMaterialsDescription = parts.map((x) => `${x.name} - ${x.price}`).join(", ")
+  doc.serviceFeeReplacementParts = parts
+  doc.serviceFeeConfirmedAt = new Date()
+  await doc.save()
+
+  try {
+    const tech = await User.findById(techId).select("fullName").lean()
+    const providerLabel = tech?.fullName?.trim() || "Technician"
+    const text = formatServiceFeeToCustomer({
+      bookingRefId: doc._id,
+      providerLabel,
+      labor: doc.serviceFeeLaborRateAtCalc,
+      materials: doc.serviceFeeMaterialsAmount,
+      replacementParts: doc.serviceFeeReplacementParts,
+      serviceName: svc?.name || "",
+    })
+    await sendDirectMessage({
+      fromUserId: techId,
+      toUserId: doc.customer,
+      content: text,
+    })
+  } catch (err) {
+    console.error("Booking chat notification failed:", err?.message || err)
+  }
+
+  const populated = await Booking.findById(doc._id)
+    .populate("customer", "fullName email phoneCode phoneNumber")
+    .populate("shopService", "name category subcategory location status startingPrice")
+    .populate("shopOwner", "fullName shopName")
+    .lean()
+
+  return res.json({
+    message: "Service fee saved.",
     booking: mapBookingForTechnician(populated),
   })
 })

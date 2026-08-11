@@ -6,6 +6,7 @@ import {
   createCustomerBooking,
   createCustomerBookingReview,
   listCustomerBookings,
+  payCustomerBooking,
   listServiceReviewsForCustomer,
 } from "../controllers/bookingController.js"
 
@@ -18,6 +19,7 @@ router.get("/shop-services/context/:serviceId", getCatalogShopContextByServiceId
 router.get("/shop-services/:serviceId/reviews", listServiceReviewsForCustomer)
 router.get("/bookings", listCustomerBookings)
 router.post("/bookings", createCustomerBooking)
+router.post("/bookings/:id/pay", payCustomerBooking)
 router.post("/bookings/:id/review", createCustomerBookingReview)
 
 export default router

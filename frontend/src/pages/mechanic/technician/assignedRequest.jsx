@@ -1,4 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../components/ui/alert-dialog'
+import { ServiceFeeCalculateDialog } from '../../../components/bookings/ServiceFeeCalculateDialog.jsx'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import {
@@ -76,6 +86,9 @@ function MechanicTechnicianAssignedRequest() {
   const [listError, setListError] = useState('')
   const [actionError, setActionError] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
+  const [confirmWorkingBooking, setConfirmWorkingBooking] = useState(null)
+  const [feeBooking, setFeeBooking] = useState(null)
+  const [feeDialogError, setFeeDialogError] = useState('')
   /** Default All so jobs stay visible after Confirmed → Working (confirmed-only filter used to hide them). */
   const [statusFilter, setStatusFilter] = useState('')
   const [sortBy, setSortBy] = useState('schedule')
@@ -122,6 +135,39 @@ function MechanicTechnicianAssignedRequest() {
         }
       } catch (e) {
         setActionError(e?.message || 'Could not update booking.')
+      } finally {
+        setUpdatingId(null)
+      }
+    },
+    [loadBookings],
+  )
+
+  const patchTechnicianServiceFee = useCallback(
+    async (bookingId, body) => {
+      setFeeDialogError('')
+      setActionError('')
+      setUpdatingId(bookingId)
+      try {
+        const res = await fetch(`${API_URL}/api/mechanic/bookings/${encodeURIComponent(bookingId)}/service-fee`, {
+          method: 'PATCH',
+          headers: authHeaders(),
+          body: JSON.stringify(body),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          throw new Error(data?.message || 'Could not save service fee.')
+        }
+        const mapped = mapBookingFromApi(data?.booking)
+        if (mapped) {
+          setBookings((prev) => prev.map((x) => (x.id === mapped.id ? mapped : x)))
+        } else {
+          await loadBookings()
+        }
+        setFeeBooking(null)
+        return true
+      } catch (e) {
+        setFeeDialogError(e?.message || 'Could not save service fee.')
+        return false
       } finally {
         setUpdatingId(null)
       }
@@ -605,23 +651,48 @@ function MechanicTechnicianAssignedRequest() {
                                     size="sm"
                                     disabled={busy}
                                     className="h-8 gap-1.5 rounded-md bg-linear-to-r from-violet-600 to-indigo-600 px-3 text-sm text-white shadow-sm hover:from-violet-600/90 hover:to-indigo-600/90"
-                                    onClick={() => void patchTechnicianBooking(b.id, 'working')}
+                                    onClick={() =>
+                                      setConfirmWorkingBooking({
+                                        id: b.id,
+                                        contactName: b.contactName || 'Customer',
+                                        serviceName: b.shopService?.name || b.serviceName || 'Service',
+                                      })
+                                    }
                                   >
                                     {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Wrench className="h-4 w-4 shrink-0" aria-hidden />}
                                     Working
                                   </Button>
                                 ) : null}
                                 {b.status === 'working' ? (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    disabled={busy}
-                                    className="h-8 gap-1.5 rounded-md bg-emerald-600 px-3 text-sm text-white shadow-sm hover:bg-emerald-600/90"
-                                    onClick={() => void patchTechnicianBooking(b.id, 'completed')}
-                                  >
-                                    {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />}
-                                    {workingFinishButtonLabel(b.shopService?.category || b.serviceCategory)}
-                                  </Button>
+                                  !b.serviceFeeConfirmedAt ? (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      disabled={busy}
+                                      className="h-8 gap-1.5 rounded-md bg-linear-to-r from-sky-600 to-blue-600 px-3 text-sm text-white shadow-sm hover:from-sky-600/90 hover:to-blue-600/90"
+                                      onClick={() => {
+                                        setFeeDialogError('')
+                                        setFeeBooking(b)
+                                      }}
+                                    >
+                                      Calculate service fee
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      disabled={busy}
+                                      className="h-8 gap-1.5 rounded-md bg-emerald-600 px-3 text-sm text-white shadow-sm hover:bg-emerald-600/90"
+                                      onClick={() => void patchTechnicianBooking(b.id, 'completed')}
+                                    >
+                                      {busy ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                      ) : (
+                                        <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
+                                      )}
+                                      {workingFinishButtonLabel(b.shopService?.category || b.serviceCategory)}
+                                    </Button>
+                                  )
                                 ) : null}
                                 {b.status === 'completed' ? (
                                   <>
@@ -667,6 +738,74 @@ function MechanicTechnicianAssignedRequest() {
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      <ServiceFeeCalculateDialog
+        open={Boolean(feeBooking)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFeeBooking(null)
+            setFeeDialogError('')
+          }
+        }}
+        customerName={feeBooking?.contactName || 'Customer'}
+        initialLaborPrice={feeBooking?.serviceFeeLaborRateAtCalc ?? null}
+        initialReplacementParts={feeBooking?.serviceFeeReplacementParts || []}
+        isSubmitting={Boolean(feeBooking) && updatingId === feeBooking.id}
+        error={feeDialogError}
+        onSave={(payload) => {
+          if (!feeBooking) return
+          void patchTechnicianServiceFee(feeBooking.id, payload)
+        }}
+      />
+
+      <AlertDialog
+        open={!!confirmWorkingBooking}
+        onOpenChange={(open) => {
+          if (!open) setConfirmWorkingBooking(null)
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start this job now?</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              {confirmWorkingBooking ? (
+                <>
+                  Are you sure you want to mark the booking for{' '}
+                  <span className="font-medium text-foreground">{confirmWorkingBooking.contactName}</span>
+                  {confirmWorkingBooking.serviceName ? (
+                    <>
+                      {' '}
+                      (<span className="font-medium text-foreground">{confirmWorkingBooking.serviceName}</span>)
+                    </>
+                  ) : null}{' '}
+                  as <span className="font-medium text-foreground">Working</span>?
+                </>
+              ) : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              className="bg-linear-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-600/90 hover:to-indigo-600/90"
+              disabled={!confirmWorkingBooking || updatingId === confirmWorkingBooking?.id}
+              onClick={async () => {
+                if (!confirmWorkingBooking) return
+                await patchTechnicianBooking(confirmWorkingBooking.id, 'working')
+                setConfirmWorkingBooking(null)
+              }}
+            >
+              {confirmWorkingBooking && updatingId === confirmWorkingBooking.id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  Updating…
+                </>
+              ) : (
+                'Yes, start working'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {LogoutDialog}
     </div>
   )

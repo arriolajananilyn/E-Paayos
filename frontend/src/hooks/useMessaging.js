@@ -230,19 +230,19 @@ export default function useMessaging(variant = 'customer') {
 
   const isOwnMessage = useCallback((m) => Boolean(m?.fromMe), [])
 
-  const handleSendMessage = useCallback(
-    async (e) => {
-      e.preventDefault()
-      const text = input.trim()
-      if (!text && attachments.length === 0) return
+  const deliverMessage = useCallback(
+    async (rawText, files = []) => {
+      const text = String(rawText || '').trim()
+      const fileList = Array.isArray(files) ? files : []
+      if (!text && fileList.length === 0) return
 
-      const preview = text || (attachments.length ? `Sent ${attachments.length} file(s)` : '')
+      const preview = text || (fileList.length ? `Sent ${fileList.length} file(s)` : '')
       const now = new Date().toISOString()
 
       const sendForm = async (convId) => {
         const fd = new FormData()
         fd.append('content', text)
-        for (const file of attachments) {
+        for (const file of fileList) {
           fd.append('files', file)
         }
         return apiFetch(`/api/messages/conversations/${encodeURIComponent(convId)}/messages`, {
@@ -317,7 +317,15 @@ export default function useMessaging(variant = 'customer') {
         setUploading(false)
       }
     },
-    [attachments, hasSelectedNewConversation, input, loadConversations, selectedId, sellerInfo],
+    [hasSelectedNewConversation, loadConversations, selectedId, sellerInfo],
+  )
+
+  const handleSendMessage = useCallback(
+    async (e) => {
+      e.preventDefault()
+      await deliverMessage(input.trim(), attachments)
+    },
+    [attachments, deliverMessage, input],
   )
 
   return {
