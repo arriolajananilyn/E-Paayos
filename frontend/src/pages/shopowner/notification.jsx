@@ -35,7 +35,7 @@ function ShopOwnerNotificationBody() {
 
   if (!user) {
     return (
-      <div className="rounded-xl border border-border/80 bg-white/90 p-8 text-center text-sm text-muted-foreground dark:bg-white/5">
+      <div className="rounded-sm border border-border/80 bg-white/90 p-8 text-center text-sm text-muted-foreground dark:bg-white/5">
         Loading…
       </div>
     )

@@ -54,7 +54,7 @@ const pageBaseNavyGradient = `linear-gradient(145deg, ${navyDeep} 0%, ${navy} 35
 let onCallMechanicSidebarOpenState = false
 
 const sidebarMenuButtonClass =
-  'h-9 gap-3 rounded-lg px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
+  'h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
 
 const ROUTES = {
   dashboard: '#/independent/technician/dashboard',
@@ -75,7 +75,7 @@ function IndependentMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
       onClick={() => setOpenMobile(true)}
     >
       Menu
@@ -320,7 +320,7 @@ export default function OnCallMechanicLayout({
             <SidebarSeparator className="mx-0 bg-sidebar-border/80" />
 
             <SidebarFooter className="gap-2 px-3 py-2 group-data-[collapsible=icon]:items-center">
-              <div className="flex items-center gap-2 overflow-hidden rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
+              <div className="flex items-center gap-2 overflow-hidden rounded-sm border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#081F5C]">
                   {(user.fullName || user.email || 'I').charAt(0).toUpperCase()}
                 </div>
@@ -348,7 +348,7 @@ export default function OnCallMechanicLayout({
                   type="button"
                   aria-label="Notification"
                   onClick={() => go(ROUTES.notification)}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-sm transition-colors ${
                     isNotificationActive
                       ? 'bg-blue-50 text-blue-700'
                       : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
@@ -376,7 +376,7 @@ export default function OnCallMechanicLayout({
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-md border border-border/80 bg-background shadow-lg">
+                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
                       <button
                         type="button"
                         onClick={() => {
@@ -429,7 +429,7 @@ export default function OnCallMechanicLayout({
 
 export function IndependentPlaceholder({ title, body, icon: Icon = LayoutDashboard }) {
   return (
-    <div className="rounded-2xl border border-[#081F5C]/10 bg-white/90 p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
+    <div className="rounded-sm border border-[#081F5C]/10 bg-white/90 p-6 shadow-sm dark:border-white/10 dark:bg-white/5">
       <div className="mb-2 flex items-center gap-2 text-[#081F5C] dark:text-blue-100">
         <Icon className="h-5 w-5 shrink-0 opacity-90" />
         <h2 className="text-base font-semibold tracking-tight">{title}</h2>

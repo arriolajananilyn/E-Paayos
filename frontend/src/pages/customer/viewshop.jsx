@@ -40,7 +40,7 @@ function goBackOrCustomerFallback() {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-lg border-none ring-0 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-[0_3px_10px_rgba(15,23,42,0.12)] outline-none focus-visible:ring-2 focus-visible:ring-[#081F5C]/20'
+  'h-9 w-full appearance-none rounded-sm border-none ring-0 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-[0_3px_10px_rgba(15,23,42,0.12)] outline-none focus-visible:ring-2 focus-visible:ring-[#081F5C]/20'
 
 function authHeaders() {
   const token = localStorage.getItem('token')
@@ -82,7 +82,7 @@ function OwnerThumb({ src, ownerName }) {
   const [imageFailed, setImageFailed] = useState(false)
   const showImage = Boolean(src) && !imageFailed
   return (
-    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/70 text-slate-700 ring-1 ring-[#081F5C]/18 sm:h-9 sm:w-9 sm:rounded-xl dark:bg-white/45 dark:text-white dark:ring-[#1447a6]/35">
+    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-white/70 text-slate-700 ring-1 ring-[#081F5C]/18 sm:h-9 sm:w-9 sm:rounded-sm dark:bg-white/45 dark:text-white dark:ring-[#1447a6]/35">
       {showImage ? (
         <img src={src} alt="" className="h-full w-full object-cover" onError={() => setImageFailed(true)} />
       ) : (
@@ -509,12 +509,12 @@ export default function CustomerViewShop({ anchorServiceId }) {
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-8 md:px-12 py-6">
         <div className="mx-auto max-w-7xl px-1 sm:px-3">
           {detailLoading ? (
-            <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-white/60 px-6 py-12 text-center shadow-sm">
+            <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-sm border border-dashed border-[#081F5C]/20 bg-white/60 px-6 py-12 text-center shadow-sm">
               <p className="text-sm font-medium text-foreground">Loading shop…</p>
               <p className="mt-1 max-w-md text-xs text-muted-foreground">Fetching services for this shop.</p>
             </div>
           ) : detailError ? (
-            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive">
+            <div className="rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive">
               <p>{detailError}</p>
               <Button
                 type="button"
@@ -560,7 +560,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                           className="pointer-events-none flex max-h-full w-[min(19rem,100%)] max-w-full flex-col self-start sm:w-[min(22rem,100%)]"
                           aria-label="Shop summary"
                         >
-                          <div className="pointer-events-auto flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-xl border border-[#081F5C]/40 bg-white/58 shadow-lg shadow-black/10 ring-1 ring-[#081F5C]/12 dark:border-[#1447a6]/55 dark:bg-white/40 dark:shadow-black/30 dark:ring-[#1447a6]/20">
+                          <div className="pointer-events-auto flex w-full min-w-0 max-w-full flex-col overflow-hidden rounded-sm border border-[#081F5C]/40 bg-white/58 shadow-lg shadow-black/10 ring-1 ring-[#081F5C]/12 dark:border-[#1447a6]/55 dark:bg-white/40 dark:shadow-black/30 dark:ring-[#1447a6]/20">
                             <CardContent className="flex max-h-[min(32rem,72dvh)] flex-col gap-0 overflow-hidden border-0 bg-transparent p-0 text-shadow-[0_1px_2px_rgba(255,255,255,0.88)] shadow-none dark:text-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
                               <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-3 pb-2 pt-3 sm:gap-4 sm:px-4 sm:pb-3 sm:pt-4">
                                 <div>
@@ -636,7 +636,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                                   <Button
                                     type="button"
                                     aria-label="Open messages to contact this shop"
-                                    className="h-9 w-full flex-1 gap-2 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] text-xs font-medium text-white shadow-sm hover:opacity-95 sm:h-10 sm:text-sm"
+                                    className="h-9 w-full flex-1 gap-2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] text-xs font-medium text-white shadow-sm hover:opacity-95 sm:h-10 sm:text-sm"
                                     onClick={() => {
                                       const ownerId = detail?.shopOwnerId
                                       if (ownerId) {
@@ -666,7 +666,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                                     type="button"
                                     variant="outline"
                                     aria-label="Scroll to shop services"
-                                    className="h-9 w-full flex-1 gap-2 rounded-lg border-[#081F5C]/35 bg-white/90 text-xs font-medium text-[#081F5C] shadow-sm hover:bg-white sm:h-10 sm:text-sm dark:border-white/25 dark:bg-white/10 dark:text-white"
+                                    className="h-9 w-full flex-1 gap-2 rounded-sm border-[#081F5C]/35 bg-white/90 text-xs font-medium text-[#081F5C] shadow-sm hover:bg-white sm:h-10 sm:text-sm dark:border-white/25 dark:bg-white/10 dark:text-white"
                                     onClick={() => {
                                       document.getElementById('customer-view-shop-services')?.scrollIntoView({
                                         behavior: 'smooth',
@@ -826,7 +826,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                     <div className="relative min-w-0 w-full max-w-full lg:max-w-lg lg:flex-1">
                       <div className="relative w-full min-w-0 max-w-full">
                         <Input
-                          className="h-9 w-full min-w-0 rounded-lg border-none ring-0 bg-white/95 pr-12 pl-4 text-sm shadow-[0_3px_10px_rgba(15,23,42,0.12)] focus-visible:ring-2 focus-visible:ring-[#081F5C]/20"
+                          className="h-9 w-full min-w-0 rounded-sm border-none ring-0 bg-white/95 pr-12 pl-4 text-sm shadow-[0_3px_10px_rgba(15,23,42,0.12)] focus-visible:ring-2 focus-visible:ring-[#081F5C]/20"
                           placeholder="Search services or shops..."
                           value={listQuery}
                           onChange={(e) => setListQuery(e.target.value)}
@@ -835,7 +835,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                         <Button
                           type="button"
                           size="icon-sm"
-                          className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-md bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95"
+                          className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95"
                           aria-label="Search"
                           tabIndex={-1}
                         >
@@ -859,11 +859,11 @@ export default function CustomerViewShop({ anchorServiceId }) {
                 </div>
 
                 {shopServices.length === 0 ? (
-                  <div className="flex min-h-[120px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-white/60 px-6 text-center shadow-sm">
+                  <div className="flex min-h-[120px] flex-col items-center justify-center rounded-sm border border-dashed border-[#081F5C]/20 bg-white/60 px-6 text-center shadow-sm">
                     <p className="text-sm font-medium text-foreground">No services listed</p>
                   </div>
                 ) : filteredShopServices.length === 0 ? (
-                  <div className="flex min-h-[150px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/70 px-6 text-center shadow-sm">
+                  <div className="flex min-h-[150px] flex-col items-center justify-center rounded-sm border border-dashed border-[#081F5C]/20 bg-slate-50/70 px-6 text-center shadow-sm">
                     <p className="text-sm font-medium text-foreground">No matching services</p>
                     <p className="mt-1 max-w-md text-xs text-muted-foreground">
                       Try adjusting your search or filters to see listings from this shop.
@@ -907,7 +907,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                         <article
                           key={job.id}
                           role="listitem"
-                          className="w-[min(420px,calc(100vw-3rem))] shrink-0 snap-start rounded-xl border border-[#081F5C]/12 bg-white/95 p-5 shadow-sm dark:border-white/10 dark:bg-[#020818]/90 sm:w-[min(440px,calc(100vw-4rem))] md:w-[460px]"
+                          className="w-[min(420px,calc(100vw-3rem))] shrink-0 snap-start rounded-sm border border-[#081F5C]/12 bg-white/95 p-5 shadow-sm dark:border-white/10 dark:bg-[#020818]/90 sm:w-[min(440px,calc(100vw-4rem))] md:w-[460px]"
                         >
                           <div className="flex items-center gap-3">
                             <div
@@ -938,7 +938,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                 </section>
 
                 <section className="pt-2" aria-labelledby="view-shop-service-reviews-heading">
-                  <div className="overflow-hidden rounded-2xl border border-[#081F5C]/10 bg-white/95 shadow-sm ring-1 ring-black/5 dark:border-white/10 dark:bg-[#020818]/95">
+                  <div className="overflow-hidden rounded-sm border border-[#081F5C]/10 bg-white/95 shadow-sm ring-1 ring-black/5 dark:border-white/10 dark:bg-[#020818]/95">
                     <div className="px-4 py-4 sm:px-5 sm:py-5">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <h2
@@ -1106,7 +1106,7 @@ export default function CustomerViewShop({ anchorServiceId }) {
                                       </div>
                                     ) : null}
                                     {typeof review.shopResponse === 'string' && review.shopResponse.trim().length > 0 ? (
-                                      <div className="mt-2 rounded-md border border-[#081F5C]/10 bg-muted/40 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+                                      <div className="mt-2 rounded-sm border border-[#081F5C]/10 bg-muted/40 px-3 py-2 dark:border-white/10 dark:bg-white/5">
                                         <p className="text-xs font-medium text-muted-foreground">Shop response</p>
                                         <p className="mt-1 text-sm text-foreground">{review.shopResponse.trim()}</p>
                                       </div>

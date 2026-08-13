@@ -661,7 +661,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
               : 'View and edit the shop details from your registration.',
         }}
       >
-        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-border/60 bg-card/80 p-8">
+        <div className="flex min-h-[200px] items-center justify-center rounded-sm border border-border/60 bg-card/80 p-8">
           <p className="text-sm text-muted-foreground">
             {variant === 'independent' ? 'Loading business profile from the server…' : 'Loading shop profile from the server…'}
           </p>
@@ -708,28 +708,29 @@ export function ShopInfoInner({ variant = 'shop' }) {
             : 'Business, location, and hours from your shop-owner registration—kept in sync with the database when you save.',
       }}
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_min(400px,100%)]">
-        <div className="space-y-6">
-          <Card className="overflow-hidden border-border/80 shadow-sm">
-            <CardHeader className="border-b border-border/60 bg-gradient-to-br from-slate-50/90 via-white to-violet-50/40 pb-4 dark:from-slate-950/80 dark:via-slate-900 dark:to-violet-950/30">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_4px_14px_rgba(8,31,92,0.08)] ring-1 ring-[#081F5C]/10 dark:bg-slate-800 dark:ring-white/10">
-                  <Camera className="h-5 w-5 text-[#081F5C] dark:text-violet-300" />
+      <div className="grid gap-3.5 lg:grid-cols-[1fr_min(380px,100%)]">
+        <div className="space-y-3.5">
+          {/* Shop Photo Card */}
+          <Card className="rounded-none border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:border-[#081F5C] transition-all">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/80 p-3.5">
+              <div className="flex items-start gap-2.5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-indigo-50/80 border border-indigo-200/80 text-[#081F5C] shadow-2xs">
+                  <Camera className="size-4.5" />
                 </div>
-                <div className="min-w-0 space-y-1">
-                  <CardTitle className="text-lg font-semibold tracking-tight">
-                    {isOnCallProvider ? 'Business place photo' : 'Shop photo'}
+                <div className="min-w-0 space-y-0.5">
+                  <CardTitle className="text-sm font-black tracking-tight text-slate-900">
+                    {isOnCallProvider ? 'Business Place Photo' : 'Shop Photo'}
                   </CardTitle>
-                  <CardDescription className="text-sm leading-relaxed">
+                  <CardDescription className="text-xs font-medium text-slate-500">
                     {isOnCallProvider
-                      ? 'Tap the frame below to add or change your photo. It may appear when customers browse services.'
+                      ? 'Tap the frame below to add or change your photo. It appears on public listings when saved.'
                       : 'Tap the frame below to add or change your shop photo. It appears on your public listing when saved.'}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 pt-6">
-              <div className="relative mx-auto w-full max-w-xl">
+            <CardContent className="space-y-3 p-3.5">
+              <div className="relative w-full">
                 <input
                   id="shop-place-photo-input"
                   type="file"
@@ -739,10 +740,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 />
                 <label
                   htmlFor="shop-place-photo-input"
-                  className={`group relative flex min-h-[220px] w-full cursor-pointer flex-col overflow-hidden rounded-2xl shadow-[0_12px_40px_-12px_rgba(15,23,42,0.18)] transition-all duration-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-[#081F5C]/35 focus-within:ring-offset-2 focus-within:ring-offset-background ${
+                  className={`group relative flex h-48 sm:h-56 w-full cursor-pointer flex-col overflow-hidden rounded-none shadow-2xs transition-all duration-300 focus-within:outline-none ${
                     shopPhotoDisplayUrl
-                      ? 'ring-1 ring-black/[0.06] dark:ring-white/10'
-                      : 'border-2 border-dashed border-slate-200/95 bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 ring-1 ring-slate-200/60 dark:border-slate-600 dark:from-slate-900/60 dark:via-slate-950 dark:to-indigo-950/20 dark:ring-slate-700/80'
+                      ? 'border border-slate-300'
+                      : 'border-2 border-dashed border-slate-300 bg-slate-50 hover:border-[#081F5C]'
                   }`}
                 >
                   {shopPhotoDisplayUrl ? (
@@ -750,45 +751,30 @@ export function ShopInfoInner({ variant = 'shop' }) {
                       <img
                         src={shopPhotoDisplayUrl}
                         alt={isOnCallProvider ? 'Your business place' : 'Your shop'}
-                        className="absolute inset-0 h-full min-h-[220px] w-full object-cover transition duration-500 ease-out group-hover:scale-[1.03]"
+                        className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
                       />
                       <div
-                        className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-90"
+                        className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center gap-2"
                         aria-hidden
-                      />
-                      <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/25" />
-                      <div className="relative z-[1] flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 py-10 opacity-0 transition-all duration-300 group-hover:opacity-100">
-                        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg backdrop-blur-md ring-1 ring-white/40">
-                          <Camera className="h-7 w-7 text-white" />
-                        </span>
-                        <span className="text-center text-sm font-semibold text-white drop-shadow-md">
-                          Tap to change photo
-                        </span>
+                      >
+                        <Camera className="size-5 text-white" />
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">Tap to change photo</span>
                       </div>
                     </>
                   ) : (
-                    <>
-                      <div
-                        className="pointer-events-none absolute inset-0 opacity-[0.55] dark:opacity-40"
-                        style={{
-                          backgroundImage:
-                            'radial-gradient(circle at 20% 20%, rgba(8,31,92,0.06) 0%, transparent 45%), radial-gradient(circle at 80% 80%, rgba(124,58,237,0.07) 0%, transparent 40%)',
-                        }}
-                      />
-                      <div className="relative z-[1] flex min-h-[220px] flex-col items-center justify-center gap-5 px-8 py-12 text-center">
-                        <div className="flex h-[72px] w-[72px] items-center justify-center rounded-[1.25rem] bg-white shadow-[0_12px_40px_-8px_rgba(8,31,92,0.2)] ring-1 ring-[#081F5C]/12 transition duration-300 group-hover:scale-105 group-hover:shadow-[0_16px_48px_-8px_rgba(8,31,92,0.28)] dark:bg-slate-800 dark:ring-white/10">
-                          <Store className="h-9 w-9 text-[#081F5C] dark:text-violet-300" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <p className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                            {isOnCallProvider ? 'Show your business place' : 'Show your shop'}
-                          </p>
-                          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-                            Tap anywhere on this frame to choose an image from your device
-                          </p>
-                        </div>
+                    <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-2.5 p-6 text-center">
+                      <div className="flex size-12 items-center justify-center rounded-none bg-indigo-50/80 border border-indigo-200/80 text-[#081F5C] shadow-2xs transition-transform group-hover:scale-105">
+                        <Store className="size-6" />
                       </div>
-                    </>
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-slate-900">
+                          {isOnCallProvider ? 'Upload Business Place Photo' : 'Upload Shop Photo'}
+                        </p>
+                        <p className="max-w-xs text-[11px] text-slate-500">
+                          Click to select a photo from your device
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </label>
                 {form.shopPlacePhoto ? (
@@ -799,52 +785,59 @@ export function ShopInfoInner({ variant = 'shop' }) {
                       e.stopPropagation()
                       clearShopPhoto()
                     }}
-                    className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-xl border border-white/40 bg-white/95 text-slate-600 shadow-lg backdrop-blur-sm transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-slate-600 dark:bg-slate-900/95 dark:text-slate-300 dark:hover:border-red-900 dark:hover:bg-red-950/60 dark:hover:text-red-400"
+                    className="absolute right-2.5 top-2.5 z-20 flex size-8 items-center justify-center rounded-none border border-slate-300 bg-white/95 text-slate-700 shadow-md hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
                     aria-label="Remove photo"
                   >
-                    <X className="h-5 w-5" />
+                    <X className="size-4" />
                   </button>
                 ) : null}
               </div>
-              <p className="text-center text-xs leading-relaxed text-muted-foreground sm:text-left">
-                JPG, PNG, or WebP · max 5MB · tap the frame to update · use{' '}
-                <span className="font-medium text-foreground/80">Save Changes</span> below to store
+              <p className="text-center text-[11px] text-slate-500">
+                JPG, PNG, or WebP · Max 5MB · Click <span className="font-bold text-slate-700">Save Changes</span> below to commit updates.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="mb-1 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
-                <Building2 className="h-5 w-5 text-blue-700" />
+          {/* Business Info Card */}
+          <Card className="rounded-none border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:border-[#081F5C] transition-all">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/80 p-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-indigo-50/80 border border-indigo-200/80 text-[#081F5C] shadow-2xs">
+                  <Building2 className="size-4.5" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-black text-slate-900">
+                    {isOnCallProvider ? 'Business Information' : 'Business & Shop Details'}
+                  </CardTitle>
+                  <CardDescription className="text-xs font-medium text-slate-500">
+                    Update your operational settings and service qualifications.
+                  </CardDescription>
+                </div>
               </div>
-              <CardTitle className="text-base">
-                {isOnCallProvider ? 'Business Information' : 'Business / Shop Information'}
-              </CardTitle>
-              <CardDescription>
-                {isOnCallProvider
-                  ? 'Same as the business information step in independent provider registration.'
-                  : 'Same as the business / shop step in shop-owner registration.'}
-              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="shopName">{isOnCallProvider ? 'Business name *' : 'Shop name *'}</Label>
+            <CardContent className="space-y-3 p-3.5">
+              <div className="grid gap-1">
+                <Label htmlFor="shopName" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  {isOnCallProvider ? 'Business Name' : 'Shop Name'} <span className="text-rose-500">*</span>
+                </Label>
                 <Input
                   id="shopName"
                   value={form.shopName}
                   onChange={(e) => update('shopName', e.target.value)}
                   placeholder={isOnCallProvider ? 'Enter business name' : 'Enter shop name'}
+                  className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C]"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Type of business *</Label>
+              <div className="grid gap-1">
+                <Label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Type of Business <span className="text-rose-500">*</span>
+                </Label>
                 <Select value={form.businessType || undefined} onValueChange={(v) => update('businessType', v)}>
-                  <SelectTrigger className="h-10 w-full">
+                  <SelectTrigger className="rounded-none border-slate-300 text-xs font-bold shadow-2xs focus:border-[#081F5C]">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-none text-xs font-medium">
                     {BUSINESS_TYPES.map((opt) => (
                       <SelectItem key={opt} value={opt}>
                         {opt}
@@ -854,9 +847,11 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Type of repair services offered *</Label>
-                <div className="flex flex-wrap gap-2">
+              <div className="grid gap-1.5">
+                <Label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Repair Services Offered <span className="text-rose-500">*</span>
+                </Label>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
                   {REPAIR_SERVICE_TYPES.map((s) => {
                     const selected = form.repairServicesOffered.includes(s)
                     return (
@@ -864,10 +859,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                         key={s}
                         type="button"
                         onClick={() => toggleArrayValue('repairServicesOffered', s)}
-                        className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                        className={`rounded-none border px-2.5 py-1 text-xs cursor-pointer transition-all ${
                           selected
-                            ? 'border-[#081F5C] bg-[#081F5C] text-white'
-                            : 'border-border bg-background text-foreground hover:bg-muted/60'
+                            ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
+                            : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 font-semibold'
                         }`}
                       >
                         {s}
@@ -877,13 +872,15 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Service type *</Label>
+              <div className="grid gap-1">
+                <Label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Service Location Type <span className="text-rose-500">*</span>
+                </Label>
                 <Select value={form.serviceType || undefined} onValueChange={(v) => update('serviceType', v)}>
-                  <SelectTrigger className="h-10 w-full">
+                  <SelectTrigger className="rounded-none border-slate-300 text-xs font-bold shadow-2xs focus:border-[#081F5C]">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-none text-xs font-medium">
                     {(isOnCallProvider ? INDEPENDENT_SERVICE_TYPES_DISPLAY : SERVICE_TYPES).map((opt) => (
                       <SelectItem key={opt} value={opt}>
                         {opt}
@@ -893,125 +890,131 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 </Select>
               </div>
 
-              <div className={`grid gap-4 ${isOnCallProvider ? '' : 'sm:grid-cols-2'}`}>
-                <div className="space-y-2">
-                  <Label htmlFor="yearsOfOperation">Years of operation *</Label>
+              <div className={`grid gap-3 ${isOnCallProvider ? '' : 'sm:grid-cols-2'}`}>
+                <div className="grid gap-1">
+                  <Label htmlFor="yearsOfOperation" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                    Years of Operation <span className="text-rose-500">*</span>
+                  </Label>
                   <Input
                     id="yearsOfOperation"
                     inputMode="numeric"
                     value={form.yearsOfOperation}
                     onChange={(e) => update('yearsOfOperation', e.target.value.replace(/\D/g, '').slice(0, 2))}
+                    placeholder="e.g. 5"
+                    className="rounded-none border-slate-300 text-xs font-bold shadow-2xs focus:border-[#081F5C]"
                   />
                 </div>
                 {!isOnCallProvider ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="numberOfEmployees">Number of technicians/mechanics *</Label>
+                  <div className="grid gap-1">
+                    <Label htmlFor="numberOfEmployees" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                      Number of Technicians <span className="text-rose-500">*</span>
+                    </Label>
                     <Input
                       id="numberOfEmployees"
                       inputMode="numeric"
                       value={form.numberOfEmployees}
                       onChange={(e) => update('numberOfEmployees', e.target.value.replace(/\D/g, '').slice(0, 3))}
+                      placeholder="e.g. 3"
+                      className="rounded-none border-slate-300 text-xs font-bold shadow-2xs focus:border-[#081F5C]"
                     />
                   </div>
                 ) : null}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="operatingHoursOpenHH" className="text-sm font-medium text-gray-700">
-                  Operating hours *
+              <div className="bg-slate-50/80 p-3 border border-slate-200 rounded-none space-y-1.5">
+                <Label htmlFor="operatingHoursOpenHH" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800 block">
+                  Operating Hours <span className="text-rose-500">*</span>
                 </Label>
                 {(() => {
                   const p = operatingHoursParts
                   return (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <div className="space-y-1">
-                          <p className="text-xs text-gray-500">Opening</p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Input
-                              id="operatingHoursOpenHH"
-                              type="number"
-                              inputMode="numeric"
-                              placeholder="HH"
-                              min="1"
-                              max="12"
-                              step="1"
-                              value={p.openHH}
-                              onChange={(e) => setOperatingHoursPart('openHH', e.target.value)}
-                              className="h-10 w-20 text-center"
-                            />
-                            <span className="text-gray-500">:</span>
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              placeholder="MM"
-                              min="0"
-                              max="59"
-                              step="1"
-                              value={p.openMM}
-                              onChange={(e) => setOperatingHoursPart('openMM', e.target.value)}
-                              className="h-10 w-20 text-center"
-                            />
-                            <div className="flex gap-1">
-                              {['AM', 'PM'].map((meridiem) => (
-                                <button
-                                  key={`open-${meridiem}`}
-                                  type="button"
-                                  onClick={() => setOperatingHoursPart('openPeriod', meridiem)}
-                                  className={`h-10 rounded-md border px-3 text-sm ${
-                                    p.openPeriod === meridiem
-                                      ? 'border-violet-300 bg-violet-50 text-violet-700'
-                                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                                  }`}
-                                >
-                                  {meridiem}
-                                </button>
-                              ))}
-                            </div>
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 pt-0.5 text-xs">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold uppercase text-slate-500">Opening Time</p>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Input
+                            id="operatingHoursOpenHH"
+                            type="number"
+                            inputMode="numeric"
+                            placeholder="HH"
+                            min="1"
+                            max="12"
+                            step="1"
+                            value={p.openHH}
+                            onChange={(e) => setOperatingHoursPart('openHH', e.target.value)}
+                            className="h-8 w-14 text-center rounded-none border-slate-300 font-bold text-xs"
+                          />
+                          <span className="font-bold text-slate-500">:</span>
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            placeholder="MM"
+                            min="0"
+                            max="59"
+                            step="1"
+                            value={p.openMM}
+                            onChange={(e) => setOperatingHoursPart('openMM', e.target.value)}
+                            className="h-8 w-14 text-center rounded-none border-slate-300 font-bold text-xs"
+                          />
+                          <div className="flex">
+                            {['AM', 'PM'].map((meridiem) => (
+                              <button
+                                key={`open-${meridiem}`}
+                                type="button"
+                                onClick={() => setOperatingHoursPart('openPeriod', meridiem)}
+                                className={`h-8 rounded-none border px-2 text-xs cursor-pointer transition-all ${
+                                  p.openPeriod === meridiem
+                                    ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
+                                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 font-semibold'
+                                }`}
+                              >
+                                {meridiem}
+                              </button>
+                            ))}
                           </div>
                         </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-gray-500">Closing</p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              placeholder="HH"
-                              min="1"
-                              max="12"
-                              step="1"
-                              value={p.closeHH}
-                              onChange={(e) => setOperatingHoursPart('closeHH', e.target.value)}
-                              className="h-10 w-20 text-center"
-                            />
-                            <span className="text-gray-500">:</span>
-                            <Input
-                              type="number"
-                              inputMode="numeric"
-                              placeholder="MM"
-                              min="0"
-                              max="59"
-                              step="1"
-                              value={p.closeMM}
-                              onChange={(e) => setOperatingHoursPart('closeMM', e.target.value)}
-                              className="h-10 w-20 text-center"
-                            />
-                            <div className="flex gap-1">
-                              {['AM', 'PM'].map((meridiem) => (
-                                <button
-                                  key={`close-${meridiem}`}
-                                  type="button"
-                                  onClick={() => setOperatingHoursPart('closePeriod', meridiem)}
-                                  className={`h-10 rounded-md border px-3 text-sm ${
-                                    p.closePeriod === meridiem
-                                      ? 'border-violet-300 bg-violet-50 text-violet-700'
-                                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                                  }`}
-                                >
-                                  {meridiem}
-                                </button>
-                              ))}
-                            </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold uppercase text-slate-500">Closing Time</p>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            placeholder="HH"
+                            min="1"
+                            max="12"
+                            step="1"
+                            value={p.closeHH}
+                            onChange={(e) => setOperatingHoursPart('closeHH', e.target.value)}
+                            className="h-8 w-14 text-center rounded-none border-slate-300 font-bold text-xs"
+                          />
+                          <span className="font-bold text-slate-500">:</span>
+                          <Input
+                            type="number"
+                            inputMode="numeric"
+                            placeholder="MM"
+                            min="0"
+                            max="59"
+                            step="1"
+                            value={p.closeMM}
+                            onChange={(e) => setOperatingHoursPart('closeMM', e.target.value)}
+                            className="h-8 w-14 text-center rounded-none border-slate-300 font-bold text-xs"
+                          />
+                          <div className="flex">
+                            {['AM', 'PM'].map((meridiem) => (
+                              <button
+                                key={`close-${meridiem}`}
+                                type="button"
+                                onClick={() => setOperatingHoursPart('closePeriod', meridiem)}
+                                className={`h-8 rounded-none border px-2 text-xs cursor-pointer transition-all ${
+                                  p.closePeriod === meridiem
+                                    ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
+                                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 font-semibold'
+                                }`}
+                              >
+                                {meridiem}
+                              </button>
+                            ))}
                           </div>
                         </div>
                       </div>
@@ -1020,9 +1023,11 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 })()}
               </div>
 
-              <div className="space-y-2">
-                <Label>Days of operation *</Label>
-                <div className="flex flex-wrap gap-2">
+              <div className="grid gap-1.5">
+                <Label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Days of Operation <span className="text-rose-500">*</span>
+                </Label>
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
                   {DAYS_OF_OPERATION.map((d) => {
                     const selected = form.daysOfOperation.includes(d)
                     return (
@@ -1030,10 +1035,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                         key={d}
                         type="button"
                         onClick={() => toggleArrayValue('daysOfOperation', d)}
-                        className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                        className={`rounded-none border px-2.5 py-1 text-xs cursor-pointer transition-all ${
                           selected
-                            ? 'border-[#081F5C] bg-[#081F5C] text-white'
-                            : 'border-border bg-background text-foreground hover:bg-muted/60'
+                            ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
+                            : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 font-semibold'
                         }`}
                       >
                         {d}
@@ -1043,27 +1048,42 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopDescription">Shop description (optional)</Label>
+              <div className="grid gap-1">
+                <Label htmlFor="shopDescription" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Shop Description (optional)
+                </Label>
                 <Textarea
                   id="shopDescription"
                   value={form.shopDescription}
                   onChange={(e) => update('shopDescription', e.target.value)}
-                  rows={4}
-                  className="min-h-[96px] resize-y"
-                  placeholder="Tell customers about your shop (optional)"
+                  rows={3}
+                  className="rounded-none border-slate-300 text-xs font-medium min-h-[80px] resize-y shadow-2xs focus:border-[#081F5C]"
+                  placeholder="Tell customers about your shop history, specializations, and services..."
                 />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Shop location &amp; address</CardTitle>
+          {/* Shop Location Card */}
+          <Card className="rounded-none border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:border-[#081F5C] transition-all">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/80 p-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-indigo-50/80 border border-indigo-200/80 text-[#081F5C] shadow-2xs">
+                  <MapPin className="size-4.5" />
+                </div>
+                <div>
+                  <CardTitle className="text-sm font-black text-slate-900">Shop Location & Address</CardTitle>
+                  <CardDescription className="text-xs font-medium text-slate-500">
+                    Specify your exact registered address and Google Maps pin location.
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Shop Address *</Label>
+            <CardContent className="space-y-3 p-3.5">
+              <div className="grid gap-1">
+                <Label className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Address (Region / Province / City / Barangay) <span className="text-rose-500">*</span>
+                </Label>
                 <AddressTabsSelector
                   {...addressSelectorCommonProps}
                   label="Region/Province/City/Barangay"
@@ -1080,30 +1100,30 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopDetailedAddress" className="text-sm font-medium text-gray-700">
-                  Detailed address (optional)
+              <div className="grid gap-1">
+                <Label htmlFor="shopDetailedAddress" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Detailed Address (Building, Street, Unit No.)
                 </Label>
                 <Textarea
                   id="shopDetailedAddress"
-                  placeholder="Unit No., Building, Street, etc."
+                  placeholder="e.g. Unit 2B, Building Name, Street Address"
                   value={form.shopDetailedAddress}
                   onChange={(e) => update('shopDetailedAddress', e.target.value)}
-                  className="h-20 w-full resize-none"
+                  className="rounded-none border-slate-300 text-xs font-medium h-16 w-full resize-none shadow-2xs focus:border-[#081F5C]"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shopLandmark" className="text-sm font-medium text-gray-700">
-                  Landmark (optional)
+              <div className="grid gap-1">
+                <Label htmlFor="shopLandmark" className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">
+                  Landmark / Directions (optional)
                 </Label>
                 <Input
                   id="shopLandmark"
                   type="text"
                   value={form.shopLandmark}
                   onChange={(e) => update('shopLandmark', e.target.value)}
-                  placeholder="e.g., near barangay hall"
-                  className="h-10"
+                  placeholder="e.g. Across Barangay Hall, beside Shell station"
+                  className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-[#081F5C]"
                 />
               </div>
 
@@ -1120,142 +1140,135 @@ export function ShopInfoInner({ variant = 'shop' }) {
             </CardContent>
           </Card>
 
-          <Card className="border-border/80 bg-muted/20 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Account contact (not updated on this page)</CardTitle>
-              <CardDescription className="text-xs">
-                From your registration. Use Account Settings when you need to change email or phone on the platform.
+          {/* Account Contact Footer Card */}
+          <Card className="rounded-none border border-slate-200 bg-slate-50/80 p-3.5 shadow-2xs">
+            <CardHeader className="p-0 pb-2 border-b border-slate-200">
+              <CardTitle className="text-[11px] font-extrabold uppercase tracking-wider text-slate-800">
+                Account Contact Details
+              </CardTitle>
+              <CardDescription className="text-[11px] text-slate-500">
+                From your account registration. Update in Account Settings if necessary.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-2 text-sm sm:grid-cols-2">
+            <CardContent className="p-0 pt-2 grid gap-1.5 text-xs sm:grid-cols-2">
               <div>
-                <span className="text-muted-foreground">Registered name: </span>
-                <span className="font-medium">{account.fullName || '—'}</span>
+                <span className="font-bold text-slate-600 uppercase text-[10px]">Registered Name: </span>
+                <span className="font-bold text-slate-900">{account.fullName || '—'}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Email: </span>
-                <span className="font-medium">{account.email || '—'}</span>
+                <span className="font-bold text-slate-600 uppercase text-[10px]">Email: </span>
+                <span className="font-bold text-slate-900">{account.email || '—'}</span>
               </div>
               <div className="sm:col-span-2">
-                <span className="text-muted-foreground">Phone: </span>
-                <span className="font-medium">
+                <span className="font-bold text-slate-600 uppercase text-[10px]">Phone Number: </span>
+                <span className="font-bold text-slate-900">
                   {account.phoneCode} {account.phoneNumber || '—'}
                 </span>
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Save Action Buttons Bar */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
             <Button
               type="button"
               onClick={handleSave}
               disabled={saving || !isDirty}
-              className="bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white shadow-sm"
+              className="rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] hover:opacity-95 text-white font-bold text-xs px-4 py-2 shadow-md shadow-[#081F5C]/25 cursor-pointer disabled:opacity-50 transition-all"
             >
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="mr-1.5 size-3.5" />
               {saving ? 'Saving…' : 'Save Changes'}
             </Button>
-            <Button type="button" variant="outline" onClick={handleReset} disabled={!savedSnapshot || !isDirty}>
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Revert to last saved
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={!savedSnapshot || !isDirty}
+              className="rounded-none border-slate-300 text-slate-700 font-bold text-xs px-3.5 py-2 cursor-pointer disabled:opacity-50"
+            >
+              <RotateCcw className="mr-1.5 size-3.5" />
+              Revert Changes
             </Button>
-            {saveNotice ? <span className="text-sm text-emerald-700 dark:text-emerald-400">{saveNotice}</span> : null}
-            {saveError ? <span className="text-sm text-destructive">{saveError}</span> : null}
+            {saveNotice ? <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 border border-emerald-200 rounded-none">{saveNotice}</span> : null}
+            {saveError ? <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 border border-rose-200 rounded-none">{saveError}</span> : null}
           </div>
         </div>
 
+        {/* Customer Preview Sidebar */}
         <div className="lg:sticky lg:top-4 lg:self-start">
-          <Card className="border-border/80 shadow-md">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Eye className="h-4 w-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">Customer preview</span>
+          <Card className="rounded-none border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:border-[#081F5C] transition-all">
+            <CardHeader className="border-b border-slate-100 bg-slate-50/80 p-3.5">
+              <div className="flex items-center gap-2 text-[#081F5C]">
+                <Eye className="size-4" />
+                <span className="text-xs font-extrabold uppercase tracking-wider">Customer Live Preview</span>
               </div>
-              <CardTitle className="text-sm">Summary shown on the shop listing</CardTitle>
+              <CardTitle className="text-xs font-medium text-slate-500 mt-0.5">
+                Summary card shown on public search
+              </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div
-                className="relative overflow-hidden rounded-lg text-white"
-                style={{ background: 'linear-gradient(135deg,#04133d,#1447a6)' }}
-              >
-                <div className="flex items-start gap-3 p-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/15">
+            <CardContent className="p-3.5">
+              <div className="rounded-none bg-linear-to-r from-[#04133d] via-slate-900 to-[#081F5C] p-3.5 text-white shadow-md space-y-2.5">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-none border border-white/30 bg-white/10">
                     {shopPhotoDisplayUrl ? (
                       <img
                         src={shopPhotoDisplayUrl}
                         alt=""
-                        className="h-full w-full object-cover"
+                        className="size-full object-cover"
                       />
                     ) : (
-                      <Store className="h-6 w-6" aria-hidden />
+                      <Store className="size-6 text-white" aria-hidden />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold leading-snug">
+                    <div className="text-sm font-black leading-snug">
                       {isOnCallProvider
                         ? account.fullName || 'Provider'
                         : form.shopName.trim() || 'Shop name'}
                     </div>
-                    <div className="mt-0.5 text-xs text-white/90">
+                    <div className="text-[11px] text-indigo-200 font-medium mt-0.5">
                       {isOnCallProvider ? 'On-call provider' : `Owner: ${account.fullName || '—'}`}
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-white/85">
-                      <MapPin className="h-3 w-3 shrink-0" />
-                      <span className="min-w-0 leading-snug">{previewAddressLine}</span>
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-white/90">
+                      <MapPin className="size-3.5 shrink-0 text-rose-400" />
+                      <span className="truncate">{previewAddressLine}</span>
                     </div>
                     {form.shopLandmark?.trim() ? (
-                      <p className="mt-1 text-[11px] text-white/75">Landmark: {form.shopLandmark}</p>
+                      <p className="mt-1 text-[11px] text-slate-300">Landmark: {form.shopLandmark}</p>
                     ) : null}
                   </div>
                 </div>
-                <div className="space-y-2 border-t border-white/15 px-4 py-3 text-[11px] text-white/90">
+
+                <div className="space-y-2 border-t border-white/15 pt-3 text-[11px] text-slate-200">
                   {form.shopDescription?.trim() ? (
-                    <p className="line-clamp-4 text-white/85">{form.shopDescription}</p>
+                    <p className="line-clamp-3 leading-relaxed">{form.shopDescription}</p>
                   ) : (
-                    <p className="text-white/60">No shop description.</p>
+                    <p className="italic text-slate-400">No shop description provided.</p>
                   )}
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 pt-1">
                     {form.repairServicesOffered.slice(0, 4).map((s) => (
-                      <span key={s} className="rounded bg-white/15 px-2 py-0.5 text-[10px]">
+                      <span key={s} className="rounded-none bg-white/15 px-2 py-0.5 text-[10px] font-bold">
                         {s}
                       </span>
                     ))}
                     {form.repairServicesOffered.length > 4 ? (
-                      <span className="text-[10px] text-white/70">+{form.repairServicesOffered.length - 4} more</span>
+                      <span className="text-[10px] text-slate-300">+{form.repairServicesOffered.length - 4} more</span>
                     ) : null}
                   </div>
-                  <p className="text-white/85">
-                    <span className="text-white/60">Service type: </span>
-                    {form.serviceType || '—'}
-                  </p>
-                  <p className="text-white/85">
-                    <span className="text-white/60">Hours: </span>
-                    {form.operatingHours || '—'}
-                  </p>
-                  <p className="text-white/85">
-                    <span className="text-white/60">Open: </span>
-                    {form.daysOfOperation.length ? form.daysOfOperation.join(', ') : '—'}
-                  </p>
-                  {!isOnCallProvider ? (
-                    <p className="text-white/85">
-                      <span className="text-white/60">Team size (registered): </span>
-                      {form.numberOfEmployees || '—'}
-                    </p>
-                  ) : null}
-                  <p className="text-white/85">
-                    <span className="text-white/60">Years operating: </span>
-                    {form.yearsOfOperation || '—'}
-                  </p>
-                  <p className="text-white/80">
-                    <span className="text-white/60">Contact: </span>
-                    {account.email}
-                    {account.phoneNumber ? ` · ${account.phoneCode} ${account.phoneNumber}` : ''}
-                  </p>
-                  <p className="text-white/70">On E-Paayos: Since {memberSinceYear}</p>
+                  <div className="space-y-1 pt-1 text-slate-300">
+                    <p><span className="text-slate-400 font-medium">Service Type:</span> {form.serviceType || '—'}</p>
+                    <p><span className="text-slate-400 font-medium">Hours:</span> {form.operatingHours || '—'}</p>
+                    <p><span className="text-slate-400 font-medium">Days Open:</span> {form.daysOfOperation.length ? form.daysOfOperation.join(', ') : '—'}</p>
+                    {!isOnCallProvider && (
+                      <p><span className="text-slate-400 font-medium">Team Size:</span> {form.numberOfEmployees || '—'}</p>
+                    )}
+                    <p><span className="text-slate-400 font-medium">Years Operating:</span> {form.yearsOfOperation || '—'}</p>
+                    <p><span className="text-slate-400 font-medium">Member Since:</span> {memberSinceYear}</p>
+                  </div>
                 </div>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                These details come from your registration record and stay aligned with the database when you save.
+              <p className="mt-3 text-[11px] text-slate-500 leading-relaxed text-center">
+                This preview updates live as you edit your shop profile details above.
               </p>
             </CardContent>
           </Card>

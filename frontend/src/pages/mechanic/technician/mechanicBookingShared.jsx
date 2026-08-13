@@ -17,7 +17,7 @@ import {
 export const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
 export const selectShell =
-  'h-9 w-full appearance-none rounded-lg border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20'
+  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20'
 
 export const REQUEST_STAT_GRADIENT = {
   pending: 'bg-linear-to-br from-amber-500 via-orange-500 to-amber-900',
@@ -31,7 +31,7 @@ export function StatGradientCard({ label, value, icon: Icon, variant, helper }) 
   const gradient = REQUEST_STAT_GRADIENT[variant] ?? REQUEST_STAT_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-2xl border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
+      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
       <div className="relative z-10 flex items-start justify-between gap-3">
@@ -40,7 +40,7 @@ export function StatGradientCard({ label, value, icon: Icon, variant, helper }) 
           <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
           {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-xl border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
+        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
           <Icon className="h-5 w-5 text-white" aria-hidden />
         </div>
       </div>
@@ -70,6 +70,7 @@ export function mapBookingFromApi(row) {
     serviceAddress: row.serviceAddress || '',
     serviceLatitude: row.serviceLatitude,
     serviceLongitude: row.serviceLongitude,
+    issuePhotos: Array.isArray(row.issuePhotos) ? row.issuePhotos.filter(Boolean) : [],
     problemDescription: row.problemDescription || '',
     notes: row.notes || '',
     rejectionReason: row.rejectionReason || '',
@@ -254,7 +255,7 @@ export function MechanicMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
       onClick={() => setOpenMobile(true)}
     >
       Menu
@@ -277,12 +278,12 @@ export function MechanicBookingCard({ b, footer, className = '' }) {
 
   return (
     <div
-      className={`flex w-full flex-col overflow-hidden rounded-xl border border-[#081F5C]/10 bg-white shadow-sm ring-1 ring-black/2 transition-colors hover:border-[#1447a6]/28 dark:border-white/10 dark:bg-[#020818]/95 dark:ring-white/5${className ? ` ${className}` : ''}`}
+      className={`flex w-full flex-col overflow-hidden rounded-sm border border-[#081F5C]/10 bg-white shadow-sm ring-1 ring-black/2 transition-colors hover:border-[#1447a6]/28 dark:border-white/10 dark:bg-[#020818]/95 dark:ring-white/5${className ? ` ${className}` : ''}`}
     >
       <div className="p-3 sm:p-3.5">
         <div className="flex items-start gap-2.5">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white"
             aria-hidden
           >
             {initialsFromName(b.contactName)}
@@ -347,7 +348,7 @@ export function MechanicBookingCard({ b, footer, className = '' }) {
               ) : null}
             </div>
 
-            <div className="inline-flex w-fit items-center gap-1.5 rounded-md border border-[#081F5C]/10 bg-slate-50/90 px-2 py-1 text-xs font-medium text-foreground dark:border-white/10 dark:bg-white/5 sm:text-[13px]">
+            <div className="inline-flex w-fit items-center gap-1.5 rounded-sm border border-[#081F5C]/10 bg-slate-50/90 px-2 py-1 text-xs font-medium text-foreground dark:border-white/10 dark:bg-white/5 sm:text-[13px]">
               <CalendarClock className="h-3.5 w-3.5 shrink-0 text-[#081F5C]/60" aria-hidden />
               <span className="tabular-nums">{formatPreferredDate(b.preferredDate)}</span>
               <span className="text-muted-foreground">·</span>
@@ -372,13 +373,13 @@ export function MechanicBookingCard({ b, footer, className = '' }) {
               </a>
             ) : null}
             {b.notes?.trim() ? (
-              <div className="rounded-md border border-dashed border-border/70 bg-muted/20 px-2.5 py-1.5 text-xs leading-relaxed dark:bg-white/5 sm:text-sm">
+              <div className="rounded-sm border border-dashed border-border/70 bg-muted/20 px-2.5 py-1.5 text-xs leading-relaxed dark:bg-white/5 sm:text-sm">
                 <span className="font-medium text-foreground">Notes · </span>
                 <span className="text-muted-foreground">{b.notes.trim()}</span>
               </div>
             ) : null}
             {b.status === 'cancelled' && b.rejectionReason?.trim() ? (
-              <div className="rounded-md border border-red-200/60 bg-red-50/80 px-2.5 py-1.5 text-xs leading-relaxed dark:border-red-500/25 dark:bg-red-950/25 sm:text-sm">
+              <div className="rounded-sm border border-red-200/60 bg-red-50/80 px-2.5 py-1.5 text-xs leading-relaxed dark:border-red-500/25 dark:bg-red-950/25 sm:text-sm">
                 <span className="font-medium text-red-900 dark:text-red-200">Rejection reason · </span>
                 <span className="text-red-800/90 dark:text-red-100/90">{b.rejectionReason.trim()}</span>
               </div>

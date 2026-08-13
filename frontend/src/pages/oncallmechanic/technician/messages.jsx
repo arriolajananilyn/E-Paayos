@@ -72,7 +72,7 @@ const ROUTES = {
 let onCallMechanicSidebarOpenState = false
 
 const sidebarMenuButtonClass =
-  'h-9 gap-3 rounded-lg px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
+  'h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
 
 function IndependentMobileNav() {
   const { isMobile, setOpenMobile } = useSidebar()
@@ -80,7 +80,7 @@ function IndependentMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
       onClick={() => setOpenMobile(true)}
     >
       Menu
@@ -295,7 +295,7 @@ function OnCallMechanicMessages() {
             <SidebarSeparator className="mx-0 bg-sidebar-border/80" />
 
             <SidebarFooter className="gap-2 px-3 py-2 group-data-[collapsible=icon]:items-center">
-              <div className="flex items-center gap-2 overflow-hidden rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
+              <div className="flex items-center gap-2 overflow-hidden rounded-sm border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#081F5C]">
                   {(user.fullName || user.email || 'I').charAt(0).toUpperCase()}
                 </div>
@@ -321,7 +321,7 @@ function OnCallMechanicMessages() {
                   type="button"
                   aria-label="Notification"
                   onClick={() => go(ROUTES.notification)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   <NotificationBellIndicator unreadCount={independentHeaderUnread}>
                     <Bell className="h-5 w-5" />
@@ -345,7 +345,7 @@ function OnCallMechanicMessages() {
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-md border border-border/80 bg-background shadow-lg">
+                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
                       <button
                         type="button"
                         onClick={() => {

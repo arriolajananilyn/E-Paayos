@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import {
@@ -18,26 +19,40 @@ import {
 import { TooltipProvider } from '../../../components/ui/tooltip'
 import {
   Bell,
+  Bike,
   Briefcase,
+  Calendar,
+  CalendarCheck,
+  CalendarClock,
   CheckCircle,
+  CheckCircle2,
   ChevronRight,
   ClipboardList,
+  Clock,
+  FileText,
   History,
   Home,
   LayoutDashboard,
   Loader2,
   LogOut,
+  MapPin,
   MessageSquare,
+  Phone,
   RefreshCw,
   Search,
   Settings,
   SlidersHorizontal,
+  Smartphone,
   Star,
+  Store,
+  Tag,
+  User,
+  WashingMachine,
+  Wrench,
 } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
 import {
   API_URL,
-  MechanicBookingCard,
   MechanicMobileNav,
   StatGradientCard,
   authHeaders,
@@ -63,13 +78,65 @@ const SERVICE_HISTORY_META = {
 let mechanicTechnicianSidebarOpenState = false
 
 const sidebarMenuButtonClass =
-  'h-9 gap-3 rounded-lg px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
+  'h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
 
-function formatCompletedLine(iso) {
+function cn(...classes) {
+  return classes.filter(Boolean).join(' ')
+}
+
+function initialsFromName(name) {
+  const parts = String(name ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!parts.length) return '?'
+  const a = parts[0]?.[0] ?? ''
+  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
+  return (a + b).toUpperCase()
+}
+
+function formatPreferredDate(value) {
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatTime12h(hm) {
+  const s = String(hm ?? '').trim()
+  if (!/^([01]?\d|2[0-3]):([0-5]\d)$/.test(s)) return s || '—'
+  const [hStr, mStr] = s.split(':')
+  let h = parseInt(hStr, 10)
+  const m = mStr
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12
+  if (h === 0) h = 12
+  return `${h}:${m} ${ampm}`
+}
+
+function formatSubmittedLine(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return `${date} · ${time}`
+}
+
+function categoryIcon(category) {
+  const normalized = String(category ?? '').toLowerCase()
+  if (normalized === 'vehicle') return Bike
+  if (normalized === 'gadget') return Smartphone
+  if (normalized === 'appliance') return WashingMachine
+  return Wrench
+}
+
+function bookingStatusBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+      <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+      <span>Completed</span>
+    </span>
+  )
 }
 
 function MechanicTechnicianServiceHistory() {
@@ -327,18 +394,6 @@ function MechanicTechnicianServiceHistory() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        tooltip="Reviews & Ratings"
-                        onClick={() => {
-                          window.location.hash = '#/mechanic/technician/reviews-ratings'
-                        }}
-                        className={sidebarMenuButtonClass}
-                      >
-                        <Star className="size-[18px] opacity-90" />
-                        <span className="whitespace-nowrap">Reviews & Ratings</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
                         tooltip="Work Info"
                         onClick={() => {
                           window.location.hash = '#/mechanic/technician/work-info'
@@ -357,7 +412,7 @@ function MechanicTechnicianServiceHistory() {
             <SidebarSeparator className="mx-0 bg-sidebar-border/80" />
 
             <SidebarFooter className="gap-2 px-3 py-2 group-data-[collapsible=icon]:items-center">
-              <div className="flex items-center gap-2 overflow-hidden rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
+              <div className="flex items-center gap-2 overflow-hidden rounded-sm border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#081F5C]">
                   {(user.fullName || user.email || 'M').charAt(0).toUpperCase()}
                 </div>
@@ -383,7 +438,7 @@ function MechanicTechnicianServiceHistory() {
                   onClick={() => {
                     window.location.hash = '#/mechanic/technician/notification'
                   }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   <Bell className="h-5 w-5" />
                 </button>
@@ -405,7 +460,7 @@ function MechanicTechnicianServiceHistory() {
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-md border border-border/80 bg-background shadow-lg">
+                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
                       <button
                         type="button"
                         onClick={() => {
@@ -439,7 +494,7 @@ function MechanicTechnicianServiceHistory() {
             >
               <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden pr-2 md:pr-4">
                 {listError ? (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                     <span>{listError}</span>
                     <Button type="button" variant="outline" size="sm" onClick={() => void loadBookings()}>
                       Retry
@@ -447,7 +502,7 @@ function MechanicTechnicianServiceHistory() {
                   </div>
                 ) : null}
 
-                <div className="flex flex-col gap-2 rounded-xl border border-[#081F5C]/12 bg-white/90 px-4 py-3 shadow-sm dark:border-white/10 dark:bg-[#020818]/80 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 rounded-none border border-slate-200 bg-white p-3.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[#081F5C] dark:text-blue-100">Finished work only</p>
                     <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">
@@ -458,7 +513,7 @@ function MechanicTechnicianServiceHistory() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 shrink-0 gap-1 rounded-lg border-[#081F5C]/20 text-[#081F5C] dark:border-white/15 dark:text-blue-100"
+                    className="h-9 shrink-0 gap-1 rounded-none border-[#081F5C]/20 text-[#081F5C] dark:border-white/15 dark:text-blue-100"
                     onClick={() => {
                       window.location.hash = '#/mechanic/technician/assigned-request'
                     }}
@@ -468,24 +523,24 @@ function MechanicTechnicianServiceHistory() {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
                   <StatGradientCard
                     variant="completed"
-                    label="Completed jobs"
+                    label="Completed Jobs"
                     value={kpis.total}
                     helper="All time on your services"
                     icon={CheckCircle}
                   />
                   <StatGradientCard
                     variant="total"
-                    label="This month"
+                    label="Completed This Month"
                     value={kpis.thisMonth}
-                    helper="Completed (by last update)"
-                    icon={History}
+                    helper="Finished jobs in current month"
+                    icon={CalendarCheck}
                   />
                   <StatGradientCard
                     variant="confirmed"
-                    label="Home service done"
+                    label="Home Service Done"
                     value={kpis.homeDone}
                     helper="Completed home visits"
                     icon={Home}
@@ -499,12 +554,12 @@ function MechanicTechnicianServiceHistory() {
                       <option value="oldest">Sort: Oldest completion</option>
                       <option value="schedule">Sort: Preferred service date</option>
                     </select>
-                    <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                    <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
                   </div>
 
                   <div className="relative h-9 w-full min-w-0 shrink-0 lg:w-[320px]">
                     <Input
-                      className="h-9 w-full rounded-lg border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+                      className="h-9 w-full rounded-none border-slate-300 bg-white/95 pr-12 pl-4 text-xs font-medium shadow-2xs focus-visible:border-[#081F5C] focus-visible:ring-1 focus-visible:ring-[#081F5C]"
                       placeholder="Search customer, service, shop…"
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
@@ -513,11 +568,11 @@ function MechanicTechnicianServiceHistory() {
                     <Button
                       type="button"
                       size="icon-sm"
-                      className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-md bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
+                      className="pointer-events-none absolute top-1/2 right-1 z-10 h-7 w-7 -translate-y-1/2 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-xs"
                       aria-hidden
                       tabIndex={-1}
                     >
-                      <Search className="h-4 w-4 text-white" />
+                      <Search className="h-3.5 w-3.5 text-white" />
                     </Button>
                   </div>
                 </div>
@@ -536,7 +591,7 @@ function MechanicTechnicianServiceHistory() {
                       size="sm"
                       disabled={loading}
                       onClick={() => void loadBookings()}
-                      className="h-9 shrink-0 gap-1.5 rounded-lg border-[#081F5C]/15 bg-white/80 px-3 text-sm text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
+                      className="h-9 shrink-0 gap-1.5 rounded-none border-slate-300 bg-white/80 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
                       Refresh
@@ -544,56 +599,178 @@ function MechanicTechnicianServiceHistory() {
                   </div>
 
                   {loading ? (
-                    <div className="flex min-h-[160px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
-                      <Loader2 className="mb-2 h-8 w-8 animate-spin text-[#081F5C]/70" aria-hidden />
-                      <p className="text-base font-medium text-foreground">Loading history…</p>
-                      <p className="mt-1 max-w-md text-sm text-muted-foreground">Fetching completed bookings.</p>
+                    <div className="flex min-h-[160px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white p-6 text-center shadow-2xs">
+                      <Loader2 className="mb-2 h-8 w-8 animate-spin text-[#081F5C]" aria-hidden />
+                      <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Loading history…</p>
+                      <p className="mt-1 max-w-md text-xs text-slate-500">Fetching completed bookings.</p>
                     </div>
                   ) : filtered.length === 0 ? (
-                    <div className="flex min-h-[140px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
-                      <History className="mx-auto h-10 w-10 text-muted-foreground/45" aria-hidden />
-                      <p className="mt-3 text-base font-medium text-foreground">No completed jobs yet</p>
-                      <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                    <div className="flex min-h-[140px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white p-6 text-center shadow-2xs">
+                      <History className="mx-auto h-9 w-9 text-slate-400 mb-2" aria-hidden />
+                      <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">No completed jobs yet</p>
+                      <p className="mt-1 max-w-md text-xs text-slate-500">
                         When you or the shop marks a booking complete, it will show up here.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-3.5">
                       {filtered.map((b) => {
+                        const CategoryIcon = b.shopService ? categoryIcon(b.shopService.category) : categoryIcon(b.serviceCategory)
                         const cat = b.shopService?.category || b.serviceCategory
+                        const hasPin =
+                          typeof b.serviceLatitude === 'number' &&
+                          Number.isFinite(b.serviceLatitude) &&
+                          typeof b.serviceLongitude === 'number' &&
+                          Number.isFinite(b.serviceLongitude)
                         const isHi = highlightId === b.id
+
                         return (
-                          <div
+                          <article
                             key={b.id}
                             data-mechanic-history-id={b.id}
-                            className={isHi ? 'rounded-xl ring-2 ring-emerald-500/50 ring-offset-2 ring-offset-transparent' : ''}
+                            className={cn(
+                              'rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-200 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] p-3.5 sm:p-4 hover:-translate-y-0.5 space-y-3',
+                              isHi && 'border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-50/20'
+                            )}
                           >
-                            <MechanicBookingCard
-                              b={b}
-                              footer={
-                                <>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 gap-1.5 rounded-md border-[#081F5C]/20 bg-white/90 px-3 text-sm text-[#081F5C]"
-                                    onClick={() => {
-                                      window.location.hash = '#/mechanic/technician/messages'
-                                    }}
-                                  >
-                                    <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
-                                    Messages
-                                  </Button>
-                                  <div className="flex w-full min-w-0 flex-1 flex-col items-end gap-0.5 text-right sm:flex-row sm:items-center sm:justify-end sm:gap-2">
-                                    <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-200/95 sm:text-xs">
-                                      Outcome: {completionOutcomeLabel(cat)} · Status: Completed
-                                    </p>
-                                    <p className="text-[11px] text-muted-foreground sm:text-xs">{formatCompletedLine(b.updatedAt)}</p>
+                            {/* Top Bar Header */}
+                            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold text-white shadow-2xs">
+                                  {initialsFromName(b.contactName)}
+                                </div>
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="text-sm font-black tracking-tight text-slate-900">{b.contactName || '—'}</h3>
+                                    {b.ref ? (
+                                      <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
+                                        Ref: #{b.ref}
+                                      </span>
+                                    ) : null}
+                                    {b.shopName ? (
+                                      <span className="text-[11px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 border border-slate-200 inline-flex items-center gap-1">
+                                        <Store className="size-3 text-slate-500" />
+                                        {b.shopName}
+                                      </span>
+                                    ) : null}
                                   </div>
-                                </>
-                              }
-                            />
-                          </div>
+                                  <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                                    <Phone className="size-3 text-[#081F5C]" />
+                                    <a href={`tel:${b.contactPhone}`} className="text-[#081F5C] hover:underline font-bold">
+                                      {b.contactPhone || '—'}
+                                    </a>
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                                {bookingStatusBadge()}
+                                <span className="text-[11px] font-semibold text-slate-500">
+                                  Finished: {formatSubmittedLine(b.updatedAt || b.createdAt)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* 3 Container Box Body Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {/* Container 1: Service Description */}
+                              <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                                <div>
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                                    <FileText className="size-3.5 text-[#081F5C]" />
+                                    <span>Service Requested</span>
+                                  </span>
+                                  <p className="text-xs font-black text-slate-900 mt-1 flex items-center gap-1.5">
+                                    <CategoryIcon className="size-3.5 text-indigo-600 shrink-0" />
+                                    <span>{b.shopService?.name || b.serviceName || 'General Repair'}</span>
+                                  </p>
+                                  <p className="text-[11px] text-slate-600 mt-1 line-clamp-3 leading-relaxed">
+                                    {b.problemDescription || 'No description provided.'}
+                                  </p>
+                                </div>
+                                {b.notes?.trim() ? (
+                                  <div className="bg-white p-2 border border-slate-200 text-[11px] text-slate-600 mt-1">
+                                    <span className="font-bold text-slate-800">Notes:</span> {b.notes.trim()}
+                                  </div>
+                                ) : null}
+                              </div>
+
+                              {/* Container 2: Outcome & Schedule */}
+                              <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                                <div>
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                                    <CheckCircle2 className="size-3.5 text-emerald-600" />
+                                    <span>Recorded Outcome</span>
+                                  </span>
+                                  <p className="text-[11px] font-bold text-emerald-900 bg-emerald-50 p-2 border border-emerald-200 mt-1">
+                                    {completionOutcomeLabel(cat)}
+                                  </p>
+                                </div>
+                                <div className="bg-white p-2 border border-slate-200 space-y-0.5 text-[11px]">
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
+                                  <div className="flex items-center gap-1 font-bold text-slate-800">
+                                    <CalendarClock className="size-3 text-indigo-600" />
+                                    <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Container 3: Service Mode & Location */}
+                              <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                                <div>
+                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                                    <MapPin className="size-3 text-rose-500" />
+                                    <span>Service Location</span>
+                                  </span>
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <Badge className="rounded-none border border-slate-300 bg-white text-slate-800 text-[10px] font-bold uppercase py-0">
+                                      {b.serviceMode === 'home' ? <Home className="size-3 mr-1 text-indigo-600" /> : <Store className="size-3 mr-1 text-indigo-600" />}
+                                      {b.serviceMode === 'home' ? 'Home Service' : 'In-Shop Visit'}
+                                    </Badge>
+                                  </div>
+                                  {b.serviceMode === 'home' && b.serviceAddress ? (
+                                    <p className="text-[11px] font-medium text-slate-700 mt-1.5 line-clamp-2 leading-tight">
+                                      {b.serviceAddress}
+                                    </p>
+                                  ) : (
+                                    <p className="text-[11px] font-medium text-slate-500 mt-1.5 italic">
+                                      In-shop customer repair visit.
+                                    </p>
+                                  )}
+                                </div>
+                                {b.serviceMode === 'home' && hasPin ? (
+                                  <a
+                                    href={`https://www.google.com/maps?q=${b.serviceLatitude},${b.serviceLongitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors"
+                                  >
+                                    <MapPin className="size-3 text-rose-600" />
+                                    <span>Open Location Map</span>
+                                  </a>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {/* Card Footer */}
+                            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
+                              <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-200/95">
+                                Outcome: <span className="font-bold">{completionOutcomeLabel(cat)}</span> · Status: <span className="font-bold">Completed</span>
+                              </p>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 gap-1.5 rounded-none border-slate-300 bg-white/90 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-slate-50"
+                                onClick={() => {
+                                  window.location.hash = '#/mechanic/technician/messages'
+                                }}
+                              >
+                                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-indigo-600" aria-hidden />
+                                Messages
+                              </Button>
+                            </div>
+                          </article>
                         )
                       })}
                     </div>

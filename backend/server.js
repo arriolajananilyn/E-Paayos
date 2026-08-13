@@ -9,6 +9,7 @@ import catalogRoutes from "./routes/catalogRoutes.js"
 import mechanicRoutes from "./routes/mechanicRoutes.js"
 import adminRoutes from "./routes/adminRoutes.js"
 import messageRoutes from "./routes/messageRoutes.js"
+import chatbotRoutes from "./routes/chatbotRoutes.js"
 import { connectDB } from "./config/db.js"
 
 dotenv.config()
@@ -68,6 +69,7 @@ app.use("/api/catalog", catalogRoutes)
 app.use("/api/mechanic", mechanicRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/messages", messageRoutes)
+app.use("/api/chatbot", chatbotRoutes)
 
 app.use((err, req, res, _next) => {
   const status = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500

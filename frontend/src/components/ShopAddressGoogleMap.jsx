@@ -247,6 +247,7 @@ export default function ShopAddressGoogleMap({
   flush = false,
   secondaryPin = null,
   showRouteLine = false,
+  zoomControlPosition = 'topright',
 }) {
   const containerRef = useRef(null)
   const mapRef = useRef(null)
@@ -350,7 +351,7 @@ export default function ShopAddressGoogleMap({
               zoomControl: false,
               attributionControl: false,
             }).setView(center, z)
-            L.control.zoom({ position: 'bottomright' }).addTo(mapRef.current)
+            L.control.zoom({ position: zoomControlPosition }).addTo(mapRef.current)
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               maxZoom: 19,
               attribution: '',

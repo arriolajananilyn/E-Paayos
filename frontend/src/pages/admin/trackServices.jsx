@@ -23,7 +23,7 @@ const STAT_CARD_GRADIENT = {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-lg border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  'h-9 w-full appearance-none rounded-md border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
 
 function authHeaders() {
   const token = localStorage.getItem('token')
@@ -53,7 +53,7 @@ function StatGradientCard({ label, value, sub, icon: Icon, variant }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-2xl border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
+      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-lg border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 to-transparent" />
       <div className="relative z-10 flex items-start justify-between gap-3">
@@ -62,7 +62,7 @@ function StatGradientCard({ label, value, sub, icon: Icon, variant }) {
           <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
           {sub ? <p className="mt-1 text-xs text-white/70">{sub}</p> : null}
         </div>
-        <div className="shrink-0 rounded-xl border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
+        <div className="shrink-0 rounded-md border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
           <Icon className="h-5 w-5 text-white" aria-hidden />
         </div>
       </div>
@@ -268,7 +268,7 @@ export default function AdminTrackServices() {
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
           {error}
         </div>
       ) : null}
@@ -341,7 +341,7 @@ export default function AdminTrackServices() {
 
         <div className="relative min-w-0 w-full max-w-full lg:max-w-md lg:flex-1">
           <Input
-            className="h-9 w-full min-w-0 rounded-lg border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+            className="h-9 w-full min-w-0 rounded-md border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
             placeholder="Search ref, service, customer, shop…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -350,7 +350,7 @@ export default function AdminTrackServices() {
           <Button
             type="button"
             size="icon-sm"
-            className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-md bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95"
+            className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95"
             aria-label="Search"
             onClick={() => {}}
           >
@@ -359,7 +359,7 @@ export default function AdminTrackServices() {
         </div>
       </div>
 
-      <Card className="mt-3 min-w-0 max-w-full overflow-hidden rounded-2xl border border-[#081F5C]/12 bg-white shadow-lg ring-1 ring-black/3 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90 dark:ring-white/6">
+      <Card className="mt-3 min-w-0 max-w-full overflow-hidden rounded-lg border border-[#081F5C]/12 bg-white shadow-lg ring-1 ring-black/3 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90 dark:ring-white/6">
         <CardContent className="min-w-0 p-0">
           <div className="max-w-full overflow-x-auto scroll-smooth">
             <table className="w-full min-w-[900px] border-collapse text-sm">
@@ -466,7 +466,7 @@ export default function AdminTrackServices() {
                 <span className="font-mono text-xs font-semibold text-foreground">{selected.ref}</span>
                 <Badge className={`text-xs capitalize ${statusBadgeClass(selected.status)}`}>{selected.status}</Badge>
               </div>
-              <div className="grid gap-3 rounded-xl border border-[#081F5C]/10 bg-muted/30 p-4 dark:border-white/10">
+              <div className="grid gap-3 rounded-md border border-[#081F5C]/10 bg-muted/30 p-4 dark:border-white/10">
                 <p>
                   <span className="text-muted-foreground">Service:</span>{' '}
                   <span className="font-medium text-foreground">{selected.shopService?.name}</span>
@@ -518,11 +518,11 @@ export default function AdminTrackServices() {
                 <p>
                   <span className="text-muted-foreground">Problem:</span>
                 </p>
-                <p className="whitespace-pre-wrap rounded-md bg-background/80 p-3 text-foreground">{selected.problemDescription}</p>
+                <p className="whitespace-pre-wrap rounded-sm bg-background/80 p-3 text-foreground">{selected.problemDescription}</p>
                 {selected.notes ? (
                   <>
                     <p className="text-muted-foreground">Notes</p>
-                    <p className="whitespace-pre-wrap rounded-md bg-background/80 p-3 text-foreground">{selected.notes}</p>
+                    <p className="whitespace-pre-wrap rounded-sm bg-background/80 p-3 text-foreground">{selected.notes}</p>
                   </>
                 ) : null}
                 {selected.status === 'cancelled' && selected.rejectionReason ? (

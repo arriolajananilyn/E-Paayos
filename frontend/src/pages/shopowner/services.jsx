@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ShopOwnerDashboard from './dashboard.jsx'
+import { cn } from '../../lib/utils'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../components/ui/alert-dialog'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -21,6 +22,8 @@ import { useSidebar } from '../../components/ui/sidebar.jsx'
 import {
   CheckCircle,
   Clock,
+  DollarSign,
+  FileText,
   Home,
   Mail,
   MoreHorizontal,
@@ -30,6 +33,7 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Tag,
   Trash2,
   Users,
   Wrench,
@@ -222,7 +226,7 @@ function rosterStatusPickerBadge(status, onNavy = false) {
 function locationBadge(location, locations = SERVICE_LOCATIONS) {
   const label = locations.find((x) => x.value === location)?.label ?? '—'
   return (
-    <Badge variant="outline" className="border-[#081F5C]/15 bg-white/90 text-[11px] font-medium text-[#081F5C] dark:border-white/10 dark:bg-white/5 dark:text-blue-100">
+    <Badge variant="outline" className="rounded-none border-indigo-200 bg-indigo-50/80 text-[11px] font-bold text-indigo-900">
       {label}
     </Badge>
   )
@@ -231,13 +235,13 @@ function locationBadge(location, locations = SERVICE_LOCATIONS) {
 function statusBadge(status) {
   if (status === 'active') {
     return (
-      <Badge className="border border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+      <Badge className="rounded-none border border-emerald-300 bg-emerald-50 text-[11px] font-bold text-emerald-800">
         Active
       </Badge>
     )
   }
   return (
-    <Badge className="border border-slate-500/25 bg-slate-100 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+    <Badge className="rounded-none border border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-600">
       Inactive
     </Badge>
   )
@@ -248,7 +252,7 @@ function categoryBadge(category) {
   return (
     <Badge
       variant="outline"
-      className="border-[#1447a6]/25 bg-white/95 text-[11px] font-medium text-[#081F5C] dark:border-[#1447a6]/40 dark:bg-[#04133d]/40 dark:text-blue-100"
+      className="rounded-none border-slate-300 bg-slate-50 text-[11px] font-bold text-slate-800"
     >
       {label}
     </Badge>
@@ -276,7 +280,7 @@ const STAT_CARD_GRADIENT = {
 function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services
   return (
-    <div className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-2xl border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}>
+    <div className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}>
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -284,7 +288,7 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
           <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
           {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-xl border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
+        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
           <Icon className="h-5 w-5 text-white" aria-hidden />
         </div>
       </div>
@@ -293,7 +297,7 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-lg border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
 
 const emptyForm = {
   name: '',
@@ -316,7 +320,7 @@ function ServicesSearchBar({ value, onChange }) {
     <div className={`flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none ${lgWidthClass}`}>
       <div className="relative h-9 w-full min-w-0 shrink-0">
         <Input
-          className="h-9 w-full min-w-0 rounded-lg border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+          className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
           placeholder="Search services…"
           value={value}
           onChange={onChange}
@@ -325,7 +329,7 @@ function ServicesSearchBar({ value, onChange }) {
         <Button
           type="button"
           size="icon-sm"
-          className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-md bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
+          className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
           aria-hidden
           tabIndex={-1}
         >
@@ -615,7 +619,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
     <>
       <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden">
         {listError ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             <span>{listError}</span>
             <Button type="button" variant="outline" size="sm" onClick={() => loadCatalog()}>
               Retry
@@ -623,7 +627,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
           </div>
         ) : null}
         {actionError ? (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-2 text-sm text-amber-950 dark:text-amber-100">
+          <div className="rounded-sm border border-amber-500/30 bg-amber-500/5 px-4 py-2 text-sm text-amber-950 dark:text-amber-100">
             {actionError}
           </div>
         ) : null}
@@ -740,127 +744,153 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             <Button
               type="button"
               onClick={openCreate}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] px-3 py-2 text-xs font-medium text-white shadow-sm hover:opacity-95 sm:text-sm"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-none bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 text-xs font-bold text-white shadow-md cursor-pointer transition-colors"
             >
-              <Plus className="h-4 w-4" />
-              Add service
+              <Plus className="size-4" />
+              <span>Add Service</span>
             </Button>
           </div>
 
           {loading ? (
-            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
-              <p className="text-sm font-medium text-foreground">Loading catalog…</p>
-              <p className="mt-1 max-w-md text-xs text-muted-foreground">Fetching services from the server.</p>
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-slate-50 p-6 text-center shadow-2xs">
+              <p className="text-sm font-bold text-slate-800">Loading catalog…</p>
+              <p className="mt-1 max-w-md text-xs text-slate-500">Fetching services from the server.</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex min-h-[140px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm ring-1 ring-black/2 dark:border-white/15 dark:bg-[#020818] dark:ring-white/5">
-              <p className="text-sm font-medium text-foreground">No services found</p>
-              <p className="mt-1 max-w-md text-xs text-muted-foreground">
+            <div className="flex min-h-[140px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-slate-50 p-6 text-center shadow-2xs">
+              <p className="text-sm font-bold text-slate-800">No services found</p>
+              <p className="mt-1 max-w-md text-xs text-slate-500">
                 Try adjusting your filters or search keywords, or add a new service to get started.
               </p>
               <Button
                 type="button"
                 onClick={openCreate}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-linear-to-r from-[#081F5C] to-[#1447a6] px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-95"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-none bg-indigo-600 hover:bg-indigo-700 px-3.5 py-1.5 text-xs font-bold text-white shadow-md cursor-pointer"
               >
-                <Plus className="h-4 w-4" />
-                Add your first service
+                <Plus className="size-4" />
+                <span>Add Your First Service</span>
               </Button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {filtered.map((service) => (
-                <div
+                <article
                   key={service.id}
-                  className="flex w-full flex-col justify-between overflow-hidden rounded-2xl border border-[#081F5C]/10 bg-white shadow-sm ring-1 ring-black/2 transition-all duration-200 hover:border-[#1447a6]/35 hover:shadow-md dark:border-white/10 dark:bg-[#020818]/95 dark:ring-white/5"
+                  className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_3px_8px_rgba(15,23,42,0.12)] transition-all duration-200 hover:border-indigo-500 hover:shadow-[0_6px_16px_rgba(8,31,92,0.18)] hover:-translate-y-0.5 space-y-4"
                 >
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-[15px] font-semibold text-foreground sm:text-[17px]">{service.name}</p>
-                        <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-muted-foreground sm:text-sm">
-                          {service.description}
-                        </p>
+                  {/* Card Header Row */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-base font-black tracking-tight text-slate-900 sm:text-lg">
+                          {service.name}
+                        </h3>
+                        {service.subcategory ? (
+                          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-none">
+                            {service.subcategory}
+                          </span>
+                        ) : null}
                       </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        {categoryBadge(service.category)}
+                        {locationBadge(service.location, serviceLocations)}
+                        {statusBadge(service.status)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="icon-sm"
-                            className="h-9 w-9 shrink-0 rounded-full p-0 text-[#081F5C]/70 opacity-80 hover:bg-[#081F5C]/8 hover:text-[#081F5C] hover:opacity-100 dark:text-blue-200/80 dark:hover:bg-white/10"
+                            size="icon"
+                            className="size-8 text-slate-500 hover:text-slate-900 hover:bg-slate-100/80 rounded-none cursor-pointer"
                             aria-label="More actions"
                           >
-                            <MoreHorizontal className="h-4 w-4" />
+                            <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 text-xs">
-                          <DropdownMenuItem className="gap-2 text-xs" onClick={() => setViewing(service)}>
-                            <Wrench className="h-4 w-4" />
-                            View details
+                        <DropdownMenuContent align="end" className="w-44 rounded-none text-xs">
+                          <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => setViewing(service)}>
+                            <Wrench className="size-4 text-indigo-600" />
+                            View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-xs" onClick={() => openEdit(service)}>
-                            <Pencil className="h-4 w-4" />
-                            Edit
+                          <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => openEdit(service)}>
+                            <Pencil className="size-4 text-slate-600" />
+                            Edit Service
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2 text-xs" onClick={() => toggleServiceStatus(service)}>
-                            <CheckCircle className="h-4 w-4" />
-                            {service.status === 'active' ? 'Disable' : 'Enable'}
+                          <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => toggleServiceStatus(service)}>
+                            <CheckCircle className="size-4 text-emerald-600" />
+                            {service.status === 'active' ? 'Disable Service' : 'Enable Service'}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" className="gap-2 text-xs" onClick={() => setDeleteTarget(service)}>
-                            <Trash2 className="h-4 w-4" />
-                            Delete
+                          <DropdownMenuItem variant="destructive" className="gap-2 text-xs cursor-pointer" onClick={() => setDeleteTarget(service)}>
+                            <Trash2 className="size-4" />
+                            Delete Service
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      {categoryBadge(service.category)}
-                      {locationBadge(service.location, serviceLocations)}
-                      {statusBadge(service.status)}
-                    </div>
-                    {formatLaborPriceRangePhrase(service.laborRatingMin, service.laborRatingMax) ? (
-                      <p className="mt-2 text-[12px] font-medium text-[#081F5C]/90 dark:text-blue-100/95">
-                        Labor price: {formatLaborPriceRangePhrase(service.laborRatingMin, service.laborRatingMax)}
-                      </p>
-                    ) : null}
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 border-t border-dashed border-[#081F5C]/12 bg-slate-50/40 px-4 py-3 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/4 sm:text-sm">
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate font-medium text-foreground">
-                          {variant === 'independent'
-                            ? 'Provider'
-                            : service.technicianIds?.length === 1
-                              ? 'Mechanic/Technician'
-                              : 'Mechanics/Technicians'}
+                  {/* 3-Column Body Grid in Individual Container Boxes */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+                    {/* Column 1: Description Container */}
+                    <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                      <div>
+                        <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5 pb-1">
+                          <FileText className="size-4 text-indigo-600" />
+                          <span>Service Description</span>
                         </span>
-                        <div className="inline-flex shrink-0 items-center gap-2">
+                        <p className="text-slate-700 line-clamp-3 text-xs leading-relaxed pt-0.5">
+                          {service.description || 'No description provided.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Column 2: Labor Price Container */}
+                    <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                      <div>
+                        <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5 pb-1">
+                          <DollarSign className="size-4 text-indigo-600" />
+                          <span>Labor Price Range</span>
+                        </span>
+                        <div className="pt-1">
+                          {formatLaborPriceRangePhrase(service.laborRatingMin, service.laborRatingMax) ? (
+                            <span className="text-sm font-black text-indigo-700">
+                              {formatLaborPriceRangePhrase(service.laborRatingMin, service.laborRatingMax)}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 italic text-xs">Not set</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Column 3: Qualified Staff Container */}
+                    <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                      <div>
+                        <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5 pb-1">
+                          <Users className="size-4 text-indigo-600" />
+                          <span>{variant === 'independent' ? 'Assigned Provider' : 'Qualified Staff'}</span>
+                        </span>
+                        <div className="flex items-center gap-2 pt-1">
                           {variant === 'independent' ? (
                             selfEmployee ? (
-                              <>
-                                <div className="inline-flex gap-1.5">
-                                  <span
-                                    title={selfEmployee.name}
-                                    className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-semibold text-white shadow-sm ring-1 ring-black/5"
-                                  >
-                                    {initialsFromName(selfEmployee.name)}
-                                  </span>
-                                </div>
-                                <span className="max-w-[160px] truncate text-[11px] font-medium text-muted-foreground sm:max-w-[220px] sm:text-xs">
+                              <div className="inline-flex items-center gap-2">
+                                <span className="inline-flex size-6 items-center justify-center rounded-none bg-indigo-600 text-[10px] font-bold text-white">
+                                  {initialsFromName(selfEmployee.name)}
+                                </span>
+                                <span className="truncate text-xs font-semibold text-slate-800">
                                   {selfEmployee.name}
                                 </span>
-                              </>
+                              </div>
                             ) : (
-                              <span className="text-[11px] font-medium text-muted-foreground sm:text-xs">
-                                Sign in again to link this listing to your account.
-                              </span>
+                              <span className="text-xs text-slate-500">Self Account</span>
                             )
                           ) : service.technicianIds?.length ? (
-                            <>
-                              <div className="inline-flex gap-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className="flex -space-x-1 overflow-hidden">
                                 {service.technicianIds.slice(0, 3).map((id) => {
                                   const t = employees.find((x) => x.id === id)
                                   const label = t?.name ?? 'Unknown'
@@ -868,170 +898,220 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                                     <span
                                       key={id}
                                       title={label}
-                                      className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-semibold text-white shadow-sm ring-1 ring-black/5"
+                                      className="inline-flex size-6 items-center justify-center rounded-none bg-indigo-600 text-[10px] font-bold text-white border border-white"
                                     >
                                       {initialsFromName(label)}
                                     </span>
                                   )
                                 })}
                               </div>
-                              {service.technicianIds.length > 3 ? (
-                                <span className="text-[11px] font-medium text-muted-foreground">+{service.technicianIds.length - 3}</span>
-                              ) : null}
-                              <span className="text-[11px] font-medium text-muted-foreground sm:text-xs">{service.technicianIds.length} assigned</span>
-                            </>
+                              <span className="text-xs font-semibold text-slate-700">
+                                {service.technicianIds.length} {service.technicianIds.length === 1 ? 'staff' : 'staff members'}
+                              </span>
+                            </div>
                           ) : (
-                            <span className="text-[11px] font-medium text-muted-foreground sm:text-xs">Unassigned</span>
+                            <span className="text-xs text-slate-400 font-medium">Unassigned</span>
                           )}
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Action Controls Footer */}
+                  <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
                     <Button
                       type="button"
-                      onClick={() => setViewing(service)}
                       variant="outline"
                       size="sm"
-                      className="h-8 shrink-0 rounded-lg border-[#081F5C]/15 bg-white/80 px-3 text-xs text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100 sm:text-sm"
+                      onClick={() => setViewing(service)}
+                      className="rounded-none border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
                     >
-                      View details
+                      <Wrench className="size-3.5 mr-1" />
+                      <span>View Details</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEdit(service)}
+                      className="rounded-none border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                    >
+                      <Pencil className="size-3.5 mr-1" />
+                      <span>Edit</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => toggleServiceStatus(service)}
+                      className={cn(
+                        "rounded-none text-xs font-bold text-white cursor-pointer shadow-2xs",
+                        service.status === 'active'
+                          ? "bg-slate-700 hover:bg-slate-800"
+                          : "bg-indigo-600 hover:bg-indigo-700"
+                      )}
+                    >
+                      <CheckCircle className="size-3.5 mr-1" />
+                      <span>{service.status === 'active' ? 'Disable' : 'Enable'}</span>
                     </Button>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
         </div>
       </div>
 
+      {/* Create / Edit Service Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl" showCloseButton>
-          <DialogHeader className="shrink-0">
-            <DialogTitle>{editingId ? 'Edit service' : 'Add new service'}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl rounded-none border border-slate-200 bg-white p-6 shadow-2xl" showCloseButton>
+          <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
+            <DialogTitle className="text-xl font-black tracking-tight text-slate-900">
+              {editingId ? 'Edit Service Listing' : 'Add New Service Listing'}
+            </DialogTitle>
+            <DialogDescription className="text-xs font-medium text-slate-500 mt-0.5">
               {variant === 'independent'
                 ? 'Changes are saved for your independent provider account.'
-                : 'Changes are saved to the server for your shop.'}
+                : 'Changes are saved to the server for your shop catalog.'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="grid gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="svc-name">Service name</Label>
-              <Input
-                id="svc-name"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder='e.g. "Motorcycle Tune-up"'
-              />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+            <div className="grid gap-4 text-xs sm:text-sm">
               <div className="grid gap-1.5">
-                <Label htmlFor="svc-category">Category</Label>
-                <div className="relative">
-                  <select
-                    id="svc-category"
-                    className={`${selectShell} ${form.category === '__' ? 'text-neutral-500' : 'text-neutral-900 dark:text-neutral-100'}`}
-                    value={form.category}
+                <Label htmlFor="svc-name" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                  Service Name <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="svc-name"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder='e.g. "Motorcycle Tune-up"'
+                  className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="svc-category" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                    Category <span className="text-rose-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <select
+                      id="svc-category"
+                      className={`${selectShell} ${form.category === '__' ? 'text-slate-400' : 'text-slate-900 font-bold'}`}
+                      value={form.category}
                       onChange={(e) => {
                         const nextCategory = e.target.value
                         setForm((f) => ({ ...f, category: nextCategory, otherCategory: nextCategory === 'Others' ? f.otherCategory : '' }))
                       }}
-                  >
-                    <option value="__" disabled hidden>
-                      Select Category
-                    </option>
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
+                    >
+                      <option value="__" disabled hidden>
+                        Select Category
                       </option>
-                    ))}
-                  </select>
-                  <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                      {CATEGORIES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  </div>
                 </div>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="svc-subcategory">Subcategory (optional)</Label>
-                <Input
-                  id="svc-subcategory"
-                  value={form.subcategory}
-                  onChange={(e) => setForm((f) => ({ ...f, subcategory: e.target.value }))}
-                  placeholder='e.g. "Phone", "Motorcycle", "Laundry"'
-                />
-              </div>
-            </div>
-
-            {form.category === 'Others' && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="svc-other-category">Other category</Label>
-                <Input
-                  id="svc-other-category"
-                  value={form.otherCategory}
-                  onChange={(e) => setForm((f) => ({ ...f, otherCategory: e.target.value }))}
-                  placeholder='Type the category (e.g. "Computer", "Plumbing")'
-                />
-              </div>
-            )}
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="svc-desc">Short description</Label>
-              <Textarea
-                id="svc-desc"
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="What is included and what are the limitations?"
-                rows={3}
-              />
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label>Labor price range (PHP) *</Label>
-              <p className="text-xs text-muted-foreground">
-                Shown to customers on Find Services for this listing. Enter the typical labor fee range for this service.
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="grid gap-1">
-                  <Label htmlFor="svc-labor-min" className="text-xs text-muted-foreground">
-                    Minimum
+                <div className="grid gap-1.5">
+                  <Label htmlFor="svc-subcategory" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                    Subcategory (optional)
                   </Label>
                   <Input
-                    id="svc-labor-min"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="e.g. 300"
-                    value={form.laborRatingMin}
-                    onChange={(e) => setForm((f) => ({ ...f, laborRatingMin: sanitizePriceInput(e.target.value) }))}
-                  />
-                </div>
-                <div className="grid gap-1">
-                  <Label htmlFor="svc-labor-max" className="text-xs text-muted-foreground">
-                    Maximum
-                  </Label>
-                  <Input
-                    id="svc-labor-max"
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="e.g. 1500"
-                    value={form.laborRatingMax}
-                    onChange={(e) => setForm((f) => ({ ...f, laborRatingMax: sanitizePriceInput(e.target.value) }))}
+                    id="svc-subcategory"
+                    value={form.subcategory}
+                    onChange={(e) => setForm((f) => ({ ...f, subcategory: e.target.value }))}
+                    placeholder='e.g. "Phone", "Motorcycle", "Laundry"'
+                    className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="grid gap-1.5 sm:col-span-3">
-                <Label htmlFor="svc-location">Service type</Label>
+              {form.category === 'Others' && (
+                <div className="grid gap-1.5">
+                  <Label htmlFor="svc-other-category" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                    Other Category Name <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    id="svc-other-category"
+                    value={form.otherCategory}
+                    onChange={(e) => setForm((f) => ({ ...f, otherCategory: e.target.value }))}
+                    placeholder='Type category (e.g. "Computer", "Plumbing")'
+                    className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  />
+                </div>
+              )}
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="svc-desc" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                  Short Description <span className="text-rose-500">*</span>
+                </Label>
+                <Textarea
+                  id="svc-desc"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  placeholder="Describe what is included in this service, procedure, and scope..."
+                  rows={3}
+                  className="rounded-none border-slate-300 text-xs font-medium shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                />
+              </div>
+
+              <div className="bg-slate-50/80 p-3.5 border border-slate-200 rounded-none space-y-2">
+                <Label className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center justify-between">
+                  <span>Labor Price Range (PHP) <span className="text-rose-500">*</span></span>
+                </Label>
+                <p className="text-[11px] text-slate-500 leading-snug">
+                  Shown to customers on Find Services. Enter the typical labor fee range for this service.
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-1">
+                  <div className="grid gap-1">
+                    <Label htmlFor="svc-labor-min" className="text-[11px] font-bold uppercase text-slate-600">
+                      Minimum Fee
+                    </Label>
+                    <Input
+                      id="svc-labor-min"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 300"
+                      value={form.laborRatingMin}
+                      onChange={(e) => setForm((f) => ({ ...f, laborRatingMin: sanitizePriceInput(e.target.value) }))}
+                      className="rounded-none border-slate-300 bg-white text-xs font-bold shadow-2xs focus:border-indigo-600"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <Label htmlFor="svc-labor-max" className="text-[11px] font-bold uppercase text-slate-600">
+                      Maximum Fee
+                    </Label>
+                    <Input
+                      id="svc-labor-max"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 1500"
+                      value={form.laborRatingMax}
+                      onChange={(e) => setForm((f) => ({ ...f, laborRatingMax: sanitizePriceInput(e.target.value) }))}
+                      className="rounded-none border-slate-300 bg-white text-xs font-bold shadow-2xs focus:border-indigo-600"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="svc-location" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                  Service Location Type <span className="text-rose-500">*</span>
+                </Label>
                 <div className="relative">
                   <select
                     id="svc-location"
-                    className={`${selectShell} ${form.location === '__' ? 'text-neutral-500' : 'text-neutral-900 dark:text-neutral-100'}`}
+                    className={`${selectShell} ${form.location === '__' ? 'text-slate-400' : 'text-slate-900 font-bold'}`}
                     value={form.location}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
                   >
                     <option value="__" disabled hidden>
-                      Select type of service
+                      Select Type of Service
                     </option>
                     {serviceLocations.map((x) => (
                       <option key={x.value} value={x.value}>
@@ -1039,199 +1119,126 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                       </option>
                     ))}
                   </select>
-                  <Home className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                  <Home className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
               </div>
-            </div>
 
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between gap-3">
+              <div className="bg-slate-50/80 p-3.5 border border-slate-200 rounded-none flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Active</p>
-                  <p className="text-xs text-muted-foreground">When inactive, customers cannot book this service.</p>
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-slate-900">Active Service Listing</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">When disabled/inactive, customers cannot book this service.</p>
                 </div>
                 <Switch checked={form.status} onCheckedChange={(checked) => setForm((f) => ({ ...f, status: checked }))} />
               </div>
-            </div>
 
-            {variant !== 'independent' ? (
-            <div className="grid gap-2">
-              <div>
-                <p className="text-sm font-medium text-foreground">Qualified mechanics / technicians</p>
-                <p className="text-xs text-muted-foreground">
-                  Choose from mechanics who registered under your shop, or manual staff entries. Inactive roster members cannot be newly assigned.
-                </p>
-              </div>
-              <div className="w-full min-w-0">
-              {employees.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 p-4 text-sm text-muted-foreground dark:border-white/10 dark:bg-white/4">
-                  No staff listed yet. Technicians who sign up and select your shop appear here automatically. You can still create services without assignments.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 gap-3">
-                  {employees.map((t) => {
-                    const checked = form.technicianIds.includes(t.id)
-                    const checkboxDisabled = t.assignDisabled && !checked
-                    const onNavy = checked
-                    return (
-                      <label
-                        key={`${t.source}-${t.id}`}
-                        className={`flex min-w-0 w-full cursor-pointer items-stretch gap-3 rounded-2xl border border-transparent p-3 transition-all duration-200 sm:p-3.5 ${checkboxDisabled ? 'opacity-75' : ''} ${
-                          onNavy
-                            ? 'text-white shadow-[0_8px_24px_rgba(8,31,92,0.38)] ring-2 ring-white/25 hover:brightness-[1.03]'
-                            : 'bg-white/95 text-foreground shadow-[0_3px_10px_rgba(15,23,42,0.1)] hover:shadow-[0_8px_20px_rgba(15,23,42,0.12)] dark:bg-[#04133d]/40 dark:shadow-[0_3px_12px_rgba(0,0,0,0.25)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]'
-                        }`}
-                        style={onNavy ? { backgroundImage: TECH_CARD_NAVY_GRADIENT } : undefined}
-                      >
-                        <div className="flex shrink-0 items-start pt-0.5">
-                          <Checkbox
-                            checked={checked}
-                            disabled={checkboxDisabled}
-                            onCheckedChange={(next) => {
-                              if (t.assignDisabled && next) return
-                              setForm((f) => {
-                                const set = new Set(f.technicianIds)
-                                if (next) set.add(t.id)
-                                else set.delete(t.id)
-                                return { ...f, technicianIds: [...set] }
-                              })
-                            }}
-                            className="mt-1"
-                          />
-                        </div>
-                        <div className="flex min-w-0 flex-1 gap-3">
-                          <div
-                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-inner ring-1 ${
-                              onNavy
-                                ? 'bg-white/20 text-white ring-white/35'
-                                : 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white ring-white/20'
-                            }`}
-                          >
-                            {initialsFromName(t.name)}
-                          </div>
-                          <div className="min-w-0 flex-1 space-y-2">
-                            <div className="flex flex-wrap items-center gap-2 gap-y-1">
-                              <span
-                                className={`text-base font-semibold leading-tight ${onNavy ? 'text-white' : 'text-foreground'}`}
-                              >
-                                {t.name}
-                              </span>
-                              {t.source === 'self' ? (
-                                <Badge
-                                  variant="outline"
-                                  className={
-                                    onNavy
-                                      ? 'border-white/40 bg-white/15 text-[10px] font-semibold tracking-wide text-white'
-                                      : 'border-[#1447a6]/35 bg-[#081F5C]/8 text-[10px] font-semibold text-[#081F5C] dark:border-[#1447a6]/45 dark:bg-white/8 dark:text-blue-100'
-                                  }
-                                >
-                                  You (provider)
-                                </Badge>
-                              ) : t.source === 'registered' ? (
-                                <Badge
-                                  variant="outline"
-                                  className={
-                                    onNavy
-                                      ? 'border-white/40 bg-white/15 text-[10px] font-semibold uppercase tracking-wide text-white'
-                                      : 'border-[#1447a6]/35 bg-[#081F5C]/8 text-[10px] font-semibold uppercase tracking-wide text-[#081F5C] dark:border-[#1447a6]/45 dark:bg-white/8 dark:text-blue-100'
-                                  }
-                                >
-                                  Registered
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className={
-                                    onNavy
-                                      ? 'border-white/35 bg-white/12 text-[10px] font-semibold text-white/95'
-                                      : 'border-slate-400/35 bg-slate-100/90 text-[10px] font-semibold text-slate-700 dark:border-white/15 dark:bg-white/8 dark:text-slate-200'
-                                  }
-                                >
-                                  Manual entry
-                                </Badge>
+              {variant !== 'independent' ? (
+                <div className="space-y-2 pt-1">
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-wider text-slate-900">Qualified Mechanics / Technicians</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Assign mechanics who registered under your shop or manual staff entries.
+                    </p>
+                  </div>
+                  <div className="w-full min-w-0">
+                    {employees.length === 0 ? (
+                      <p className="rounded-none border border-dashed border-slate-300 bg-slate-50 p-4 text-xs font-medium text-slate-500">
+                        No staff listed yet. Technicians who sign up and select your shop appear here automatically.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-2.5">
+                        {employees.map((t) => {
+                          const checked = form.technicianIds.includes(t.id)
+                          const checkboxDisabled = t.assignDisabled && !checked
+                          const onNavy = checked
+                          return (
+                            <label
+                              key={`${t.source}-${t.id}`}
+                              className={cn(
+                                "flex min-w-0 w-full cursor-pointer items-stretch gap-3 rounded-none border p-3 transition-all duration-200",
+                                checkboxDisabled && "opacity-60 cursor-not-allowed",
+                                onNavy
+                                  ? "bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 border-indigo-700 text-white shadow-md"
+                                  : "bg-white border-slate-200 text-slate-900 hover:border-indigo-300 shadow-2xs"
                               )}
-                              {t.source === 'registered' && t.rosterStatus
-                                ? rosterStatusPickerBadge(t.rosterStatus, onNavy)
-                                : null}
-                            </div>
-
-                            <p className={`text-xs font-medium ${onNavy ? 'text-white/95' : 'text-[#081F5C] dark:text-blue-200/95'}`}>
-                              <Wrench
-                                className={`mr-1 inline-block h-3.5 w-3.5 -translate-y-px align-middle ${onNavy ? 'text-white/85' : 'opacity-80'}`}
-                                aria-hidden
-                              />
-                              {t.jobTitle || 'Technician'}
-                            </p>
-
-                            {t.source === 'registered' && (t.email || t.phone) ? (
-                              <div className="flex flex-col gap-1">
-                                {t.email ? (
-                                  <span
-                                    className={`inline-flex min-w-0 items-center gap-1.5 text-xs ${onNavy ? 'text-white/85' : 'text-muted-foreground'}`}
-                                  >
-                                    <Mail
-                                      className={`h-3.5 w-3.5 shrink-0 ${onNavy ? 'text-white/70' : 'text-[#081F5C]/60 dark:text-blue-300/70'}`}
-                                      aria-hidden
-                                    />
-                                    <span className="truncate" title={t.email}>
-                                      {t.email}
-                                    </span>
-                                  </span>
-                                ) : null}
-                                {t.phone ? (
-                                  <span
-                                    className={`inline-flex min-w-0 items-center gap-1.5 text-xs ${onNavy ? 'text-white/85' : 'text-muted-foreground'}`}
-                                  >
-                                    <Phone
-                                      className={`h-3.5 w-3.5 shrink-0 ${onNavy ? 'text-white/70' : 'text-[#081F5C]/60 dark:text-blue-300/70'}`}
-                                      aria-hidden
-                                    />
-                                    <span className="tabular-nums">{t.phone}</span>
-                                  </span>
-                                ) : null}
+                            >
+                              <div className="flex shrink-0 items-start pt-0.5">
+                                <Checkbox
+                                  checked={checked}
+                                  disabled={checkboxDisabled}
+                                  onCheckedChange={(next) => {
+                                    if (t.assignDisabled && next) return
+                                    setForm((f) => {
+                                      const set = new Set(f.technicianIds)
+                                      if (next) set.add(t.id)
+                                      else set.delete(t.id)
+                                      return { ...f, technicianIds: [...set] }
+                                    })
+                                  }}
+                                  className="mt-1 rounded-none border-slate-400"
+                                />
                               </div>
-                            ) : null}
+                              <div className="flex min-w-0 flex-1 gap-3">
+                                <div
+                                  className={cn(
+                                    "flex size-10 shrink-0 items-center justify-center rounded-none text-xs font-black ring-1",
+                                    onNavy
+                                      ? "bg-indigo-600 text-white ring-indigo-400"
+                                      : "bg-indigo-50 text-indigo-700 ring-indigo-200"
+                                  )}
+                                >
+                                  {initialsFromName(t.name)}
+                                </div>
+                                <div className="min-w-0 flex-1 space-y-1 text-xs">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className={cn("font-bold text-sm", onNavy ? "text-white" : "text-slate-900")}>
+                                      {t.name}
+                                    </span>
+                                    {t.source === 'self' ? (
+                                      <Badge variant="outline" className="rounded-none border-indigo-200 bg-indigo-50 text-[10px] font-bold text-indigo-900">
+                                        You (provider)
+                                      </Badge>
+                                    ) : t.source === 'registered' ? (
+                                      <Badge variant="outline" className="rounded-none border-emerald-200 bg-emerald-50 text-[10px] font-bold text-emerald-900 uppercase">
+                                        Registered
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="rounded-none border-slate-200 bg-slate-100 text-[10px] font-bold text-slate-700">
+                                        Manual entry
+                                      </Badge>
+                                    )}
+                                    {t.source === 'registered' && t.rosterStatus ? rosterStatusPickerBadge(t.rosterStatus, onNavy) : null}
+                                  </div>
 
-                            {t.technicalSkillsText ? (
-                              <p className={`text-xs leading-snug ${onNavy ? 'text-white/80' : 'text-muted-foreground'}`}>
-                                <span className={`font-medium ${onNavy ? 'text-white' : 'text-foreground/85'}`}>
-                                  Technical skills:
-                                </span>{' '}
-                                {t.technicalSkillsText}
-                              </p>
-                            ) : t.source === 'manual' && (t.skills || []).length ? (
-                              <p className={`text-xs leading-snug ${onNavy ? 'text-white/80' : 'text-muted-foreground'}`}>
-                                <span className={`font-medium ${onNavy ? 'text-white' : 'text-foreground/85'}`}>Skills:</span>{' '}
-                                {(t.skills || []).join(' · ')}
-                              </p>
-                            ) : null}
+                                  <p className={cn("font-medium", onNavy ? "text-indigo-200" : "text-indigo-600")}>
+                                    <Wrench className="mr-1 inline-block size-3.5 -translate-y-px" aria-hidden />
+                                    {t.jobTitle || 'Technician'}
+                                  </p>
 
-                            {t.assignDisabled ? (
-                              <p
-                                className={
-                                  onNavy
-                                    ? 'rounded-lg border border-amber-200/35 bg-amber-950/35 px-2 py-1.5 text-[11px] leading-snug text-amber-50'
-                                    : 'rounded-lg bg-amber-500/10 px-2 py-1.5 text-[11px] leading-snug text-amber-900 dark:bg-amber-500/15 dark:text-amber-200'
-                                }
-                              >
-                                Inactive on roster — cannot be newly assigned. Uncheck to remove from this service, or re-activate in Manage Employee.
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-                      </label>
-                    )
-                  })}
+                                  {t.technicalSkillsText ? (
+                                    <p className={cn("text-[11px] leading-snug", onNavy ? "text-slate-300" : "text-slate-600")}>
+                                      <span className="font-bold">Skills:</span> {t.technicalSkillsText}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              </div>
-            </div>
-            ) : null}
+              ) : null}
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 sm:gap-3">
-            <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
+          <DialogFooter className="shrink-0 gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFormOpen(false)}
+              className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer"
+            >
               Cancel
             </Button>
             <Button
@@ -1248,73 +1255,71 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                 (form.category === 'Others' && !form.otherCategory.trim()) ||
                 !laborPriceInputsValid(form.laborRatingMin, form.laborRatingMax)
               }
-              className="bg-linear-to-r from-[#081F5C] to-[#1447a6] hover:opacity-95"
+              className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md shadow-indigo-900/20 cursor-pointer disabled:opacity-50"
             >
-              {saving ? 'Saving…' : editingId ? 'Save changes' : 'Create service'}
+              {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Service'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* View Service Details Dialog */}
       <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
-        <DialogContent className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl" showCloseButton>
+        <DialogContent className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl rounded-none border border-slate-200 bg-white p-6 shadow-2xl" showCloseButton>
           {viewing ? (
             <>
-              <DialogHeader className="shrink-0">
-                <DialogTitle>{viewing.name}</DialogTitle>
-                <DialogDescription>
-                  {viewing.category}
-                  {viewing.subcategory ? ` • ${viewing.subcategory}` : ''}
+              <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
+                <DialogTitle className="text-xl font-black text-slate-900">{viewing.name}</DialogTitle>
+                <DialogDescription className="text-xs font-semibold text-indigo-700 mt-0.5">
+                  Category: {viewing.category}
+                  {viewing.subcategory ? ` • Subcategory: ${viewing.subcategory}` : ''}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
-                <div className="grid gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {categoryBadge(viewing.category)}
-                    {locationBadge(viewing.location, serviceLocations)}
-                    {statusBadge(viewing.status)}
-                    <Badge
-                      variant="outline"
-                      className="border-[#081F5C]/15 bg-white/90 text-[11px] font-medium text-[#081F5C] dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
-                    >
-                      {viewing.bookings ?? 0} bookings
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="border-[#081F5C]/15 bg-white/90 text-[11px] font-medium text-[#081F5C] dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
-                    >
-                      {typeof viewing.rating === 'number' && viewing.rating > 0 ? `${viewing.rating.toFixed(1)} rating` : 'No ratings'}
-                    </Badge>
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 space-y-4 text-xs sm:text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  {categoryBadge(viewing.category)}
+                  {locationBadge(viewing.location, serviceLocations)}
+                  {statusBadge(viewing.status)}
+                  <Badge
+                    variant="outline"
+                    className="rounded-none border-indigo-200 bg-indigo-50 text-[11px] font-bold text-indigo-900"
+                  >
+                    {viewing.bookings ?? 0} Bookings
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="rounded-none border-amber-200 bg-amber-50 text-[11px] font-bold text-amber-900"
+                  >
+                    {typeof viewing.rating === 'number' && viewing.rating > 0 ? `★ ${viewing.rating.toFixed(1)} Rating` : 'No ratings yet'}
+                  </Badge>
+                </div>
+
+                <div className="bg-slate-50/80 p-4 border border-slate-200 rounded-none space-y-3">
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-wider text-slate-700">Description</p>
+                    <p className="mt-1 text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{viewing.description}</p>
                   </div>
+                  {formatLaborPriceRangePhrase(viewing.laborRatingMin, viewing.laborRatingMax) ? (
+                    <div className="pt-2 border-t border-slate-200">
+                      <p className="text-xs font-extrabold uppercase tracking-wider text-slate-700">Labor Price Range</p>
+                      <p className="mt-1 text-sm font-black text-indigo-700">
+                        {formatLaborPriceRangePhrase(viewing.laborRatingMin, viewing.laborRatingMax)}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
 
-                  <Card className="rounded-2xl border border-[#081F5C]/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
-                    <CardContent className="space-y-3 p-4 sm:p-5">
-                      <div className="rounded-xl border border-[#081F5C]/10 bg-slate-50/60 p-3 dark:border-white/10 dark:bg-white/4">
-                        <p className="text-xs font-medium text-muted-foreground">Description</p>
-                        <p className="mt-1 text-sm text-foreground">{viewing.description}</p>
-                      </div>
-                      {formatLaborPriceRangePhrase(viewing.laborRatingMin, viewing.laborRatingMax) ? (
-                        <div className="rounded-xl border border-[#081F5C]/10 bg-slate-50/60 p-3 dark:border-white/10 dark:bg-white/4">
-                          <p className="text-xs font-medium text-muted-foreground">Labor price range</p>
-                          <p className="mt-1 text-sm font-semibold text-foreground">
-                            {formatLaborPriceRangePhrase(viewing.laborRatingMin, viewing.laborRatingMax)}
-                          </p>
-                        </div>
-                      ) : null}
-                    </CardContent>
-                  </Card>
-
-                  <div className="grid gap-2">
-                    <p className="text-sm font-medium text-foreground">
-                      {variant === 'independent' ? 'Provider' : 'Assigned technicians'}
-                    </p>
-                    {variant === 'independent' ? (
-                      <div className="rounded-xl border border-[#081F5C]/10 bg-slate-50/60 p-4 text-sm text-foreground dark:border-white/10 dark:bg-white/4">
-                        You perform this service as the On-call Mechanic/Technician for this listing.
-                      </div>
-                    ) : (
-                      <div className="grid gap-3 sm:grid-cols-1">
+                <div className="space-y-2">
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                    {variant === 'independent' ? 'Assigned Provider' : 'Assigned Mechanics / Technicians'}
+                  </p>
+                  {variant === 'independent' ? (
+                    <div className="rounded-none border border-slate-200 bg-slate-50/80 p-4 text-xs font-medium text-slate-700">
+                      You perform this service as the On-call Mechanic/Technician for this listing.
+                    </div>
+                  ) : (
+                    <div className="grid gap-2.5">
                       {(viewing.technicianIds ?? []).length ? (
                         (viewing.technicianIds ?? []).map((id) => {
                           const t = employees.find((x) => x.id === id)
@@ -1322,81 +1327,61 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                           return (
                             <div
                               key={id}
-                              className="flex gap-3 rounded-2xl bg-white/95 p-3 shadow-[0_3px_10px_rgba(15,23,42,0.08)] dark:bg-[#04133d]/50 dark:shadow-none dark:ring-1 dark:ring-white/8"
+                              className="flex items-center gap-3 rounded-none bg-white p-3.5 border border-slate-200 shadow-2xs"
                             >
-                              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black">
                                 {initialsFromName(name)}
                               </div>
-                              <div className="min-w-0 flex-1 space-y-1.5">
+                              <div className="min-w-0 flex-1 space-y-1 text-xs">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <p className="truncate text-sm font-semibold text-foreground">{name}</p>
+                                  <p className="font-bold text-slate-900">{name}</p>
                                   {t?.source === 'self' ? (
-                                    <Badge variant="outline" className="text-[10px] font-semibold text-[#081F5C] dark:text-blue-100">
+                                    <Badge variant="outline" className="rounded-none border-indigo-200 bg-indigo-50 text-[10px] font-bold text-indigo-900">
                                       You (provider)
                                     </Badge>
                                   ) : null}
                                   {t?.source === 'registered' ? (
-                                    <Badge variant="outline" className="text-[10px] font-semibold text-[#081F5C] dark:text-blue-100">
+                                    <Badge variant="outline" className="rounded-none border-emerald-200 bg-emerald-50 text-[10px] font-bold text-emerald-900 uppercase">
                                       Registered
                                     </Badge>
                                   ) : null}
                                   {t?.source === 'manual' ? (
-                                    <Badge variant="outline" className="text-[10px] text-slate-600 dark:text-slate-300">
+                                    <Badge variant="outline" className="rounded-none border-slate-200 bg-slate-100 text-[10px] font-bold text-slate-700">
                                       Manual
                                     </Badge>
                                   ) : null}
                                   {t?.source === 'registered' && t.rosterStatus ? rosterStatusPickerBadge(t.rosterStatus) : null}
                                 </div>
-                                {t?.jobTitle ? (
-                                  <p className="text-xs font-medium text-[#081F5C] dark:text-blue-200/90">{t.jobTitle}</p>
-                                ) : null}
-                                {t?.email ? (
-                                  <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                                    <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                    {t.email}
+                                {t?.jobTitle && <p className="text-indigo-600 font-medium">{t.jobTitle}</p>}
+                                {t?.email && (
+                                  <p className="flex items-center gap-1 text-slate-600 font-mono">
+                                    <Mail className="size-3 text-slate-400" />
+                                    <span>{t.email}</span>
                                   </p>
-                                ) : null}
-                                {t?.phone ? (
-                                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                    {t.phone}
-                                  </p>
-                                ) : null}
-                                {t?.technicalSkillsText ? (
-                                  <p className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-foreground/85">Technical:</span> {t.technicalSkillsText}
-                                  </p>
-                                ) : (t?.skills || []).length ? (
-                                  <p className="text-xs text-muted-foreground">
-                                    <span className="font-medium text-foreground/85">Skills:</span> {(t.skills || []).join(' · ')}
-                                  </p>
-                                ) : !t ? (
-                                  <p className="text-xs text-amber-700 dark:text-amber-300">Not in current staff list — refresh the page after team changes.</p>
-                                ) : null}
+                                )}
                               </div>
                             </div>
                           )
                         })
                       ) : (
-                        <div className="rounded-xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 p-4 text-sm text-muted-foreground dark:border-white/10 dark:bg-white/4">
+                        <div className="rounded-none border border-dashed border-slate-300 bg-slate-50 p-4 text-xs font-medium text-slate-500">
                           No technicians assigned yet.
                         </div>
                       )}
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <DialogFooter className="shrink-0 gap-2 sm:gap-3">
-                <Button type="button" variant="outline" onClick={() => setViewing(null)}>
+              <DialogFooter className="shrink-0 gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
+                <Button type="button" variant="outline" onClick={() => setViewing(null)} className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer">
                   Close
                 </Button>
-                <Button type="button" variant="outline" onClick={() => viewing && toggleServiceStatus(viewing)}>
-                  {viewing.status === 'active' ? 'Disable' : 'Enable'}
+                <Button type="button" variant="outline" onClick={() => viewing && toggleServiceStatus(viewing)} className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer">
+                  {viewing.status === 'active' ? 'Disable Service' : 'Enable Service'}
                 </Button>
-                <Button type="button" onClick={() => viewing && openEdit(viewing)} className="bg-linear-to-r from-[#081F5C] to-[#1447a6] hover:opacity-95">
-                  Edit
+                <Button type="button" onClick={() => viewing && openEdit(viewing)} className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md cursor-pointer">
+                  Edit Service
                 </Button>
               </DialogFooter>
             </>
@@ -1404,18 +1389,19 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
         </DialogContent>
       </Dialog>
 
+      {/* Delete Confirmation AlertDialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete service?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteTarget ? `${deleteTarget.name} will be removed from your catalog.` : null}
+        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-md">
+          <AlertDialogHeader className="border-b border-slate-100 pb-3">
+            <AlertDialogTitle className="text-lg font-black text-slate-900">Delete Service Listing?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-slate-600 mt-1">
+              {deleteTarget ? `Are you sure you want to delete "${deleteTarget.name}"? It will be permanently removed from your catalog.` : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete}>
-              Delete
+          <AlertDialogFooter className="pt-3 gap-2">
+            <AlertDialogCancel className="rounded-none border-slate-300 text-xs font-bold cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDelete} className="rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 cursor-pointer">
+              Yes, Delete Service
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

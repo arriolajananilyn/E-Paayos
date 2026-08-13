@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from '../../../components/ui/alert-dialog'
 import { ServiceFeeCalculateDialog } from '../../../components/bookings/ServiceFeeCalculateDialog.jsx'
+import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import {
@@ -28,33 +29,47 @@ import {
 import { TooltipProvider } from '../../../components/ui/tooltip'
 import {
   Bell,
+  Bike,
   Briefcase,
+  Calendar,
   CalendarCheck,
   CalendarClock,
   CheckCircle,
+  CheckCircle2,
   ClipboardList,
   Clock,
+  DollarSign,
   History,
+  Home,
+  Image as ImageIcon,
   LayoutDashboard,
   Loader2,
   LogOut,
+  MapPin,
   MessageSquare,
+  Phone,
   RefreshCw,
   Search,
   Settings,
   SlidersHorizontal,
+  Smartphone,
   Star,
+  Store,
+  Tag,
+  User,
+  WashingMachine,
   Wrench,
+  X,
 } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
 import {
   API_URL,
-  MechanicBookingCard,
   MechanicMobileNav,
   StatGradientCard,
   authHeaders,
   mapBookingFromApi,
   workingFinishButtonLabel,
+  completionOutcomeLabel,
   preferredDateSortValue,
   selectShell,
 } from './mechanicBookingShared.jsx'
@@ -74,7 +89,164 @@ const ASSIGNED_REQUEST_META = {
 let mechanicTechnicianSidebarOpenState = false
 
 const sidebarMenuButtonClass =
-  'h-9 gap-3 rounded-lg px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
+  'h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
+
+function cn(...classes) {
+  return classes.filter(Boolean).join(' ')
+}
+
+function formatPhp(amount) {
+  const n = Number(amount || 0)
+  try {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(n)
+  } catch {
+    return `₱${Math.round(n).toLocaleString('en-PH')}`
+  }
+}
+
+function formatPreferredDate(value) {
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatTime12h(hm) {
+  const s = String(hm ?? '').trim()
+  if (!/^([01]?\d|2[0-3]):([0-5]\d)$/.test(s)) return s || '—'
+  const [hStr, mStr] = s.split(':')
+  let h = parseInt(hStr, 10)
+  const m = mStr
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12
+  if (h === 0) h = 12
+  return `${h}:${m} ${ampm}`
+}
+
+function formatSubmittedLine(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return `${date} · ${time}`
+}
+
+function categoryIcon(category) {
+  const normalized = String(category ?? '').toLowerCase()
+  if (normalized === 'vehicle') return Bike
+  if (normalized === 'gadget') return Smartphone
+  if (normalized === 'appliance') return WashingMachine
+  return Wrench
+}
+
+function categoryBadgeClass(category) {
+  const normalized = String(category ?? '').toLowerCase()
+  if (normalized === 'vehicle') return 'bg-gradient-to-r from-sky-600 to-blue-700 text-white'
+  if (normalized === 'gadget') return 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white'
+  if (normalized === 'appliance') return 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white'
+  if (normalized === 'others') return 'bg-gradient-to-r from-amber-500 to-orange-500 text-white'
+  return 'bg-gradient-to-r from-slate-600 to-slate-700 text-white'
+}
+
+function bookingStatusBadge(status) {
+  const s = String(status || '').toLowerCase()
+  if (s === 'completed') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+        <span>Completed</span>
+      </span>
+    )
+  }
+  if (s === 'cancelled' || s === 'canceled') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+        <X className="size-4 text-rose-600 shrink-0" />
+        <span>Cancelled</span>
+      </span>
+    )
+  }
+  if (s === 'confirmed') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-sky-100 text-sky-800 border border-sky-300 shadow-2xs">
+        <span className="size-2 rounded-full bg-sky-500 animate-pulse" />
+        <span>Confirmed</span>
+      </span>
+    )
+  }
+  if (s === 'working') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs">
+        <span className="size-2 rounded-full bg-purple-500 animate-pulse" />
+        <span>Working</span>
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
+      <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+      <span>Pending</span>
+    </span>
+  )
+}
+
+function serviceModeBadge(mode) {
+  const label = mode === 'home' ? 'Home Service' : 'In-Shop'
+  return (
+    <Badge variant="outline" className="rounded-none border-indigo-200 bg-indigo-50 text-[11px] font-bold text-indigo-900">
+      {label}
+    </Badge>
+  )
+}
+
+function resolveIssuePhotoSrc(src) {
+  const value = String(src ?? '').trim()
+  if (!value) return ''
+  if (/^(data:|blob:)/i.test(value)) return value
+  if (value.startsWith('/uploads/')) return `${API_URL}${value}`
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const parsed = new URL(value)
+      const host = (parsed.hostname || '').toLowerCase()
+      if (host === 'localhost' || host === '127.0.0.1') {
+        const api = new URL(API_URL)
+        parsed.protocol = api.protocol
+        parsed.host = api.host
+        return parsed.toString()
+      }
+    } catch {
+      // ignore
+    }
+    return value
+  }
+  return value
+}
+
+function IssuePhotoThumb({ src, label, size = 'sm' }) {
+  const [failed, setFailed] = useState(false)
+  const resolvedSrc = resolveIssuePhotoSrc(src)
+  const boxClass = size === 'lg' ? 'h-20 w-20' : 'h-14 w-14'
+
+  return (
+    <a href={resolvedSrc || '#'} target="_blank" rel="noopener noreferrer" className="group block" title={label}>
+      <div className={cn("relative overflow-hidden rounded-none border border-indigo-200 bg-slate-100", boxClass)}>
+        {!failed ? (
+          <img
+            src={resolvedSrc}
+            alt={label}
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center px-1 text-center text-[10px] font-medium text-slate-500">
+            No preview
+          </div>
+        )}
+      </div>
+    </a>
+  )
+}
 
 function MechanicTechnicianAssignedRequest() {
   const [user, setUser] = useState(null)
@@ -89,7 +261,7 @@ function MechanicTechnicianAssignedRequest() {
   const [confirmWorkingBooking, setConfirmWorkingBooking] = useState(null)
   const [feeBooking, setFeeBooking] = useState(null)
   const [feeDialogError, setFeeDialogError] = useState('')
-  /** Default All so jobs stay visible after Confirmed → Working (confirmed-only filter used to hide them). */
+  /** Default All so jobs stay visible after Confirmed → Working */
   const [statusFilter, setStatusFilter] = useState('')
   const [sortBy, setSortBy] = useState('schedule')
   const [q, setQ] = useState('')
@@ -374,18 +546,6 @@ function MechanicTechnicianAssignedRequest() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        tooltip="Reviews & Ratings"
-                        onClick={() => {
-                          window.location.hash = '#/mechanic/technician/reviews-ratings'
-                        }}
-                        className={sidebarMenuButtonClass}
-                      >
-                        <Star className="size-[18px] opacity-90" />
-                        <span className="whitespace-nowrap">Reviews & Ratings</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
                         tooltip="Work Info"
                         onClick={() => {
                           window.location.hash = '#/mechanic/technician/work-info'
@@ -404,7 +564,7 @@ function MechanicTechnicianAssignedRequest() {
             <SidebarSeparator className="mx-0 bg-sidebar-border/80" />
 
             <SidebarFooter className="gap-2 px-3 py-2 group-data-[collapsible=icon]:items-center">
-              <div className="flex items-center gap-2 overflow-hidden rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
+              <div className="flex items-center gap-2 overflow-hidden rounded-sm border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#081F5C]">
                   {(user.fullName || user.email || 'M').charAt(0).toUpperCase()}
                 </div>
@@ -432,7 +592,7 @@ function MechanicTechnicianAssignedRequest() {
                   onClick={() => {
                     window.location.hash = '#/mechanic/technician/notification'
                   }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   <Bell className="h-5 w-5" />
                 </button>
@@ -454,7 +614,7 @@ function MechanicTechnicianAssignedRequest() {
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-md border border-border/80 bg-background shadow-lg">
+                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
                       <button
                         type="button"
                         onClick={() => {
@@ -488,7 +648,7 @@ function MechanicTechnicianAssignedRequest() {
             >
               <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden pr-2 md:pr-4">
                 {listError ? (
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                     <span>{listError}</span>
                     <Button type="button" variant="outline" size="sm" onClick={() => void loadBookings()}>
                       Retry
@@ -496,7 +656,7 @@ function MechanicTechnicianAssignedRequest() {
                   </div>
                 ) : null}
                 {actionError ? (
-                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-2 text-sm text-amber-950 dark:text-amber-100">
+                  <div className="rounded-sm border border-amber-500/30 bg-amber-500/5 px-4 py-2 text-sm text-amber-950 dark:text-amber-100">
                     {actionError}
                   </div>
                 ) : null}
@@ -562,7 +722,7 @@ function MechanicTechnicianAssignedRequest() {
 
                   <div className="relative h-9 w-full min-w-0 shrink-0 lg:w-[320px]">
                     <Input
-                      className="h-9 w-full rounded-lg border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+                      className="h-9 w-full rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
                       placeholder="Search name, phone, service, shop, notes…"
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
@@ -571,7 +731,7 @@ function MechanicTechnicianAssignedRequest() {
                     <Button
                       type="button"
                       size="icon-sm"
-                      className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-md bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
+                      className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
                       aria-hidden
                       tabIndex={-1}
                     >
@@ -600,7 +760,7 @@ function MechanicTechnicianAssignedRequest() {
                       size="sm"
                       disabled={loading}
                       onClick={() => void loadBookings()}
-                      className="h-9 shrink-0 gap-1.5 rounded-lg border-[#081F5C]/15 bg-white/80 px-3 text-sm text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
+                      className="h-9 shrink-0 gap-1.5 rounded-sm border-[#081F5C]/15 bg-white/80 px-3 text-sm text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
                       Refresh
@@ -608,13 +768,13 @@ function MechanicTechnicianAssignedRequest() {
                   </div>
 
                   {loading ? (
-                    <div className="flex min-h-[160px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
+                    <div className="flex min-h-[160px] flex-col items-center justify-center rounded-sm border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
                       <Loader2 className="mb-2 h-8 w-8 animate-spin text-[#081F5C]/70" aria-hidden />
                       <p className="text-base font-medium text-foreground">Loading bookings…</p>
                       <p className="mt-1 max-w-md text-sm text-muted-foreground">Fetching requests from the server.</p>
                     </div>
                   ) : filtered.length === 0 ? (
-                    <div className="flex min-h-[140px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
+                    <div className="flex min-h-[140px] flex-col items-center justify-center rounded-sm border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
                       <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/45" aria-hidden />
                       <p className="mt-3 text-base font-medium text-foreground">No bookings found</p>
                       <p className="mt-1 max-w-md text-sm text-muted-foreground">
@@ -624,110 +784,353 @@ function MechanicTechnicianAssignedRequest() {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       {filtered.map((b) => {
+                        const CategoryIcon = b.shopService ? categoryIcon(b.shopService.category) : categoryIcon(b.serviceCategory)
                         const busy = updatingId === b.id
+                        const hasPin =
+                          typeof b.serviceLatitude === 'number' &&
+                          Number.isFinite(b.serviceLatitude) &&
+                          typeof b.serviceLongitude === 'number' &&
+                          Number.isFinite(b.serviceLongitude)
+
                         return (
-                          <MechanicBookingCard
+                          <article
                             key={b.id}
-                            b={b}
-                            footer={
-                              <>
-                                <Button
+                            className="bg-white border border-slate-200 shadow-[0_3px_8px_rgba(15,23,42,0.12)] transition-all duration-200 hover:border-indigo-500 hover:shadow-[0_6px_16px_rgba(8,31,92,0.18)] hover:-translate-y-0.5 p-4 sm:p-5 space-y-4 rounded-none"
+                          >
+                            {/* Top Bar Header */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
+                              <div className="flex items-center gap-3">
+                                <div className="flex size-9 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
+                                  <CategoryIcon className="size-5" />
+                                </div>
+                                <div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-base font-black text-slate-900">
+                                      {b.shopService?.name || b.serviceName || 'Service Request'}
+                                    </span>
+                                    <span className="text-[11px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
+                                      <Tag className="size-3 text-indigo-600" />
+                                      Ref: {b.ref || b.id}
+                                    </span>
+                                    <span className="text-[11px] font-bold bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-none border border-indigo-200 inline-flex items-center gap-1">
+                                      <User className="size-3 text-indigo-600" />
+                                      {b.contactName || 'Customer'}
+                                    </span>
+                                    {b.shopName ? (
+                                      <span className="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
+                                        <Store className="size-3 text-slate-500" />
+                                        {b.shopName}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                                    Submitted {formatSubmittedLine(b.createdAt)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Status Pill Badge */}
+                              {bookingStatusBadge(b.status)}
+                            </div>
+
+                            {/* Customer, Schedule & Financial Summary 3-Column Grid */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 text-xs sm:text-sm">
+                              {/* 1. Customer Details */}
+                              <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2.5 rounded-none flex flex-col justify-between">
+                                <div>
+                                  <div className="flex items-center justify-between pb-1">
+                                    <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                                      <User className="size-4 text-indigo-600" />
+                                      <span>Customer Info</span>
+                                    </span>
+                                    {b.contactPhone && (
+                                      <a
+                                        href={`tel:${b.contactPhone}`}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-none shadow-2xs transition-colors"
+                                      >
+                                        <Phone className="size-3" />
+                                        <span>Call</span>
+                                      </a>
+                                    )}
+                                  </div>
+
+                                  <div className="space-y-1.5 text-xs pt-1">
+                                    <p className="text-slate-900 font-bold text-sm">{b.contactName || '—'}</p>
+                                    {b.contactPhone && (
+                                      <p className="text-slate-700 font-mono flex items-center gap-1.5 pt-0.5">
+                                        <Phone className="size-3.5 text-slate-400" />
+                                        <span>{b.contactPhone}</span>
+                                      </p>
+                                    )}
+                                    {b.customer?.fullName && b.customer.fullName.trim() !== b.contactName?.trim() && (
+                                      <p className="text-slate-600 font-medium text-[11px]">
+                                        Account: {b.customer.fullName} {b.customer.email ? `(${b.customer.email})` : ''}
+                                      </p>
+                                    )}
+                                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                      <Badge className={cn("rounded-none text-[10px] uppercase font-bold", categoryBadgeClass(b.shopService?.category || b.serviceCategory))}>
+                                        {b.shopService?.category || b.serviceCategory || 'Service'}
+                                      </Badge>
+                                      {serviceModeBadge(b.serviceMode)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 2. Schedule & Location Details */}
+                              <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                                <div>
+                                  <div className="flex items-center justify-between pb-1">
+                                    <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                                      <Calendar className="size-4 text-indigo-600" />
+                                      <span>Schedule & Location</span>
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-2 text-xs pt-1">
+                                    <div>
+                                      <span className="text-slate-500 font-medium block">Preferred Schedule:</span>
+                                      <p className="font-bold text-slate-900 text-xs mt-0.5 flex items-center gap-1">
+                                        <Clock className="size-3.5 text-indigo-600 shrink-0" />
+                                        <span>{formatPreferredDate(b.preferredDate)} • {formatTime12h(b.preferredTime)}</span>
+                                      </p>
+                                    </div>
+
+                                    {b.serviceMode === 'home' && b.serviceAddress ? (
+                                      <div>
+                                        <span className="text-slate-500 font-medium block">Service Address:</span>
+                                        <p className="text-slate-700 flex items-start gap-1 mt-0.5 leading-relaxed">
+                                          <MapPin className="size-3.5 text-rose-500 shrink-0 mt-0.5" />
+                                          <span>{b.serviceAddress}</span>
+                                        </p>
+                                        {hasPin && (
+                                          <a
+                                            href={`https://www.google.com/maps?q=${b.serviceLatitude},${b.serviceLongitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:underline mt-1"
+                                          >
+                                            <MapPin className="size-3" />
+                                            <span>Open in Google Maps</span>
+                                          </a>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        <span className="text-slate-500 font-medium block">Service Location:</span>
+                                        <p className="text-slate-700 flex items-center gap-1 mt-0.5">
+                                          <Store className="size-3.5 text-slate-400 shrink-0" />
+                                          <span>In-Shop Service</span>
+                                        </p>
+                                      </div>
+                                    )}
+
+                                    {b.problemDescription && (
+                                      <div className="pt-1">
+                                        <span className="text-slate-500 font-medium block">Issue Description:</span>
+                                        <p className="text-slate-700 line-clamp-2 italic text-[11px] mt-0.5">"{b.problemDescription}"</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* 3. Fee & Service Quote Summary */}
+                              <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2.5 rounded-none flex flex-col justify-between">
+                                <div>
+                                  <div className="flex items-center justify-between pb-1">
+                                    <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                                      <DollarSign className="size-4 text-indigo-600" />
+                                      <span>Fee Summary</span>
+                                    </span>
+                                    <span
+                                      className={cn(
+                                        "px-2 py-0.5 text-[11px] font-extrabold uppercase rounded-none border",
+                                        b.serviceFeeConfirmedAt
+                                          ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                          : "bg-amber-100 text-amber-800 border-amber-300"
+                                      )}
+                                    >
+                                      {b.serviceFeeConfirmedAt ? "Fee Set" : "Quote Pending"}
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-1.5 text-xs pt-1">
+                                    <div className="flex justify-between items-center text-slate-600">
+                                      <span>Labor Rate / Fee:</span>
+                                      <span className="font-semibold text-slate-800">
+                                        {b.serviceFeeLaborRateAtCalc != null ? formatPhp(b.serviceFeeLaborRateAtCalc) : "TBD"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-slate-600">
+                                      <span>Materials & Parts:</span>
+                                      <span className="font-semibold text-slate-800">
+                                        {b.serviceFeeMaterialsAmount != null ? formatPhp(b.serviceFeeMaterialsAmount) : "TBD"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-1 font-bold">
+                                      <span className="text-slate-900">Total Fee:</span>
+                                      <span className="font-black text-indigo-700 text-base">
+                                        {(b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null)
+                                          ? formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))
+                                          : "Awaiting Quote"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Uploaded Issue Photos & Additional Customer Notes 2-Column Row */}
+                            {((Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0) || b.notes?.trim()) && (
+                              <div
+                                className={cn(
+                                  "grid gap-3.5",
+                                  Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0 && b.notes?.trim()
+                                    ? "grid-cols-1 md:grid-cols-2"
+                                    : "grid-cols-1"
+                                )}
+                              >
+                                {Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0 && (
+                                  <div className="bg-indigo-50/50 border border-indigo-100 p-3 text-xs space-y-2 rounded-none flex flex-col justify-between">
+                                    <div>
+                                      <span className="font-bold text-indigo-900 flex items-center gap-1.5">
+                                        <ImageIcon className="size-4 text-indigo-600" />
+                                        Uploaded Issue Photos ({b.issuePhotos.length})
+                                      </span>
+                                      <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                                        {b.issuePhotos.map((src, photoIndex) => (
+                                          <IssuePhotoThumb key={photoIndex} src={src} label={`Issue ${photoIndex + 1}`} size="sm" />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {b.notes?.trim() && (
+                                  <div className="bg-slate-50 border border-slate-200 p-3 text-xs space-y-1 rounded-none flex flex-col justify-between">
+                                    <div>
+                                      <span className="font-bold text-slate-700 block">Additional Notes:</span>
+                                      <p className="text-slate-700 italic mt-1 leading-relaxed">"{b.notes.trim()}"</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Rejection Note */}
+                            {b.status === 'cancelled' && b.rejectionReason?.trim() && (
+                              <div className="bg-rose-50 border border-rose-200 p-3 text-xs space-y-1">
+                                <span className="font-bold text-rose-900 block">Rejection Reason:</span>
+                                <p className="text-rose-700">{b.rejectionReason.trim()}</p>
+                              </div>
+                            )}
+
+                            {/* Completed Job Info Banner */}
+                            {b.status === 'completed' && (
+                              <div className="flex w-full flex-col gap-2 bg-emerald-50/60 p-3 sm:flex-row sm:items-center sm:justify-between text-xs">
+                                <p className="min-w-0 text-emerald-950/90 font-medium">
+                                  Job finished — recorded as <span className="font-bold">{completionOutcomeLabel(b.shopService?.category || b.serviceCategory)}</span>. Status: <span className="font-bold text-emerald-700">Completed</span>. Listed in Service history.
+                                </p>
+                                <button
                                   type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 gap-1.5 rounded-md border-[#081F5C]/20 bg-white/90 px-3 text-sm text-[#081F5C]"
                                   onClick={() => {
-                                    window.location.hash = '#/mechanic/technician/messages'
+                                    try {
+                                      sessionStorage.setItem('epaayosMechanicHistoryFocusBookingId', b.id)
+                                    } catch {}
+                                    window.location.hash = '#/mechanic/technician/service-history'
                                   }}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-none shadow-2xs transition-colors cursor-pointer shrink-0"
                                 >
-                                  <MessageSquare className="h-4 w-4 shrink-0" aria-hidden />
-                                  Messages
-                                </Button>
-                                {b.status === 'confirmed' ? (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    disabled={busy}
-                                    className="h-8 gap-1.5 rounded-md bg-linear-to-r from-violet-600 to-indigo-600 px-3 text-sm text-white shadow-sm hover:from-violet-600/90 hover:to-indigo-600/90"
-                                    onClick={() =>
-                                      setConfirmWorkingBooking({
-                                        id: b.id,
-                                        contactName: b.contactName || 'Customer',
-                                        serviceName: b.shopService?.name || b.serviceName || 'Service',
-                                      })
-                                    }
-                                  >
-                                    {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Wrench className="h-4 w-4 shrink-0" aria-hidden />}
-                                    Working
-                                  </Button>
-                                ) : null}
-                                {b.status === 'working' ? (
-                                  !b.serviceFeeConfirmedAt ? (
-                                    <Button
+                                  <History className="size-3.5" />
+                                  <span>Service History</span>
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Action Controls Footer */}
+                            <div className="pt-1 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  window.location.hash = '#/mechanic/technician/messages'
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                              >
+                                <MessageSquare className="size-3.5 text-slate-500" />
+                                <span>Messages</span>
+                              </button>
+
+                              {b.status === 'confirmed' && (
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    setConfirmWorkingBooking({
+                                      id: b.id,
+                                      contactName: b.contactName || 'Customer',
+                                      serviceName: b.shopService?.name || b.serviceName || 'Service',
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                  {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Wrench className="size-3.5" />}
+                                  <span>Start Job (Working)</span>
+                                </button>
+                              )}
+
+                              {b.status === 'working' && (
+                                <>
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold rounded-none">
+                                    <Wrench className="size-3.5 opacity-70" />
+                                    <span>Working</span>
+                                  </span>
+                                  {!b.serviceFeeConfirmedAt ? (
+                                    <button
                                       type="button"
-                                      size="sm"
                                       disabled={busy}
-                                      className="h-8 gap-1.5 rounded-md bg-linear-to-r from-sky-600 to-blue-600 px-3 text-sm text-white shadow-sm hover:from-sky-600/90 hover:to-blue-600/90"
                                       onClick={() => {
                                         setFeeDialogError('')
                                         setFeeBooking(b)
                                       }}
+                                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                                     >
-                                      Calculate service fee
-                                    </Button>
+                                      <DollarSign className="size-3.5" />
+                                      <span>Calculate Service Fee</span>
+                                    </button>
                                   ) : (
-                                    <Button
+                                    <button
                                       type="button"
-                                      size="sm"
                                       disabled={busy}
-                                      className="h-8 gap-1.5 rounded-md bg-emerald-600 px-3 text-sm text-white shadow-sm hover:bg-emerald-600/90"
                                       onClick={() => void patchTechnicianBooking(b.id, 'completed')}
+                                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                                     >
-                                      {busy ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                                      ) : (
-                                        <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
-                                      )}
-                                      {workingFinishButtonLabel(b.shopService?.category || b.serviceCategory)}
-                                    </Button>
-                                  )
-                                ) : null}
-                                {b.status === 'completed' ? (
-                                  <>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      disabled
-                                      className="h-8 cursor-default gap-1.5 rounded-md border border-emerald-600/30 bg-emerald-600 px-3 text-sm font-medium text-white shadow-sm"
-                                      aria-label="Job completed"
-                                    >
-                                      <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
-                                      Completed
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 gap-1.5 rounded-md border-emerald-700/30 bg-white/90 px-3 text-sm text-emerald-900 dark:border-emerald-500/35 dark:bg-emerald-950/30 dark:text-emerald-100"
-                                      onClick={() => {
-                                        try {
-                                          sessionStorage.setItem('epaayosMechanicHistoryFocusBookingId', b.id)
-                                        } catch {
-                                          /* ignore */
-                                        }
-                                        window.location.hash = '#/mechanic/technician/service-history'
-                                      }}
-                                    >
-                                      <History className="h-4 w-4 shrink-0" aria-hidden />
-                                      Service history
-                                    </Button>
-                                  </>
-                                ) : null}
-                              </>
-                            }
-                          />
+                                      {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle className="size-3.5" />}
+                                      <span>{workingFinishButtonLabel(b.shopService?.category || b.serviceCategory)}</span>
+                                    </button>
+                                  )}
+                                </>
+                              )}
+
+                              {b.status === 'completed' && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    try {
+                                      sessionStorage.setItem('epaayosMechanicHistoryFocusBookingId', b.id)
+                                    } catch {}
+                                    window.location.hash = '#/mechanic/technician/service-history'
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                                >
+                                  <History className="size-3.5" />
+                                  <span>Service History</span>
+                                </button>
+                              )}
+                            </div>
+                          </article>
                         )
                       })}
                     </div>
@@ -763,30 +1166,32 @@ function MechanicTechnicianAssignedRequest() {
           if (!open) setConfirmWorkingBooking(null)
         }}
       >
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Start this job now?</AlertDialogTitle>
-            <AlertDialogDescription className="text-left">
+        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-md">
+          <AlertDialogHeader className="border-b border-slate-100 pb-3">
+            <AlertDialogTitle className="text-lg font-black text-slate-900">Start Service Job Now?</AlertDialogTitle>
+            <AlertDialogDescription className="text-left text-xs font-medium text-slate-600 mt-1 leading-relaxed">
               {confirmWorkingBooking ? (
                 <>
-                  Are you sure you want to mark the booking for{' '}
-                  <span className="font-medium text-foreground">{confirmWorkingBooking.contactName}</span>
+                  Mark service for{' '}
+                  <span className="font-bold text-slate-900">{confirmWorkingBooking.contactName}</span>
                   {confirmWorkingBooking.serviceName ? (
                     <>
                       {' '}
-                      (<span className="font-medium text-foreground">{confirmWorkingBooking.serviceName}</span>)
+                      (<span className="font-bold text-purple-700">{confirmWorkingBooking.serviceName}</span>)
                     </>
                   ) : null}{' '}
-                  as <span className="font-medium text-foreground">Working</span>?
+                  as <span className="font-bold text-purple-800 uppercase">Working</span>? Service is actively in progress.
                 </>
               ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="pt-3.5 gap-2">
+            <AlertDialogCancel type="button" className="rounded-none border-slate-300 text-xs font-bold cursor-pointer">
+              Cancel
+            </AlertDialogCancel>
             <Button
               type="button"
-              className="bg-linear-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-600/90 hover:to-indigo-600/90"
+              className="rounded-none bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-purple-900/20 cursor-pointer disabled:opacity-50"
               disabled={!confirmWorkingBooking || updatingId === confirmWorkingBooking?.id}
               onClick={async () => {
                 if (!confirmWorkingBooking) return
@@ -796,11 +1201,11 @@ function MechanicTechnicianAssignedRequest() {
             >
               {confirmWorkingBooking && updatingId === confirmWorkingBooking.id ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  <Loader2 className="mr-2 size-3.5 animate-spin" aria-hidden />
                   Updating…
                 </>
               ) : (
-                'Yes, start working'
+                'Yes, Start Job (Working)'
               )}
             </Button>
           </AlertDialogFooter>

@@ -438,7 +438,7 @@ export default function ShopOwnerAccountSettings() {
       }}
     >
       <div className="flex h-full min-h-0 flex-col gap-3">
-        <div className="rounded-2xl bg-linear-to-r from-[#04133d] to-[#0b2b73] p-4 text-white">
+        <div className="rounded-sm bg-linear-to-r from-[#04133d] to-[#0b2b73] p-4 text-white">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white bg-white/90 text-base font-semibold text-[#081F5C]">
               {initials}
@@ -453,7 +453,7 @@ export default function ShopOwnerAccountSettings() {
         </div>
 
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[260px_1fr]">
-          <aside className="h-full min-h-0 rounded-2xl border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm">
+          <aside className="h-full min-h-0 rounded-sm border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-[#04133d] to-[#0b2b73] text-lg font-semibold text-white">
                 {profilePhoto ? (
@@ -489,7 +489,7 @@ export default function ShopOwnerAccountSettings() {
               <div>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-md px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
+                  className="flex w-full items-center justify-between rounded-sm px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
                   onClick={() => setOpenAccount((prev) => !prev)}
                 >
                   <span className="flex items-center gap-2">
@@ -504,14 +504,14 @@ export default function ShopOwnerAccountSettings() {
                     <button
                       type="button"
                       onClick={() => setActive(SECTIONS.PROFILE)}
-                      className={`block w-full rounded-md py-1 text-left transition ${active === SECTIONS.PROFILE ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
+                      className={`block w-full rounded-sm py-1 text-left transition ${active === SECTIONS.PROFILE ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
                     >
                       Profile Information
                     </button>
                     <button
                       type="button"
                       onClick={() => setActive(SECTIONS.PASSWORD)}
-                      className={`block w-full rounded-md py-1 text-left transition ${active === SECTIONS.PASSWORD ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
+                      className={`block w-full rounded-sm py-1 text-left transition ${active === SECTIONS.PASSWORD ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
                     >
                       Change Password
                     </button>
@@ -522,7 +522,7 @@ export default function ShopOwnerAccountSettings() {
               <div>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-md px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
+                  className="flex w-full items-center justify-between rounded-sm px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
                   onClick={() => setOpenPayments((prev) => !prev)}
                 >
                   <span className="flex items-center gap-2">
@@ -541,7 +541,7 @@ export default function ShopOwnerAccountSettings() {
                     <button
                       type="button"
                       onClick={() => setActive(SECTIONS.PAYMENTS)}
-                      className={`block w-full rounded-md py-1 text-left transition ${active === SECTIONS.PAYMENTS ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
+                      className={`block w-full rounded-sm py-1 text-left transition ${active === SECTIONS.PAYMENTS ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
                     >
                       Payment methods
                     </button>
@@ -552,7 +552,7 @@ export default function ShopOwnerAccountSettings() {
               <div>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-md px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
+                  className="flex w-full items-center justify-between rounded-sm px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
                   onClick={() => setOpenPreferences((prev) => !prev)}
                 >
                   <span className="flex items-center gap-2">
@@ -571,14 +571,14 @@ export default function ShopOwnerAccountSettings() {
                     <button
                       type="button"
                       onClick={() => setActive(SECTIONS.NOTIFICATIONS)}
-                      className={`block w-full rounded-md py-1 text-left transition ${active === SECTIONS.NOTIFICATIONS ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
+                      className={`block w-full rounded-sm py-1 text-left transition ${active === SECTIONS.NOTIFICATIONS ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
                     >
                       Notifications
                     </button>
                     <button
                       type="button"
                       onClick={() => setActive(SECTIONS.PRIVACY)}
-                      className={`block w-full rounded-md py-1 text-left transition ${active === SECTIONS.PRIVACY ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
+                      className={`block w-full rounded-sm py-1 text-left transition ${active === SECTIONS.PRIVACY ? 'font-semibold text-[#081F5C]' : 'text-gray-700 hover:text-[#081F5C]'}`}
                     >
                       Privacy
                     </button>
@@ -589,7 +589,7 @@ export default function ShopOwnerAccountSettings() {
               <div>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between rounded-md px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
+                  className="flex w-full items-center justify-between rounded-sm px-3 py-2 font-medium text-gray-800 hover:bg-gray-100"
                   onClick={() => setOpenSupport((prev) => !prev)}
                 >
                   <span className="flex items-center gap-2">
@@ -614,7 +614,7 @@ export default function ShopOwnerAccountSettings() {
             </nav>
           </aside>
 
-          <div className="h-full min-h-0 overflow-y-auto rounded-2xl border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm">
+          <div className="h-full min-h-0 overflow-y-auto rounded-sm border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm">
             {active === SECTIONS.PROFILE && (
               <section className="space-y-4">
                 <div>
@@ -624,7 +624,7 @@ export default function ShopOwnerAccountSettings() {
 
                 {profileNotice.message && (
                   <div
-                    className={`rounded-md border px-3 py-2 text-sm ${
+                    className={`rounded-sm border px-3 py-2 text-sm ${
                       profileNotice.type === 'success'
                         ? 'border-green-200 bg-green-50 text-green-700'
                         : 'border-red-200 bg-red-50 text-red-700'
@@ -641,7 +641,7 @@ export default function ShopOwnerAccountSettings() {
                       type="text"
                       value={profileForm.fullName}
                       onChange={(event) => setProfileForm((prev) => ({ ...prev, fullName: event.target.value }))}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                       placeholder="Enter your full name"
                     />
                   </div>
@@ -653,7 +653,7 @@ export default function ShopOwnerAccountSettings() {
                         type="email"
                         value={profileForm.email}
                         disabled
-                        className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
+                        className="w-full rounded-sm border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
                       />
                       <p className="mt-1 text-[11px] text-gray-500">Email change is currently disabled.</p>
                     </div>
@@ -663,7 +663,7 @@ export default function ShopOwnerAccountSettings() {
                         type="tel"
                         value={profileForm.phone}
                         onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                        className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                         placeholder="09XXXXXXXXX"
                       />
                     </div>
@@ -672,7 +672,7 @@ export default function ShopOwnerAccountSettings() {
                   <button
                     type="submit"
                     disabled={isSavingProfile}
-                    className="rounded-md bg-linear-to-r from-[#04133d] to-[#0b2b73] px-4 py-2 text-sm text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-sm bg-linear-to-r from-[#04133d] to-[#0b2b73] px-4 py-2 text-sm text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSavingProfile ? 'Saving...' : 'Save Profile'}
                   </button>
@@ -689,7 +689,7 @@ export default function ShopOwnerAccountSettings() {
 
                 {passwordNotice.message && (
                   <div
-                    className={`rounded-md border px-3 py-2 text-sm ${
+                    className={`rounded-sm border px-3 py-2 text-sm ${
                       passwordNotice.type === 'success'
                         ? 'border-green-200 bg-green-50 text-green-700'
                         : 'border-red-200 bg-red-50 text-red-700'
@@ -706,7 +706,7 @@ export default function ShopOwnerAccountSettings() {
                       type="password"
                       value={passwordForm.currentPassword}
                       onChange={(event) => setPasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                       placeholder="Current password"
                     />
                   </div>
@@ -716,7 +716,7 @@ export default function ShopOwnerAccountSettings() {
                       type="password"
                       value={passwordForm.newPassword}
                       onChange={(event) => setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                       placeholder="New password"
                     />
                   </div>
@@ -726,7 +726,7 @@ export default function ShopOwnerAccountSettings() {
                       type="password"
                       value={passwordForm.confirmPassword}
                       onChange={(event) => setPasswordForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                       placeholder="Confirm new password"
                     />
                   </div>
@@ -734,7 +734,7 @@ export default function ShopOwnerAccountSettings() {
                   <button
                     type="submit"
                     disabled={isSavingPassword}
-                    className="rounded-md bg-linear-to-r from-[#04133d] to-[#0b2b73] px-4 py-2 text-sm text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-sm bg-linear-to-r from-[#04133d] to-[#0b2b73] px-4 py-2 text-sm text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isSavingPassword ? 'Saving...' : 'Update Password'}
                   </button>
@@ -756,7 +756,7 @@ export default function ShopOwnerAccountSettings() {
 
                 {paymentNotice.message && (
                   <div
-                    className={`rounded-md border px-3 py-2 text-sm ${
+                    className={`rounded-sm border px-3 py-2 text-sm ${
                       paymentNotice.type === 'success'
                         ? 'border-green-200 bg-green-50 text-green-700'
                         : 'border-red-200 bg-red-50 text-red-700'
@@ -766,7 +766,7 @@ export default function ShopOwnerAccountSettings() {
                   </div>
                 )}
 
-                <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3">
+                <div className="rounded-sm border border-gray-200 bg-gray-50/80 p-3">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-600">Your saved options</p>
                   {paymentMethods.length === 0 ? (
                     <p className="text-sm text-gray-600">No payment methods yet. Add one below so customers know how to settle with you.</p>
@@ -777,7 +777,7 @@ export default function ShopOwnerAccountSettings() {
                         return (
                           <li
                             key={method.id}
-                            className="flex gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
+                            className="flex gap-3 rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm"
                           >
                             <div className="mt-0.5 shrink-0 text-[#081F5C]">
                               <CreditCard aria-hidden className="h-4 w-4" />
@@ -821,14 +821,14 @@ export default function ShopOwnerAccountSettings() {
                   )}
                 </div>
 
-                <form className="space-y-3 rounded-lg border border-dashed border-[#081F5C]/25 bg-white p-4" onSubmit={handleAddPaymentMethod}>
+                <form className="space-y-3 rounded-sm border border-dashed border-[#081F5C]/25 bg-white p-4" onSubmit={handleAddPaymentMethod}>
                   <p className="text-sm font-semibold text-gray-900">Add payment option</p>
                   <div>
                     <label className="mb-1 block text-xs text-gray-600">Method type</label>
                     <select
                       value={paymentForm.type}
                       onChange={(event) => setPaymentForm((prev) => ({ ...prev, type: event.target.value, qrImage: '' }))}
-                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
                     >
                       {PAYMENT_METHOD_TYPES.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -843,7 +843,7 @@ export default function ShopOwnerAccountSettings() {
                       type="text"
                       value={paymentForm.accountName}
                       onChange={(event) => setPaymentForm((prev) => ({ ...prev, accountName: event.target.value }))}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                       placeholder="Name shown to customer"
                     />
                   </div>
@@ -853,7 +853,7 @@ export default function ShopOwnerAccountSettings() {
                       value={paymentForm.details}
                       onChange={(event) => setPaymentForm((prev) => ({ ...prev, details: event.target.value }))}
                       rows={2}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                       placeholder={paymentTypeMeta(paymentForm.type).placeholder}
                     />
                   </div>
@@ -871,7 +871,7 @@ export default function ShopOwnerAccountSettings() {
                         <button
                           type="button"
                           onClick={handleChoosePaymentQr}
-                          className="rounded-md border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                          className="rounded-sm border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
                         >
                           Upload QR
                         </button>
@@ -893,13 +893,13 @@ export default function ShopOwnerAccountSettings() {
                       type="text"
                       value={paymentForm.notes}
                       onChange={(event) => setPaymentForm((prev) => ({ ...prev, notes: event.target.value }))}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
                       placeholder="e.g. Send receipt after payment"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 rounded-md bg-linear-to-r from-[#04133d] to-[#0b2b73] px-4 py-2 text-sm text-white transition hover:brightness-110"
+                    className="inline-flex items-center gap-2 rounded-sm bg-linear-to-r from-[#04133d] to-[#0b2b73] px-4 py-2 text-sm text-white transition hover:brightness-110"
                   >
                     <Plus className="h-4 w-4" />
                     Add option
@@ -915,7 +915,7 @@ export default function ShopOwnerAccountSettings() {
                   <h3 className="text-base font-semibold text-gray-900">Notification Preferences</h3>
                 </div>
                 <div className="space-y-3">
-                  <label className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm">
+                  <label className="flex items-center justify-between rounded-sm border border-gray-200 px-3 py-2 text-sm">
                     <span>New booking requests</span>
                     <input
                       type="checkbox"
@@ -925,7 +925,7 @@ export default function ShopOwnerAccountSettings() {
                       }
                     />
                   </label>
-                  <label className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm">
+                  <label className="flex items-center justify-between rounded-sm border border-gray-200 px-3 py-2 text-sm">
                     <span>Incoming messages</span>
                     <input
                       type="checkbox"
@@ -933,7 +933,7 @@ export default function ShopOwnerAccountSettings() {
                       onChange={(event) => setNotificationSettings((prev) => ({ ...prev, pushMessages: event.target.checked }))}
                     />
                   </label>
-                  <label className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm">
+                  <label className="flex items-center justify-between rounded-sm border border-gray-200 px-3 py-2 text-sm">
                     <span>Email weekly reports</span>
                     <input
                       type="checkbox"
@@ -953,7 +953,7 @@ export default function ShopOwnerAccountSettings() {
                   <h3 className="text-base font-semibold text-gray-900">Privacy Settings</h3>
                 </div>
                 <div className="space-y-3">
-                  <label className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm">
+                  <label className="flex items-center justify-between rounded-sm border border-gray-200 px-3 py-2 text-sm">
                     <span>Show contact number to customers</span>
                     <input
                       type="checkbox"
@@ -963,7 +963,7 @@ export default function ShopOwnerAccountSettings() {
                       }
                     />
                   </label>
-                  <label className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2 text-sm">
+                  <label className="flex items-center justify-between rounded-sm border border-gray-200 px-3 py-2 text-sm">
                     <span>Show approximate service location</span>
                     <input
                       type="checkbox"
@@ -987,7 +987,7 @@ export default function ShopOwnerAccountSettings() {
                   Need assistance? Reach support via email at <span className="font-medium">support@epaayos.com</span> or
                   open the Messages page for in-app assistance.
                 </p>
-                <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                <div className="rounded-sm border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
                   Tip: Include your booking ID or service request ID when contacting support for faster assistance.
                 </div>
               </section>

@@ -125,18 +125,18 @@ function DocumentCard({ title, subtitle, storedPath, dataUrl, apiBaseUrl }) {
     (!dataUrl && Boolean(name) && isLikelyImageFilename(name))
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-gray-950/40">
+    <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-gray-950/40">
       <div className="border-b border-gray-100 px-3 py-2 dark:border-white/10">
         <div className="text-xs font-medium text-gray-700 dark:text-gray-200">{title}</div>
         {subtitle ? <div className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">{subtitle}</div> : null}
       </div>
       <div className="p-2">
         {!url ? (
-          <div className="flex h-52 items-center justify-center rounded-lg bg-gray-50 text-xs text-gray-500 dark:bg-white/5">
+          <div className="flex h-52 items-center justify-center rounded-md bg-gray-50 text-xs text-gray-500 dark:bg-white/5">
             No file uploaded
           </div>
         ) : isImage ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg ring-1 ring-black/5">
+          <a href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md ring-1 ring-black/5">
             <ImageWithFallback
               src={url}
               alt={title}
@@ -144,7 +144,7 @@ function DocumentCard({ title, subtitle, storedPath, dataUrl, apiBaseUrl }) {
             />
           </a>
         ) : (
-          <div className="flex h-52 flex-col items-center justify-center gap-2 rounded-lg bg-gray-50 px-3 dark:bg-white/5">
+          <div className="flex h-52 flex-col items-center justify-center gap-2 rounded-md bg-gray-50 px-3 dark:bg-white/5">
             <FileText className="h-10 w-10 text-gray-400" aria-hidden />
             <span className="max-w-full truncate text-center text-xs text-gray-600 dark:text-gray-300">{name}</span>
             <a

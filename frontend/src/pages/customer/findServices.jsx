@@ -49,12 +49,12 @@ function catalogAuthHeaders() {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-2 pr-8 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300'
+  'h-9 w-full appearance-none rounded-sm border border-slate-200 bg-white px-3 py-2 pr-8 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300'
 
 function serviceTypeBadge(type) {
   const label = SERVICE_TYPES.find((x) => x.value === type)?.label ?? 'N/A'
   return (
-    <Badge variant="outline" className="rounded-none border border-slate-200 bg-slate-100/90 text-[10px] font-bold uppercase tracking-wider text-[#081F5C]">
+    <Badge variant="outline" className="rounded-sm border border-slate-200 bg-slate-100/90 text-[10px] font-bold uppercase tracking-wider text-[#081F5C]">
       {label}
     </Badge>
   )
@@ -100,7 +100,7 @@ function ServiceOwnerThumb({ src, ownerName, IconComponent }) {
   const [imageFailed, setImageFailed] = useState(false)
   const canShowImage = Boolean(src) && !imageFailed
   return (
-    <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-none border border-white/40 bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
+    <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-sm border border-white/40 bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
       {canShowImage ? (
         <img
           src={src}
@@ -152,7 +152,7 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
           window.location.hash = `#/customer/shop/${encodeURIComponent(item.id)}`
         }
       }}
-      className="cursor-pointer gap-0 overflow-hidden rounded-none border border-slate-200 py-0 ring-0 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
+      className="cursor-pointer gap-0 overflow-hidden rounded-sm border border-slate-200 py-0 ring-0 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
     >
       <div
         className="relative h-24 w-full bg-[#04133d] bg-cover bg-center"
@@ -181,7 +181,7 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
                       Owner: {item.shopOwner ?? '—'}
                     </CardDescription>
                     <div
-                      className="flex shrink-0 items-center gap-1 rounded-none border border-white/30 bg-black/40 px-2 py-0.5 backdrop-blur-sm"
+                      className="flex shrink-0 items-center gap-1 rounded-sm border border-white/30 bg-black/40 px-2 py-0.5 backdrop-blur-sm"
                       aria-label={`Rating ${ratingLabel} out of 5`}
                     >
                       <Star className="h-3 w-3 shrink-0 fill-amber-300 text-amber-200" />
@@ -191,7 +191,7 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
                 </div>
               </div>
               <div className="mt-auto flex shrink-0 flex-wrap items-center gap-2 pt-1">{serviceTypeBadge(item.type)}</div>
-              <Badge className={`absolute right-2.5 top-2.5 shrink-0 rounded-none border-0 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${categoryBadgeClass(item.category)}`}>
+              <Badge className={`absolute right-2.5 top-2.5 shrink-0 rounded-sm border-0 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${categoryBadgeClass(item.category)}`}>
                 {item.category}
               </Badge>
             </div>
@@ -239,7 +239,7 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
                 <span
                   key={name}
                   title={name}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-none border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-sm border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
                 >
                   {initialsFromName(name)}
                 </span>
@@ -344,7 +344,7 @@ function TopPreviewServiceCard({ catalogRow, kind, locationLine }) {
           go()
         }
       }}
-      className="w-[min(100%,280px)] shrink-0 cursor-pointer gap-2 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
+      className="w-[min(100%,280px)] shrink-0 cursor-pointer gap-2 overflow-hidden rounded-sm border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
     >
       <div className="relative aspect-5/2 w-full overflow-hidden bg-slate-100">
         {imageSrc ? (
@@ -364,14 +364,14 @@ function TopPreviewServiceCard({ catalogRow, kind, locationLine }) {
         <Badge
           className={
             isIndependent
-              ? 'absolute left-2.5 top-2.5 rounded-none border border-violet-400/40 bg-violet-600/95 text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm'
-              : 'absolute left-2.5 top-2.5 rounded-none border border-sky-400/40 bg-[#081F5C]/95 text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm'
+              ? 'absolute left-2.5 top-2.5 rounded-sm border border-violet-400/40 bg-violet-600/95 text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm'
+              : 'absolute left-2.5 top-2.5 rounded-sm border border-sky-400/40 bg-[#081F5C]/95 text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm'
           }
         >
           {isIndependent ? 'On-call' : 'Shop'}
         </Badge>
         <div
-          className="absolute right-2.5 top-2.5 flex items-center gap-0.5 rounded-none border border-white/30 bg-black/40 px-2 py-0.5 backdrop-blur-sm"
+          className="absolute right-2.5 top-2.5 flex items-center gap-0.5 rounded-sm border border-white/30 bg-black/40 px-2 py-0.5 backdrop-blur-sm"
           aria-label={`Rating ${rating}`}
         >
           <Star className="h-3 w-3 shrink-0 fill-amber-300 text-amber-200" />
@@ -398,7 +398,7 @@ function TopPreviewServiceCard({ catalogRow, kind, locationLine }) {
           </p>
         </div>
         <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
-          <Badge className={`${categoryBadgeClass(catalogRow.category)} shrink-0 rounded-none border-0 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider`}>
+          <Badge className={`${categoryBadgeClass(catalogRow.category)} shrink-0 rounded-sm border-0 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider`}>
             {catalogRow.category}
           </Badge>
           <span className="text-[11px] font-medium tabular-nums text-slate-600 truncate">
@@ -505,7 +505,7 @@ function TopServicesMarqueeRow({ marqueeEntries, catalogLoading, reducedMotion }
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-46 w-[min(100%,280px)] shrink-0 animate-pulse rounded-none bg-slate-200"
+              className="h-46 w-[min(100%,280px)] shrink-0 animate-pulse rounded-sm bg-slate-200"
               aria-hidden
             />
           ))}
@@ -516,7 +516,7 @@ function TopServicesMarqueeRow({ marqueeEntries, catalogLoading, reducedMotion }
 
   if (!marqueeEntries.length) {
     return (
-      <div className="rounded-none border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs font-medium text-slate-500 shadow-2xs">
+      <div className="rounded-sm border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs font-medium text-slate-500 shadow-2xs">
         No listings here yet. When shops and on-call mechanics publish services, they will scroll in this strip.
       </div>
     )
@@ -919,7 +919,7 @@ function CustomerFindServices() {
             <div className="relative min-w-0 w-full max-w-full lg:max-w-md lg:flex-1">
               <div className="relative w-full min-w-0 max-w-full">
                 <Input
-                  className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-4 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300"
+                  className="h-9 w-full min-w-0 rounded-sm border border-slate-200 bg-white pr-12 pl-4 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300"
                   placeholder="Search services or shops..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -928,7 +928,7 @@ function CustomerFindServices() {
                 <Button
                   type="button"
                   size="icon-sm"
-                  className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all"
+                  className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all"
                   aria-label="Search"
                 >
                   <Search className="h-4 w-4 text-white" />
@@ -949,25 +949,25 @@ function CustomerFindServices() {
               </p>
             </div>
             {catalogError ? (
-              <Button type="button" variant="outline" size="sm" className="rounded-none border-rose-300 text-xs font-bold uppercase tracking-wider" onClick={() => loadCatalog()}>
+              <Button type="button" variant="outline" size="sm" className="rounded-sm border-rose-300 text-xs font-bold uppercase tracking-wider" onClick={() => loadCatalog()}>
                 Retry load
               </Button>
             ) : null}
           </div>
 
           {catalogError ? (
-            <div className="rounded-none border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+            <div className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
               {catalogError}
             </div>
           ) : null}
 
           {showCatalogSkeleton ? (
-            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white px-6 text-center shadow-2xs">
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-sm border border-dashed border-slate-300 bg-white px-6 text-center shadow-2xs">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-900">Loading services…</p>
               <p className="mt-1 max-w-md text-xs text-slate-500">Fetching active listings from shops.</p>
             </div>
           ) : filteredShops.length === 0 ? (
-            <div className="flex min-h-[150px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white px-6 text-center shadow-2xs">
+            <div className="flex min-h-[150px] flex-col items-center justify-center rounded-sm border border-dashed border-slate-300 bg-white px-6 text-center shadow-2xs">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-900">
                 {catalogServices.length === 0 ? 'No active services yet' : 'No matching shops or services'}
               </p>

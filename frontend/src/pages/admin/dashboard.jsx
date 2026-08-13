@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts'
-import AdminUserManagement from '@/pages/admin/userManagement.jsx'
-import AdminReportedUsers from '@/pages/admin/reportedUsers.jsx'
-import AdminAnnouncement from '@/pages/admin/announcement.jsx'
-import AdminTrackServices from '@/pages/admin/trackServices.jsx'
+import { useEffect, useMemo, useRef, useState } from "react"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts"
+import AdminUserManagement from "@/pages/admin/userManagement.jsx"
+import AdminReportedUsers from "@/pages/admin/reportedUsers.jsx"
+import AdminAnnouncement from "@/pages/admin/announcement.jsx"
+import AdminTrackServices from "@/pages/admin/trackServices.jsx"
 import {
   Sidebar,
   SidebarContent,
@@ -22,8 +22,8 @@ import {
   SidebarProvider,
   SidebarSeparator,
   useSidebar,
-} from '@/components/ui/sidebar'
-import { TooltipProvider } from '@/components/ui/tooltip'
+} from "@/components/ui/sidebar"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   Bell,
   CheckCircle,
@@ -36,25 +36,28 @@ import {
   Megaphone,
   PlayCircle,
   Settings,
+  ShieldCheck,
   Store,
   Users,
-} from 'lucide-react'
-import Elogo from '@/assets/Elogo.png'
-import { getApiBaseUrl } from '@/lib/apiBaseUrl'
-import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
+} from "lucide-react"
+import Elogo from "@/assets/Elogo.png"
+import { getApiBaseUrl } from "@/lib/apiBaseUrl"
+import { useLogoutConfirmation } from "@/hooks/useLogoutConfirmation.jsx"
+import { Spinner } from "@/components/ui/spinner"
+import { cn } from "@/lib/utils"
 
-const navyDeep = '#04133d'
-const navy = '#081F5C'
-const navyMuted = '#0b2b73'
-const navyBright = '#1447a6'
+const navyDeep = "#04133d"
+const navy = "#081F5C"
+const navyMuted = "#0b2b73"
+const navyBright = "#1447a6"
 const pageBaseNavyGradient = `linear-gradient(145deg, ${navyDeep} 0%, ${navy} 35%, ${navyMuted} 65%, ${navyBright} 100%)`
 
 const SECTIONS = {
-  overview: { title: 'Dashboard', description: 'Platform overview: bookings, listings, and moderation shortcuts.' },
-  announcement: { title: 'Announcement', description: 'Create and manage system announcements.' },
-  trackServices: { title: 'Track services', description: 'Monitor service bookings across customers, shops, and mechanics.' },
-  users: { title: 'User management', description: 'View and manage user accounts.' },
-  reportedUsers: { title: 'Reported User', description: 'Review users that have been reported.' },
+  overview: { title: "Dashboard", description: "Platform overview: bookings, listings, and moderation shortcuts." },
+  announcement: { title: "Announcement", description: "Create and manage system announcements." },
+  trackServices: { title: "Track services", description: "Monitor service bookings across customers, shops, and mechanics." },
+  users: { title: "User management", description: "View and manage user accounts." },
+  reportedUsers: { title: "Reported User", description: "Review users that have been reported." },
 }
 
 const API_URL = getApiBaseUrl()
@@ -62,52 +65,75 @@ const API_URL = getApiBaseUrl()
 let adminSidebarOpenState = false
 
 function authHeaders() {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem("token")
   return {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }
 
 function timeAgo(dateString) {
+  if (!dateString) return "Recently"
   const d = new Date(dateString)
   const diffMs = Date.now() - d.getTime()
+  if (isNaN(diffMs)) return "Recently"
   const sec = Math.floor(diffMs / 1000)
   const min = Math.floor(sec / 60)
   const hr = Math.floor(min / 60)
   const day = Math.floor(hr / 24)
-  if (sec < 60) return `${sec}s ago`
+  if (sec < 60) return "Just now"
   if (min < 60) return `${min}m ago`
   if (hr < 24) return `${hr}h ago`
   return `${day}d ago`
 }
 
 function normalizeStatus(s) {
-  return String(s || '').toLowerCase()
+  return String(s || "").toLowerCase()
 }
 
 const STAT_CARD_GRADIENT = {
-  services: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
-  active: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-800',
-  inactive: 'bg-linear-to-br from-slate-600 via-slate-700 to-slate-900',
-  booked: 'bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600',
+  services: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  booked: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
+  pending: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  working: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
+  completed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
+function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-2xl border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-sm border cursor-pointer",
+        gradient
+      )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80">{helper}</p> : null}
+      <div className="pointer-events-none absolute -right-3 -top-3 size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-2 -top-2 size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs">
+            <Icon className="size-3 text-white/90" />
+            {label}
+          </span>
+          <div className="size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs">
+            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-xl border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helper ? (
+            <p className="text-[11px] text-white/85 font-medium mt-1 leading-snug truncate">
+              {helper}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -115,31 +141,31 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-lg border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
 
 function chipTone(t) {
   return (
     {
-      blue: 'from-[#081F5C] to-[#1447a6]',
-      orange: 'from-[#0b2b73] to-[#2a63cc]',
-      purple: 'from-[#081F5C] via-[#0b2b73] to-[#1447a6]',
-      emerald: 'from-emerald-600 to-teal-700',
-    }[t] || 'from-[#081F5C] to-[#1447a6]'
+      blue: "linear-gradient(145deg, rgba(8,31,92,0.95) 0%, rgba(20,71,166,0.82) 55%, rgba(59,130,246,0.72) 100%)",
+      emerald: "linear-gradient(145deg, rgba(4,120,87,0.95) 0%, rgba(16,185,129,0.88) 55%, rgba(52,211,153,0.72) 100%)",
+      purple: "linear-gradient(145deg, rgba(124,58,237,0.95) 0%, rgba(139,92,246,0.82) 55%, rgba(167,139,250,0.72) 100%)",
+      orange: "linear-gradient(145deg, rgba(180,83,9,0.95) 0%, rgba(245,158,11,0.88) 55%, rgba(251,191,36,0.72) 100%)",
+    }[t] || "linear-gradient(145deg, rgba(8,31,92,0.95) 0%, rgba(20,71,166,0.82) 55%, rgba(59,130,246,0.72) 100%)"
   )
 }
 
 function AdminDashboardOverview({ user, setSection }) {
-  const [range, setRange] = useState('thisWeek')
+  const [range, setRange] = useState("thisWeek")
   const [bookings, setBookings] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
+  const [loadError, setLoadError] = useState("")
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
       setLoading(true)
-      setLoadError('')
+      setLoadError("")
       try {
         const [statsRes, listRes] = await Promise.all([
           fetch(`${API_URL}/api/admin/service-bookings/stats`, { headers: authHeaders() }),
@@ -147,15 +173,15 @@ function AdminDashboardOverview({ user, setSection }) {
         ])
         const statsJson = await statsRes.json().catch(() => ({}))
         const listJson = await listRes.json().catch(() => ({}))
-        if (!statsRes.ok) throw new Error(statsJson?.message || 'Could not load stats.')
-        if (!listRes.ok) throw new Error(listJson?.message || 'Could not load bookings.')
+        if (!statsRes.ok) throw new Error(statsJson?.message || "Could not load stats.")
+        if (!listRes.ok) throw new Error(listJson?.message || "Could not load bookings.")
         if (!cancelled) {
           setStats(statsJson?.data ?? null)
           setBookings(Array.isArray(listJson?.data) ? listJson.data : [])
         }
       } catch (e) {
         if (!cancelled) {
-          setLoadError(e?.message || 'Could not load dashboard data.')
+          setLoadError(e?.message || "Could not load dashboard data.")
           setStats(null)
           setBookings([])
         }
@@ -179,68 +205,78 @@ function AdminDashboardOverview({ user, setSection }) {
     }
     return [
       {
-        label: 'Total bookings',
+        label: "Total Bookings",
         value: s.totalBookings ?? 0,
         icon: ClipboardList,
-        variant: 'services',
-        helper: 'All bookings on E-Paayos',
+        variant: "services",
+        helper: "All bookings on E-Paayos",
+        onClick: () => setSection("trackServices"),
       },
       {
-        label: 'Active listings',
+        label: "Active Listings",
         value: s.activeListings ?? 0,
         icon: Store,
-        variant: 'booked',
-        helper: 'Services visible to customers',
+        variant: "booked",
+        helper: "Services visible to customers",
+        onClick: () => setSection("trackServices"),
       },
       {
-        label: 'Pending',
+        label: "Pending Action",
         value: s.pending ?? 0,
         icon: ClipboardList,
-        variant: 'inactive',
-        helper: 'Awaiting provider action',
+        variant: "pending",
+        helper: "Awaiting provider action",
+        onClick: () => setSection("trackServices"),
       },
       {
-        label: 'In progress',
+        label: "In Progress",
         value: s.inProgress ?? 0,
         icon: PlayCircle,
-        variant: 'active',
-        helper: 'Confirmed or working',
+        variant: "working",
+        helper: "Confirmed or working",
+        onClick: () => setSection("trackServices"),
       },
       {
-        label: 'Completed',
+        label: "Completed Jobs",
         value: s.completed ?? 0,
         icon: CheckCircle,
-        variant: 'services',
-        helper: 'Finished jobs',
+        variant: "completed",
+        helper: "Finished platform jobs",
+        onClick: () => setSection("trackServices"),
       },
     ]
-  }, [stats])
+  }, [stats, setSection])
 
   const statusPieRows = useMemo(() => {
     const s = stats || { pending: 0, confirmed: 0, working: 0, completed: 0, cancelled: 0 }
     return [
-      { key: 'pending', name: 'Pending', value: s.pending ?? 0, fill: 'url(#gradAdminPiePending)' },
-      { key: 'confirmed', name: 'Confirmed', value: s.confirmed ?? 0, fill: 'url(#gradAdminPieConfirmed)' },
-      { key: 'working', name: 'Working', value: s.working ?? 0, fill: 'url(#gradAdminPieWorking)' },
-      { key: 'completed', name: 'Completed', value: s.completed ?? 0, fill: 'url(#gradAdminPieCompleted)' },
-      { key: 'cancelled', name: 'Cancelled', value: s.cancelled ?? 0, fill: 'url(#gradAdminPieCancelled)' },
+      { key: "pending", name: "Pending", value: s.pending ?? 0, fill: "url(#gradAdminPiePending)" },
+      { key: "confirmed", name: "Confirmed", value: s.confirmed ?? 0, fill: "url(#gradAdminPieConfirmed)" },
+      { key: "working", name: "Working", value: s.working ?? 0, fill: "url(#gradAdminPieWorking)" },
+      { key: "completed", name: "Completed", value: s.completed ?? 0, fill: "url(#gradAdminPieCompleted)" },
+      { key: "cancelled", name: "Cancelled", value: s.cancelled ?? 0, fill: "url(#gradAdminPieCancelled)" },
     ]
   }, [stats])
+
+  const statusPieTotal = useMemo(
+    () => statusPieRows.reduce((sum, entry) => sum + entry.value, 0),
+    [statusPieRows]
+  )
 
   const chartSeries = useMemo(() => {
     const source = bookings
     const now = new Date()
     const getDateRange = () => {
       switch (range) {
-        case 'today':
+        case "today":
           return { start: new Date(now.getFullYear(), now.getMonth(), now.getDate()), end: now }
-        case 'thisWeek': {
+        case "thisWeek": {
           const weekStart = new Date(now)
           weekStart.setDate(now.getDate() - now.getDay())
           weekStart.setHours(0, 0, 0, 0)
           return { start: weekStart, end: now }
         }
-        case 'lastWeek': {
+        case "lastWeek": {
           const lastWeekEnd = new Date(now)
           lastWeekEnd.setDate(now.getDate() - now.getDay() - 1)
           lastWeekEnd.setHours(23, 59, 59, 999)
@@ -249,16 +285,16 @@ function AdminDashboardOverview({ user, setSection }) {
           lastWeekStart.setHours(0, 0, 0, 0)
           return { start: lastWeekStart, end: lastWeekEnd }
         }
-        case 'thisMonth':
+        case "thisMonth":
           return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now }
-        case 'lastMonth': {
+        case "lastMonth": {
           const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
           const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
           return { start: lastMonthStart, end: lastMonthEnd }
         }
-        case 'thisYear':
+        case "thisYear":
           return { start: new Date(now.getFullYear(), 0, 1), end: now }
-        case 'lastYear': {
+        case "lastYear": {
           const lastYearEnd = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999)
           const lastYearStart = new Date(now.getFullYear() - 1, 0, 1)
           return { start: lastYearStart, end: lastYearEnd }
@@ -274,13 +310,13 @@ function AdminDashboardOverview({ user, setSection }) {
     })
     const makeKey = (d) => {
       const dt = new Date(d)
-      if (range === 'today') {
-        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}-${String(dt.getHours()).padStart(2, '0')}`
+      if (range === "today") {
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}-${String(dt.getHours()).padStart(2, "0")}`
       }
-      if (range === 'thisYear' || range === 'lastYear') {
-        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+      if (range === "thisYear" || range === "lastYear") {
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`
       }
-      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`
     }
     const dataMap = new Map()
     filtered.forEach((o) => {
@@ -289,23 +325,23 @@ function AdminDashboardOverview({ user, setSection }) {
       dataMap.set(key, (dataMap.get(key) || 0) + 1)
     })
     const result = []
-    if (range === 'today') {
+    if (range === "today") {
       for (let i = 0; i < 24; i++) {
         const d = new Date(start)
         d.setHours(i, 0, 0, 0)
         const key = makeKey(d)
-        result.push({ date: `${String(i).padStart(2, '0')}:00`, value: dataMap.get(key) || 0 })
+        result.push({ date: `${String(i).padStart(2, "0")}:00`, value: dataMap.get(key) || 0 })
       }
-    } else if (range === 'thisWeek' || range === 'lastWeek') {
-      const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    } else if (range === "thisWeek" || range === "lastWeek") {
+      const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
       for (let i = 0; i < 7; i++) {
         const d = new Date(start)
         d.setDate(start.getDate() + i)
         result.push({ date: weekDays[d.getDay()], value: dataMap.get(makeKey(d)) || 0 })
       }
-    } else if (range === 'thisMonth' || range === 'lastMonth') {
+    } else if (range === "thisMonth" || range === "lastMonth") {
       const daysInMonth =
-        range === 'thisMonth'
+        range === "thisMonth"
           ? new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
           : new Date(now.getFullYear(), now.getMonth(), 0).getDate()
       for (let i = 1; i <= daysInMonth; i++) {
@@ -314,7 +350,7 @@ function AdminDashboardOverview({ user, setSection }) {
         result.push({ date: `D${i}`, value: dataMap.get(makeKey(d)) || 0 })
       }
     } else {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
       for (let i = 0; i < 12; i++) {
         const d = new Date(start)
         d.setMonth(i)
@@ -327,283 +363,426 @@ function AdminDashboardOverview({ user, setSection }) {
   const recent = useMemo(() => {
     return [...bookings]
       .sort((a, b) => new Date(b?.updatedAt || b?.createdAt || 0) - new Date(a?.updatedAt || a?.createdAt || 0))
-      .slice(0, 3)
+      .slice(0, 4)
       .map((o) => ({
         rowKey: o.id,
-        id: o.ref || o.id || '—',
-        buyer: o.contactName || o.customer?.fullName || 'Customer',
-        serviceName: o.shopService?.name || 'Service',
-        shopLabel: o.shopOwner?.shopName || o.shopOwner?.fullName || '—',
-        status: normalizeStatus(o?.status) || 'pending',
-        when: o?.updatedAt ? timeAgo(o.updatedAt) : o?.createdAt ? timeAgo(o.createdAt) : '',
+        id: o.ref || o.id || "—",
+        buyer: o.contactName || o.customer?.fullName || "Customer",
+        serviceName: o.shopService?.name || "Service Repair",
+        shopLabel: o.shopOwner?.shopName || o.shopOwner?.fullName || "Independent Provider",
+        status: normalizeStatus(o?.status) || "pending",
+        when: o?.updatedAt ? timeAgo(o.updatedAt) : o?.createdAt ? timeAgo(o.createdAt) : "Recently",
       }))
   }, [bookings])
 
   const quickActions = [
     {
-      label: 'User management',
-      desc: 'Accounts, approvals, and roles',
+      label: "User Management",
+      desc: "Accounts, approvals, and roles",
       icon: Users,
-      tone: 'blue',
-      onClick: () => setSection('users'),
+      tone: "blue",
+      onClick: () => setSection("users"),
     },
     {
-      label: 'Reported users',
-      desc: 'Review flagged accounts',
+      label: "Reported Users",
+      desc: "Review flagged accounts",
       icon: Flag,
-      tone: 'orange',
-      onClick: () => setSection('reportedUsers'),
+      tone: "orange",
+      onClick: () => setSection("reportedUsers"),
     },
     {
-      label: 'Track services',
-      desc: 'All bookings across the platform',
+      label: "Track Services",
+      desc: "All bookings across the platform",
       icon: ClipboardList,
-      tone: 'emerald',
-      onClick: () => setSection('trackServices'),
+      tone: "emerald",
+      onClick: () => setSection("trackServices"),
     },
     {
-      label: 'Announcement',
-      desc: 'Broadcast updates to users',
+      label: "System Announcements",
+      desc: "Broadcast updates to users",
       icon: Megaphone,
-      tone: 'purple',
-      onClick: () => setSection('announcement'),
+      tone: "purple",
+      onClick: () => setSection("announcement"),
     },
   ]
 
   return (
-    <div className="space-y-2 sm:space-y-3.5 pr-2 md:pr-4">
-      <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">
-          Welcome, <span className="font-medium text-foreground">{user.fullName || user.email}</span>. Here is what is
-          happening across E-Paayos.
-        </p>
-      </div>
-
+    <div className="space-y-4 pr-2 md:pr-4">
       {loadError ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-sm border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
           {loadError}
         </div>
       ) : null}
-      {loading ? <p className="text-xs text-muted-foreground sm:text-sm">Loading dashboard…</p> : null}
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {kpis.map(({ label, value, icon, variant, helper }) => (
-          <StatGradientCard key={label} label={label} value={value} icon={icon} variant={variant} helper={helper} />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm dark:border-white/10 dark:bg-white/5 lg:col-span-2">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="text-sm font-medium text-[#081F5C] dark:text-blue-100">New bookings (created)</div>
-            <div className="relative w-[148px] shrink-0 sm:w-[160px]">
-              <select
-                value={range}
-                onChange={(e) => setRange(e.target.value)}
-                className={`${selectShell} h-8 cursor-pointer py-1.5 pr-8 pl-2.5`}
-              >
-                <option value="today">Today</option>
-                <option value="thisWeek">This Week</option>
-                <option value="lastWeek">Last Week</option>
-                <option value="thisMonth">This Month</option>
-                <option value="lastMonth">Last Month</option>
-                <option value="thisYear">This Year</option>
-                <option value="lastYear">Last Year</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
-            </div>
-          </div>
-          <ChartContainer
-            id="admin-bookings-chart"
-            config={{ series: { label: 'Bookings', color: '#1447a6' } }}
-            className="h-64 w-full [&_.recharts-responsive-container]:min-h-[256px]"
-          >
-            <AreaChart data={chartSeries} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="fillAdminBookings" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1447a6" stopOpacity={0.28} />
-                  <stop offset="95%" stopColor="#081F5C" stopOpacity={0.08} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#081F5C"
-                fillOpacity={1}
-                fill="url(#fillAdminBookings)"
-              />
-            </AreaChart>
-          </ChartContainer>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Spinner className="size-8 text-[#081F5C]" />
+          <p className="mt-3 text-sm font-medium text-slate-600">Loading admin workspace...</p>
         </div>
-
-        <div className="rounded-2xl border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-          <div className="mb-2 text-sm font-medium text-[#081F5C] dark:text-blue-100">Bookings by status</div>
-          <div className="grid h-64 place-items-center">
-            <PieChart width={240} height={240}>
-              <defs>
-                <linearGradient id="gradAdminPiePending" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#f59e0b" />
-                  <stop offset="100%" stopColor="#d97706" />
-                </linearGradient>
-                <linearGradient id="gradAdminPieConfirmed" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#0ea5e9" />
-                  <stop offset="100%" stopColor="#0369a1" />
-                </linearGradient>
-                <linearGradient id="gradAdminPieWorking" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#8b5cf6" />
-                  <stop offset="100%" stopColor="#5b21b6" />
-                </linearGradient>
-                <linearGradient id="gradAdminPieCompleted" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#10b981" />
-                  <stop offset="100%" stopColor="#059669" />
-                </linearGradient>
-                <linearGradient id="gradAdminPieCancelled" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#64748b" />
-                  <stop offset="100%" stopColor="#334155" />
-                </linearGradient>
-              </defs>
-              <Pie
-                data={statusPieRows}
-                cx={120}
-                cy={120}
-                innerRadius={62}
-                outerRadius={96}
-                paddingAngle={2}
-                cornerRadius={4}
-                stroke="#ffffff"
-                strokeWidth={2}
-                dataKey="value"
-              >
-                {statusPieRows.map((row) => (
-                  <Cell key={row.key} fill={row.fill} />
-                ))}
-              </Pie>
-            </PieChart>
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-2 text-[12px]">
-            {statusPieRows.map((row) => (
-              <div key={row.key} className="flex min-w-0 items-center gap-1">
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-sm"
-                  style={{
-                    background:
-                      row.key === 'pending'
-                        ? 'linear-gradient(90deg,#f59e0b,#d97706)'
-                        : row.key === 'confirmed'
-                          ? 'linear-gradient(90deg,#0ea5e9,#0369a1)'
-                          : row.key === 'working'
-                            ? 'linear-gradient(90deg,#8b5cf6,#5b21b6)'
-                            : row.key === 'completed'
-                              ? 'linear-gradient(90deg,#10b981,#059669)'
-                              : 'linear-gradient(90deg,#64748b,#334155)',
-                  }}
-                />
-                <span className="truncate text-muted-foreground">{row.name}</span>
-                <span className="ml-auto shrink-0 text-muted-foreground">{row.value}</span>
-              </div>
+      ) : (
+        <>
+          {/* Modern Stat Cards Grid */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {kpis.map(({ label, value, icon, variant, helper, onClick }) => (
+              <StatGradientCard
+                key={label}
+                label={label}
+                value={value}
+                icon={icon}
+                variant={variant}
+                helper={helper}
+                onClick={onClick}
+              />
             ))}
           </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-2xl border border-[#081F5C]/10 bg-white/90 shadow-sm dark:border-white/10 dark:bg-white/5">
-          <div className="flex items-center justify-between px-4 pt-5 pb-2">
-            <div className="text-sm font-semibold text-[#081F5C] dark:text-blue-100">Recent bookings</div>
-            <button
-              type="button"
-              onClick={() => setSection('trackServices')}
-              className="inline-flex items-center gap-1 text-sm font-medium text-[#081F5C] hover:text-[#1447a6] dark:text-blue-200 dark:hover:text-blue-100"
-            >
-              View all
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 gap-3 p-3">
-            {!loading && recent.length === 0 ? (
-              <p className="px-1 py-4 text-center text-sm text-muted-foreground">
-                No bookings yet. When customers book services, they will appear here and in Track services.
-              </p>
-            ) : null}
-            {recent.map((o) => {
-              const s = o.status
-              const rowKey = o.rowKey || o.id
-              const badgeClass =
-                s === 'pending'
-                  ? 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300'
-                  : s === 'confirmed'
-                    ? 'border-[#1447a6]/30 bg-[#1447a6]/10 text-[#0b2b73] dark:border-blue-400/30 dark:bg-blue-950/40 dark:text-blue-200'
-                    : s === 'working'
-                      ? 'border-violet-300 bg-violet-50 text-violet-800 dark:border-violet-600 dark:bg-violet-950/40 dark:text-violet-200'
-                      : s === 'completed'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
-                        : s === 'cancelled'
-                          ? 'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'
-                          : 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300'
-              return (
-                <div
-                  key={rowKey}
-                  className="rounded-xl border border-[#081F5C]/10 bg-white/95 p-3 shadow-sm transition-shadow hover:shadow-md dark:border-white/10 dark:bg-[#04133d]/25"
+          {/* Charts Section */}
+          <section className="grid gap-4 lg:grid-cols-3">
+            {/* New Bookings Created AreaChart */}
+            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2 flex flex-col justify-between">
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">New Bookings Received (Platform)</p>
+                  <p className="text-xs text-slate-500">Volume trend of created service requests across all providers</p>
+                </div>
+                <div className="relative w-[148px] shrink-0 sm:w-[160px]">
+                  <select
+                    value={range}
+                    onChange={(e) => setRange(e.target.value)}
+                    className={selectShell}
+                  >
+                    <option value="today">Today</option>
+                    <option value="thisWeek">This Week</option>
+                    <option value="lastWeek">Last Week</option>
+                    <option value="thisMonth">This Month</option>
+                    <option value="lastMonth">Last Month</option>
+                    <option value="thisYear">This Year</option>
+                    <option value="lastYear">Last Year</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
+                </div>
+              </div>
+
+              <div className="flex-1 rounded-none bg-slate-50/60 p-2.5 ring-1 ring-slate-200/40 flex flex-col justify-center">
+                <ChartContainer
+                  id="admin-bookings-chart"
+                  config={{ series: { label: "Bookings", color: "#1447a6" } }}
+                  className="aspect-auto h-[250px] w-full [&_.recharts-responsive-container]:!h-full"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className="text-[12px] font-medium text-muted-foreground">Ref</span>
-                        <span className="text-[12px] font-semibold text-foreground">{o.id}</span>
-                        <span className={`rounded-full border px-2 py-0.5 text-[10px] capitalize ${badgeClass}`}>
-                          {o.status}
-                        </span>
-                      </div>
-                      <div className="truncate text-[13px] font-medium text-foreground">{o.buyer}</div>
-                      <div className="truncate text-[12px] text-muted-foreground">{o.serviceName}</div>
-                      <div className="truncate text-[11px] text-muted-foreground/90">{o.shopLabel}</div>
-                    </div>
-                    <div className="min-w-[100px] text-right">
-                      <div className="mt-0.5 text-[11px] text-muted-foreground">{o.when}</div>
-                    </div>
+                  <AreaChart data={chartSeries} margin={{ top: 12, right: 12, left: -20, bottom: 4 }}>
+                    <defs>
+                      <linearGradient id="fillAdminBookings" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#1447a6" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#081F5C" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(148 163 184 / 0.35)" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tick={{ fontSize: 11, fontWeight: 500 }}
+                    />
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={6}
+                      tick={{ fontSize: 11 }}
+                      allowDecimals={false}
+                    />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#081F5C"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#fillAdminBookings)"
+                      activeDot={{ r: 5, strokeWidth: 2, stroke: "#ffffff", fill: "#1447a6" }}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </div>
+
+              {/* Summary Metric Bar */}
+              <div className="mt-3 grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-100">
+                <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                  <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
+                  <span className="text-slate-500 truncate">Total in Period:</span>
+                  <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                    {chartSeries.reduce((acc, curr) => acc + curr.value, 0)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-slate-500 truncate">Peak Volume:</span>
+                  <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                    {Math.max(0, ...chartSeries.map((s) => s.value))}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                  <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                  <span className="text-slate-500 truncate">Avg / Slot:</span>
+                  <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                    {chartSeries.length > 0
+                      ? (chartSeries.reduce((acc, curr) => acc + curr.value, 0) / chartSeries.length).toFixed(1)
+                      : 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bookings By Status Donut Chart */}
+            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm">
+              <div className="mb-2">
+                <p className="text-sm font-semibold text-slate-900">Bookings by Status</p>
+                <p className="text-xs text-slate-500">Platform status breakdown across all shops</p>
+              </div>
+
+              <div className="relative mx-auto h-[210px] w-full max-w-[260px] flex items-center justify-center">
+                <PieChart width={220} height={210}>
+                  <defs>
+                    <linearGradient id="gradAdminPiePending" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#f59e0b" />
+                      <stop offset="100%" stopColor="#d97706" />
+                    </linearGradient>
+                    <linearGradient id="gradAdminPieConfirmed" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#0ea5e9" />
+                      <stop offset="100%" stopColor="#0369a1" />
+                    </linearGradient>
+                    <linearGradient id="gradAdminPieWorking" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" />
+                      <stop offset="100%" stopColor="#5b21b6" />
+                    </linearGradient>
+                    <linearGradient id="gradAdminPieCompleted" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#059669" />
+                    </linearGradient>
+                    <linearGradient id="gradAdminPieCancelled" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#64748b" />
+                      <stop offset="100%" stopColor="#334155" />
+                    </linearGradient>
+                  </defs>
+                  <Pie
+                    data={statusPieRows}
+                    cx={110}
+                    cy={105}
+                    innerRadius={58}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    cornerRadius={3}
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    dataKey="value"
+                  >
+                    {statusPieRows.map((row) => (
+                      <Cell key={row.key} fill={row.fill} />
+                    ))}
+                  </Pie>
+                </PieChart>
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+                      {statusPieTotal}
+                    </p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      Total
+                    </p>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </div>
+              </div>
 
-        <div className="rounded-2xl border border-[#081F5C]/10 bg-white/90 p-4 shadow-sm dark:border-white/10 dark:bg-white/5">
-          <div className="mb-2 text-sm font-semibold text-[#081F5C] dark:text-blue-100">Quick actions</div>
-          <div className="space-y-2">
-            {quickActions.map((a) => {
-              const QaIcon = a.icon
-              return (
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                {statusPieRows.map((row) => (
+                  <div key={row.key} className="flex min-w-0 items-center gap-1.5 rounded-none bg-slate-50 px-2 py-1 border border-slate-200/50">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{
+                        background:
+                          row.key === "pending"
+                            ? "linear-gradient(90deg,#f59e0b,#d97706)"
+                            : row.key === "confirmed"
+                              ? "linear-gradient(90deg,#0ea5e9,#0369a1)"
+                              : row.key === "working"
+                                ? "linear-gradient(90deg,#8b5cf6,#5b21b6)"
+                                : row.key === "completed"
+                                  ? "linear-gradient(90deg,#10b981,#059669)"
+                                  : "linear-gradient(90deg,#64748b,#334155)",
+                      }}
+                    />
+                    <span className="truncate text-slate-600 font-medium">{row.name}</span>
+                    <span className="ml-auto shrink-0 font-bold tabular-nums text-slate-900">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Recent Activity & Quick Navigation */}
+          <section className="grid gap-4 lg:grid-cols-5">
+            {/* Recent Bookings List */}
+            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-3">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Recent Platform Bookings</p>
+                  <p className="text-xs text-slate-500">Latest service bookings created across E-Paayos</p>
+                </div>
                 <button
-                  key={a.label}
                   type="button"
-                  onClick={a.onClick}
-                  className="group flex w-full items-center gap-3 rounded-xl border border-[#081F5C]/10 bg-white/95 p-3 text-left transition-all hover:border-[#081F5C]/25 hover:shadow-sm dark:border-white/10 dark:bg-[#04133d]/20"
+                  onClick={() => setSection("trackServices")}
+                  className="inline-flex items-center gap-1 rounded-none border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50"
                 >
-                  <div className={`rounded-lg bg-linear-to-r p-2.5 text-white shadow-sm ${chipTone(a.tone)}`}>
-                    <QaIcon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-foreground">{a.label}</div>
-                    <div className="text-[12px] text-muted-foreground">{a.desc}</div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground" />
+                  View all <ChevronRight className="size-3.5" />
                 </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
+              </div>
+
+              <div className="space-y-2">
+                {!loading && recent.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-slate-500">
+                    No bookings yet. When customers book services, they will appear here and in Track services.
+                  </p>
+                ) : null}
+                {recent.map((o) => {
+                  const s = o.status
+                  const badgeClass =
+                    s === "pending"
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : s === "confirmed"
+                        ? "bg-sky-50 text-sky-700 border-sky-200"
+                        : s === "working"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : s === "completed"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-slate-100 text-slate-700 border-slate-200"
+                  return (
+                    <div
+                      key={o.rowKey}
+                      className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-slate-900 text-sm">
+                            {o.id} • {o.buyer}
+                          </span>
+                          <span className={cn("inline-flex items-center rounded-none border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", badgeClass)}>
+                            {o.status}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 truncate font-medium">
+                          {o.serviceName} • <span className="text-slate-700 font-semibold">{o.shopLabel}</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-row items-center justify-between gap-3 sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5">
+                        <div className="text-[11px] text-slate-400 font-medium">
+                          {o.when}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Quick Navigation Links */}
+            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2">
+              <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Quick Actions</h3>
+              <p className="text-xs text-slate-500 mb-3">Shortcuts to system moderation and oversight tools.</p>
+              <div className="space-y-2">
+                {quickActions.map(({ label, desc, icon: QaIcon, tone, onClick }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={onClick}
+                    className="group flex w-full items-center justify-between p-3 bg-white hover:bg-slate-50/80 transition-all border border-slate-200/60 rounded-none text-left shadow-xs hover:shadow-sm"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="flex size-9 shrink-0 items-center justify-center rounded-none text-white shadow-xs"
+                        style={{ backgroundImage: chipTone(tone) }}
+                      >
+                        <QaIcon className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="block text-xs font-semibold text-slate-900 truncate">{label}</span>
+                        <span className="block text-[11px] text-slate-500 truncate">{desc}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="size-4 text-slate-400 shrink-0 group-hover:text-slate-700 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* E-Paayos Navy Blue Footer Banner */}
+          <footer className="mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-6 sm:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
+            <div className="pointer-events-none absolute -top-16 -right-16 size-64 bg-[#1447a6]/25 blur-3xl rounded-full" />
+            <div className="pointer-events-none absolute -bottom-16 -left-16 size-64 bg-[#081F5C]/40 blur-3xl rounded-full" />
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#081F5C] via-[#1447a6] to-sky-400" />
+
+            <div className="relative z-10 grid gap-6 md:grid-cols-12 md:items-center">
+              <div className="md:col-span-5 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#081F5C] to-[#1447a6] text-white shadow-md shadow-blue-900/40 border border-white/10">
+                    <ShieldCheck className="size-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                      E-Paayos System Administration
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider bg-[#1447a6]/30 text-blue-200 border border-blue-400/30 px-2 py-0.5 rounded-none">
+                        v2.4 Enterprise
+                      </span>
+                    </h3>
+                    <p className="text-xs text-blue-200/80">
+                      Central Administrative Control & Moderation Workspace
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 text-xs text-blue-200/90 pt-1">
+                  <span className="relative flex size-2">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-400 opacity-75" />
+                    <span className="relative inline-flex size-2 rounded-full bg-sky-400" />
+                  </span>
+                  <span className="font-semibold text-sky-300">All Systems Operational</span>
+                  <span className="text-blue-400/60">•</span>
+                  <span>Real-time Sync Active</span>
+                </div>
+              </div>
+
+              <div className="md:col-span-4 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-blue-100">
+                <button type="button" onClick={() => setSection("users")} className="hover:text-white transition-colors flex items-center gap-1">
+                  <Users className="size-3.5 text-sky-400" /> User Management
+                </button>
+                <button type="button" onClick={() => setSection("reportedUsers")} className="hover:text-white transition-colors flex items-center gap-1">
+                  <Flag className="size-3.5 text-amber-300" /> Reported Users
+                </button>
+                <button type="button" onClick={() => setSection("trackServices")} className="hover:text-white transition-colors flex items-center gap-1">
+                  <ClipboardList className="size-3.5 text-blue-400" /> Track Services
+                </button>
+                <button type="button" onClick={() => setSection("announcement")} className="hover:text-white transition-colors flex items-center gap-1">
+                  <Megaphone className="size-3.5 text-indigo-300" /> Announcement
+                </button>
+              </div>
+
+              <div className="md:col-span-3 text-left md:text-right space-y-1">
+                <p className="text-xs font-semibold text-white">
+                  © {new Date().getFullYear()} E-Paayos Portal.
+                </p>
+                <p className="text-[11px] text-blue-200/70 leading-tight">
+                  Platform Administration & Management
+                </p>
+              </div>
+            </div>
+          </footer>
+        </>
+      )}
     </div>
   )
 }
 
 const sidebarMenuButtonClass =
-  'h-9 gap-3 rounded-lg px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
+  "h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
 
 function AdminMobileNav() {
   const { isMobile, setOpenMobile } = useSidebar()
@@ -611,7 +790,7 @@ function AdminMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-md px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
       onClick={() => setOpenMobile(true)}
     >
       Menu
@@ -621,29 +800,29 @@ function AdminMobileNav() {
 
 function AdminDashboard() {
   const [user, setUser] = useState(null)
-  const [section, setSection] = useState('overview')
+  const [section, setSection] = useState("overview")
   const [usersMenuOpen, setUsersMenuOpen] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(adminSidebarOpenState)
   const [profileOpen, setProfileOpen] = useState(false)
   const profileMenuRef = useRef(null)
-  const isUsersGroupActive = section === 'users' || section === 'reportedUsers'
+  const isUsersGroupActive = section === "users" || section === "reportedUsers"
 
   useEffect(() => {
-    const raw = localStorage.getItem('user')
-    const token = localStorage.getItem('token')
+    const raw = localStorage.getItem("user")
+    const token = localStorage.getItem("token")
     if (!token || !raw) {
-      window.location.hash = '#/login'
+      window.location.hash = "#/login"
       return
     }
     try {
       const parsed = JSON.parse(raw)
-      if (parsed.role !== 'admin') {
-        window.location.hash = '#/login'
+      if (parsed.role !== "admin") {
+        window.location.hash = "#/login"
         return
       }
       setUser(parsed)
     } catch {
-      window.location.hash = '#/login'
+      window.location.hash = "#/login"
     }
   }, [])
 
@@ -670,16 +849,16 @@ function AdminDashboard() {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside)
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [profileOpen])
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    window.location.hash = '#/'
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    window.location.hash = "#/"
   }
 
   const { requestLogout, LogoutDialog } = useLogoutConfirmation(handleLogout)
@@ -701,7 +880,7 @@ function AdminDashboard() {
           open={sidebarOpen}
           onOpenChange={setSidebarOpen}
           className="h-svh max-h-svh min-h-0 w-full max-w-full overflow-hidden bg-transparent"
-          style={{ '--sidebar': 'transparent', '--sidebar-width': '17.5rem', '--sidebar-width-icon': '3.35rem' }}
+          style={{ "--sidebar": "transparent", "--sidebar-width": "17.5rem", "--sidebar-width-icon": "3.35rem" }}
         >
           <Sidebar
             collapsible="icon"
@@ -730,9 +909,9 @@ function AdminDashboard() {
                   <SidebarMenu className="gap-2.5">
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        isActive={section === 'overview'}
+                        isActive={section === "overview"}
                         tooltip="Overview"
-                        onClick={() => setSection('overview')}
+                        onClick={() => setSection("overview")}
                         className={sidebarMenuButtonClass}
                       >
                         <LayoutDashboard className="size-[18px] opacity-90" />
@@ -759,8 +938,8 @@ function AdminDashboard() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild={false}
-                              isActive={section === 'users'}
-                              onClick={() => setSection('users')}
+                              isActive={section === "users"}
+                              onClick={() => setSection("users")}
                               className="min-w-max cursor-pointer overflow-visible pr-3 text-white hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black [&>svg]:text-current [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
                             >
                               <span>User management</span>
@@ -769,8 +948,8 @@ function AdminDashboard() {
                           <SidebarMenuSubItem>
                             <SidebarMenuSubButton
                               asChild={false}
-                              isActive={section === 'reportedUsers'}
-                              onClick={() => setSection('reportedUsers')}
+                              isActive={section === "reportedUsers"}
+                              onClick={() => setSection("reportedUsers")}
                               className="min-w-max cursor-pointer overflow-visible pr-3 text-white hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black [&>svg]:text-current [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
                             >
                               <span>Reported User</span>
@@ -781,9 +960,9 @@ function AdminDashboard() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        isActive={section === 'trackServices'}
+                        isActive={section === "trackServices"}
                         tooltip="Track Services"
-                        onClick={() => setSection('trackServices')}
+                        onClick={() => setSection("trackServices")}
                         className={sidebarMenuButtonClass}
                       >
                         <ClipboardList className="size-[18px] opacity-90" />
@@ -792,9 +971,9 @@ function AdminDashboard() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                       <SidebarMenuButton
-                        isActive={section === 'announcement'}
+                        isActive={section === "announcement"}
                         tooltip="Announcement"
-                        onClick={() => setSection('announcement')}
+                        onClick={() => setSection("announcement")}
                         className={sidebarMenuButtonClass}
                       >
                         <Megaphone className="size-[18px] opacity-90" />
@@ -809,9 +988,9 @@ function AdminDashboard() {
             <SidebarSeparator className="mx-0 bg-sidebar-border/80" />
 
             <SidebarFooter className="gap-2 px-3 py-2 group-data-[collapsible=icon]:items-center">
-              <div className="flex items-center gap-2 overflow-hidden rounded-xl border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
+              <div className="flex items-center gap-2 overflow-hidden rounded-sm border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#081F5C]">
-                  {(user.fullName || user.email || 'A').charAt(0).toUpperCase()}
+                  {(user.fullName || user.email || "A").charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
                   <p className="truncate text-[11px] font-normal uppercase tracking-wide text-white/80">Admin</p>
@@ -834,7 +1013,7 @@ function AdminDashboard() {
                 <button
                   type="button"
                   aria-label="Notification"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
                   <Bell className="h-5 w-5" />
                 </button>
@@ -846,17 +1025,17 @@ function AdminDashboard() {
                     onClick={() => setProfileOpen((prev) => !prev)}
                     className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
                       profileOpen
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? "bg-blue-50 text-blue-700"
+                        : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
                     <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
-                      {(user.fullName || user.email || 'A').charAt(0).toUpperCase()}
+                      {(user.fullName || user.email || "A").charAt(0).toUpperCase()}
                     </span>
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-md border border-border/80 bg-background shadow-lg">
+                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
                       <button
                         type="button"
                         onClick={() => {
@@ -888,23 +1067,23 @@ function AdminDashboard() {
               id="admin-main-scroll"
               className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
             >
-              {section === 'overview' && <AdminDashboardOverview user={user} setSection={setSection} />}
-              {section === 'announcement' && (
+              {section === "overview" && <AdminDashboardOverview user={user} setSection={setSection} />}
+              {section === "announcement" && (
                 <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
                   <AdminAnnouncement />
                 </div>
               )}
-              {section === 'trackServices' && (
+              {section === "trackServices" && (
                 <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
                   <AdminTrackServices />
                 </div>
               )}
-              {section === 'users' && (
+              {section === "users" && (
                 <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
                   <AdminUserManagement />
                 </div>
               )}
-              {section === 'reportedUsers' && (
+              {section === "reportedUsers" && (
                 <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
                   <AdminReportedUsers />
                 </div>

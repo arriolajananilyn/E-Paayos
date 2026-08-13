@@ -5,6 +5,7 @@ import LandingPage from './pages/landingpage.jsx'
 import Login from './pages/auth/login.jsx'
 import CustomerDashboard from './pages/customer/dashboard.jsx'
 import CustomerMyBookings from './pages/customer/myBookings.jsx'
+import CustomerBookingHistory from './pages/customer/bookingHistory.jsx'
 import CustomerMessages from './pages/customer/messages.jsx'
 import CustomerNotification from './pages/customer/notification.jsx'
 import CustomerAccountSettings from './pages/customer/accountSettings.jsx'
@@ -17,7 +18,6 @@ import ShopOwnerDashboard from './pages/shopowner/dashboard.jsx'
 import ManageEmployeePage from './pages/shopowner/manageEmployee.jsx'
 import TrackEmployeePage from './pages/shopowner/trackEmployee.jsx'
 import ServiceRequestPage from './pages/shopowner/serviceRequest.jsx'
-import AppointmentsSchedulePage from './pages/shopowner/appointmentsSchedule.jsx'
 import ServiceHistoryPage from './pages/shopowner/serviceHistory.jsx'
 import ServicesPage from './pages/shopowner/services.jsx'
 import MessagesPage from './pages/shopowner/messages.jsx'
@@ -31,7 +31,6 @@ import MechanicTechnicianAssignedRequest from './pages/mechanic/technician/assig
 import MechanicTechnicianServiceHistory from './pages/mechanic/technician/serviceHistory.jsx'
 import MechanicTechnicianWorkInfo from './pages/mechanic/technician/workInfo.jsx'
 import MechanicTechnicianMessages from './pages/mechanic/technician/messages.jsx'
-import MechanicTechnicianReviewRatings from './pages/mechanic/technician/reviewRatings.jsx'
 import MechanicTechnicianNotification from './pages/mechanic/technician/notification.jsx'
 import OnCallMechanicDashboard from './pages/oncallmechanic/technician/dashboard.jsx'
 import OnCallMechanicServices from './pages/oncallmechanic/technician/services.jsx'
@@ -81,6 +80,8 @@ function App() {
         return <CustomerDashboard />
       case '#/customer/my-bookings':
         return <CustomerMyBookings />
+      case '#/customer/booking-history':
+        return <CustomerBookingHistory />
       case '#/customer/messages':
         return <CustomerMessages />
       case '#/customer/notification':
@@ -105,8 +106,6 @@ function App() {
         return <TrackEmployeePage />
       case '#/provider/service-request':
         return <ServiceRequestPage />
-      case '#/provider/appointments-schedule':
-        return <AppointmentsSchedulePage />
       case '#/provider/service-history':
         return <ServiceHistoryPage />
       case '#/provider/messages':
@@ -130,8 +129,6 @@ function App() {
         return <MechanicTechnicianWorkInfo />
       case '#/mechanic/technician/messages':
         return <MechanicTechnicianMessages />
-      case '#/mechanic/technician/reviews-ratings':
-        return <MechanicTechnicianReviewRatings />
       case '#/mechanic/technician/notification':
         return <MechanicTechnicianNotification />
       case '#/independent/technician/dashboard':
