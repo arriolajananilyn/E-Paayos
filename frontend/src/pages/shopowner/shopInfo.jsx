@@ -498,17 +498,18 @@ export function ShopInfoInner({ variant = 'shop' }) {
     setSaveError('')
     setSaveNotice('')
     try {
+      const isIndependent = variant === 'independent' || providerRole === 'oncall-mechanic-technician' || providerRole === 'independent-mechanic-technician'
       const payload = {
         ...form,
         businessType: BUSINESS_DB_BY_DISPLAY[form.businessType] || form.businessType,
         serviceType:
-          providerRole === 'oncall-mechanic-technician'
+          isIndependent
             ? INDEPENDENT_DISPLAY_TO_DB[form.serviceType] ?? SERVICE_DB_BY_DISPLAY[form.serviceType] ?? form.serviceType
             : SERVICE_DB_BY_DISPLAY[form.serviceType] || form.serviceType,
         yearsOfOperation: form.yearsOfOperation === '' ? null : Number(form.yearsOfOperation),
         numberOfEmployees: form.numberOfEmployees === '' ? null : Number(form.numberOfEmployees),
       }
-      if (providerRole === 'oncall-mechanic-technician') {
+      if (isIndependent) {
         delete payload.numberOfEmployees
       }
       const res = await fetch(`${API_URL}/api/users/me/shop`, {

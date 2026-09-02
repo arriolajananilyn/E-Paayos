@@ -154,6 +154,7 @@ function toStoredServiceType(value) {
   if (!n) return n
   if (n === "Both (Home Service and Shop Visit)") return "Both"
   if (n === "Both (Home Service, Technician/Mechanic location Visit)") return "Both"
+  if (n === "Technician/Mechanic location Visit") return "Shop Visit"
   const lowered = n.toLowerCase()
   for (const item of ["Home Service", "Shop Visit", "Both"]) {
     if (item.toLowerCase() === lowered) return item
@@ -588,7 +589,7 @@ export const updateShopOwnerShopInfo = asyncHandler(async (req, res) => {
   const isOnCallProvider =
     req.user.role === "oncall-mechanic-technician" || req.user.role === "independent-mechanic-technician"
 
-  if (!clean(body.shopName) || !businessEnumOk || !serviceEnumOk) {
+  if ((!isOnCallProvider && !clean(body.shopName)) || !businessEnumOk || !serviceEnumOk) {
     res.status(400)
     throw new Error("Please complete all required shop fields with valid business and service types")
   }

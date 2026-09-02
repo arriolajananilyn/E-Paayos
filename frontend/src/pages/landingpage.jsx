@@ -313,95 +313,94 @@ function PublicCatalogServiceCard({ item, isDark }) {
       onClick={() => {
         window.location.hash = '#/login'
       }}
-      className={`group cursor-pointer overflow-hidden rounded-sm border text-left flex flex-col justify-between transition-all duration-300 shadow-md hover:-translate-y-1 ${
-        isDark
-          ? 'bg-[#0a1836] border-sky-900/50 hover:border-sky-400 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] hover:shadow-[0_8px_30px_-8px_rgba(56,189,248,0.25)] text-slate-100'
-          : 'bg-white border-slate-200 shadow-[0_4px_16px_rgba(15,23,42,0.12)] hover:border-[#081F5C] hover:shadow-[0_8px_25px_rgba(8,31,92,0.2)] text-slate-900'
-      }`}
+      className={`group cursor-pointer overflow-hidden rounded-sm border text-left flex flex-col justify-between transition-all duration-300 shadow-md hover:-translate-y-1 ${isDark
+        ? 'bg-[#0a1836] border-sky-900/50 hover:border-sky-400 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] hover:shadow-[0_8px_30px_-8px_rgba(56,189,248,0.25)] text-slate-100'
+        : 'bg-white border-slate-200 shadow-[0_4px_16px_rgba(15,23,42,0.12)] hover:border-[#081F5C] hover:shadow-[0_8px_25px_rgba(8,31,92,0.2)] text-slate-900'
+        }`}
     >
       <div>
         {/* Banner Frame */}
         <div
-          className="relative h-28 w-full bg-[#04133d] bg-cover bg-center"
+          className="relative h-20 sm:h-28 w-full bg-[#04133d] bg-cover bg-center"
           style={{
             backgroundImage: `linear-gradient(to right, rgba(4,19,61,0.88), rgba(8,31,92,0.45)), url(${topBannerImage})`,
           }}
         >
-          <div className="absolute inset-0 flex flex-col p-3 justify-between">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-white/40 bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white shadow-xs">
+          <div className="absolute inset-0 flex flex-col p-2 sm:p-3 justify-between">
+            <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="inline-flex h-7 w-7 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-sm border border-white/40 bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] sm:text-xs font-bold text-white shadow-xs">
                   {initialsFromName(item.shopOwner || item.shopName)}
                 </span>
                 <div className="min-w-0">
-                  <h4 className="truncate text-sm font-bold text-white drop-shadow-xs">{item.shopName}</h4>
-                  <p className="truncate text-[11px] font-medium text-white/90">Owner: {item.shopOwner || '—'}</p>
+                  <h4 className="truncate text-[11px] sm:text-sm font-bold text-white drop-shadow-xs">{item.shopName}</h4>
+                  <p className="truncate text-[9px] sm:text-[11px] font-medium text-white/90">Owner: {item.shopOwner || '—'}</p>
                 </div>
               </div>
 
               {/* Category Badge */}
-              <Badge className={`shrink-0 rounded-sm border-0 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${categoryBadgeClass(item.category)}`}>
+              <Badge className={`shrink-0 rounded-sm border-0 px-1.5 py-0.5 sm:px-2.5 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider ${categoryBadgeClass(item.category)}`}>
                 {item.category}
               </Badge>
             </div>
 
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-between pt-0.5 sm:pt-1">
               {serviceTypeBadge(item.type)}
-              <div className="flex items-center gap-1 rounded-sm border border-white/30 bg-black/40 px-2 py-0.5 backdrop-blur-xs">
-                <Star className="h-3 w-3 fill-amber-300 text-amber-200" />
-                <span className="text-[11px] font-bold text-white tabular-nums">{ratingLabel}</span>
+              <div className="flex items-center gap-1 rounded-sm border border-white/30 bg-black/40 px-1.5 sm:px-2 py-0.5 backdrop-blur-xs">
+                <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-300 text-amber-200" />
+                <span className="text-[9px] sm:text-[11px] font-bold text-white tabular-nums">{ratingLabel}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Card Body */}
-        <div className="p-4 space-y-2">
-          <div className="space-y-1">
-            <p className={`text-sm font-extrabold uppercase tracking-wide truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+        <div className="p-2.5 sm:p-4 space-y-1.5 sm:space-y-2">
+          <div className="space-y-0.5 sm:space-y-1">
+            <p className={`text-[11px] sm:text-sm font-extrabold uppercase tracking-wide truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {item.serviceName}
             </p>
-            <p className={`text-xs line-clamp-2 leading-snug font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+            <p className={`text-[10px] sm:text-xs line-clamp-2 leading-snug font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               {item.subcategory?.trim() ? item.subcategory.trim() : '—'}
             </p>
           </div>
 
-          <div className={`space-y-1.5 pt-2 text-xs border-t ${isDark ? 'border-sky-900/30 text-slate-300' : 'border-slate-100 text-slate-600'}`}>
+          <div className={`space-y-1 sm:space-y-1.5 pt-1.5 sm:pt-2 text-[10px] sm:text-xs border-t ${isDark ? 'border-sky-900/30 text-slate-300' : 'border-slate-100 text-slate-600'}`}>
             <div className="flex items-center gap-1.5">
-              <MapPin className="h-4 w-4 shrink-0 text-sky-500" />
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-sky-500" />
               <span className="truncate">{item.shopAddress || 'Boac, Marinduque'}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Wrench className="h-4 w-4 shrink-0 text-sky-500" />
-              <span>{item.completedJobs || 0} completed jobs</span>
+              <Wrench className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-sky-500" />
+              <span className="truncate">{item.completedJobs || 0} completed jobs</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex h-4 w-4 items-center justify-center text-[10px] font-bold text-sky-500">
+              <span className="inline-flex h-3 w-3 sm:h-4 sm:w-4 items-center justify-center text-[8px] sm:text-[10px] font-bold text-sky-500 shrink-0">
                 PHP
               </span>
-              <span className="font-semibold text-sky-400">
-                Labor price: {formatLaborPriceRange(item.laborRatingMin, item.laborRatingMax)}
+              <span className="font-semibold text-sky-400 truncate">
+                {formatLaborPriceRange(item.laborRatingMin, item.laborRatingMax)}
               </span>
             </div>
           </div>
 
-          <div className={`pt-2.5 border-t ${isDark ? 'border-sky-900/30' : 'border-slate-100'}`}>
-            <p className={`text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-900'}`}>
+          <div className={`pt-1.5 sm:pt-2.5 border-t ${isDark ? 'border-sky-900/30' : 'border-slate-100'}`}>
+            <p className={`text-[9px] sm:text-[11px] font-bold uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-900'}`}>
               {staffRoleHeading(item.category)}
             </p>
-            <div className="mt-1.5 flex items-center justify-between">
+            <div className="mt-1 sm:mt-1.5 flex items-center justify-between">
               <div className="inline-flex items-center gap-1">
                 {displayedStaff.slice(0, 3).map((name) => (
                   <span
                     key={name}
                     title={name}
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-sm border border-white bg-gradient-to-br from-[#04133d] to-[#1447a6] text-[9px] font-bold text-white shadow-2xs"
+                    className="inline-flex h-4 w-4 sm:h-6 sm:w-6 items-center justify-center rounded-sm border border-white bg-gradient-to-br from-[#04133d] to-[#1447a6] text-[7px] sm:text-[9px] font-bold text-white shadow-2xs"
                   >
                     {initialsFromName(name)}
                   </span>
                 ))}
               </div>
-              <span className={`text-[11px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-[9px] sm:text-[11px] font-medium truncate ml-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 {staffAssignedLabel(item.category, displayedStaff.length)}
               </span>
             </div>
@@ -409,13 +408,13 @@ function PublicCatalogServiceCard({ item, isDark }) {
         </div>
       </div>
 
-      <div className="p-4 pt-0">
+      <div className="p-2.5 sm:p-4 pt-0">
         <Button
           size="sm"
-          className="w-full h-9 rounded-sm bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white font-bold text-xs gap-1.5 shadow-xs uppercase tracking-wider"
+          className="w-full h-7.5 sm:h-9 rounded-sm bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white font-bold text-[10px] sm:text-xs gap-1 shadow-xs uppercase tracking-wider"
         >
-          Book Repair Service
-          <ArrowRight className="size-3.5" />
+          <span className="truncate">Book Service</span>
+          <ArrowRight className="size-2.5 sm:size-3.5 shrink-0" />
         </Button>
       </div>
     </div>
@@ -442,23 +441,22 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b backdrop-blur-md ${
-        isDark
-          ? 'bg-[#04133d]/90 border-sky-900/40 text-slate-100'
-          : 'bg-white/90 border-slate-200/80 text-slate-800 shadow-xs'
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b backdrop-blur-md ${isDark
+        ? 'bg-[#04133d]/90 border-sky-900/40 text-slate-100'
+        : 'bg-white/90 border-slate-200/80 text-slate-800 shadow-xs'
+        }`}
     >
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 sm:h-20 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <button
           type="button"
           onClick={() => handleNavClick('hero')}
-          className="flex items-center gap-3 cursor-pointer group text-left"
+          className="flex items-center gap-2 sm:gap-3 cursor-pointer group text-left"
         >
           <img
             src={logoEpaayos}
             alt="E-PAAYOS"
-            className="h-10 sm:h-11 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+            className="h-8 sm:h-11 w-auto object-contain transition-transform group-hover:scale-[1.02]"
           />
         </button>
 
@@ -469,11 +467,10 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
               key={link.target}
               type="button"
               onClick={() => handleNavClick(link.target)}
-              className={`px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
-                isDark
-                  ? 'text-slate-200 hover:text-sky-400 hover:bg-sky-950/40'
-                  : 'text-slate-700 hover:text-[#081F5C] hover:bg-slate-100'
-              }`}
+              className={`px-3 py-2 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${isDark
+                ? 'text-slate-200 hover:text-sky-400 hover:bg-sky-950/40'
+                : 'text-slate-700 hover:text-[#081F5C] hover:bg-slate-100'
+                }`}
             >
               {link.label}
             </button>
@@ -481,20 +478,19 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
         </nav>
 
         {/* Header Right Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Dark / Light Mode Switcher */}
           <button
             type="button"
             onClick={toggleTheme}
-            className={`p-2 rounded-sm border transition-all cursor-pointer ${
-              isDark
-                ? 'bg-slate-800/80 border-slate-700 text-amber-300 hover:bg-slate-700'
-                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
-            }`}
+            className={`p-1.5 sm:p-2 rounded-sm border transition-all cursor-pointer ${isDark
+              ? 'bg-slate-800/80 border-slate-700 text-amber-300 hover:bg-slate-700'
+              : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+              }`}
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle Theme"
           >
-            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {isDark ? <Sun className="size-3.5 sm:size-4" /> : <Moon className="size-3.5 sm:size-4" />}
           </button>
 
           {/* Sign In Button */}
@@ -502,11 +498,10 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
             asChild
             variant="outline"
             size="sm"
-            className={`hidden sm:inline-flex h-9 px-4 text-xs font-bold rounded-sm border transition-all uppercase tracking-wider ${
-              isDark
-                ? 'border-sky-500/30 bg-slate-900/60 text-sky-300 hover:bg-sky-950/60 hover:text-white'
-                : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-100'
-            }`}
+            className={`hidden sm:inline-flex h-9 px-4 text-xs font-bold rounded-sm border transition-all uppercase tracking-wider ${isDark
+              ? 'border-sky-500/30 bg-slate-900/60 text-sky-300 hover:bg-sky-950/60 hover:text-white'
+              : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-100'
+              }`}
           >
             <a href="#/login">
               <LogIn className="size-3.5 mr-1.5 text-sky-500" />
@@ -518,11 +513,11 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
           <Button
             asChild
             size="sm"
-            className="h-9 px-4 sm:px-5 text-xs font-extrabold rounded-sm bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white shadow-md shadow-blue-700/20 uppercase tracking-wider"
+            className="h-8 sm:h-9 px-3 sm:px-5 text-[11px] sm:text-xs font-extrabold rounded-sm bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white shadow-md shadow-blue-700/20 uppercase tracking-wider"
           >
             <a href="#/register">
               Get Started
-              <ArrowRight className="size-3.5 ml-1.5" />
+              <ArrowRight className="size-3 sm:size-3.5 ml-1 sm:ml-1.5" />
             </a>
           </Button>
 
@@ -530,12 +525,11 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`lg:hidden p-2 rounded-sm border transition-colors ${
-              isDark ? 'border-slate-800 bg-slate-900 text-slate-200' : 'border-slate-200 bg-slate-100 text-slate-700'
-            }`}
+            className={`lg:hidden p-1.5 sm:p-2 rounded-sm border transition-colors ${isDark ? 'border-slate-800 bg-slate-900 text-slate-200' : 'border-slate-200 bg-slate-100 text-slate-700'
+              }`}
             aria-label="Toggle Navigation Menu"
           >
-            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {mobileMenuOpen ? <X className="size-4 sm:size-5" /> : <Menu className="size-4 sm:size-5" />}
           </button>
         </div>
       </div>
@@ -543,42 +537,39 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div
-          className={`lg:hidden border-b px-4 pt-3 pb-6 space-y-2 shadow-2xl animate-in slide-in-from-top duration-200 ${
-            isDark ? 'bg-[#04133d] border-sky-900/50 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}
+          className={`lg:hidden border-b px-4 pt-3 pb-6 space-y-2 shadow-2xl animate-in slide-in-from-top duration-200 ${isDark ? 'bg-[#04133d] border-sky-900/50 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
         >
           {navLinks.map((link) => (
             <button
               key={link.target}
               type="button"
               onClick={() => handleNavClick(link.target)}
-              className={`block w-full text-left px-4 py-2.5 rounded-sm text-sm font-semibold uppercase tracking-wider transition-colors ${
-                isDark ? 'hover:bg-sky-950/60 text-slate-200' : 'hover:bg-slate-100 text-slate-800'
-              }`}
+              className={`block w-full text-left px-3.5 py-2.5 rounded-sm text-xs sm:text-sm font-semibold uppercase tracking-wider transition-colors ${isDark ? 'hover:bg-sky-950/60 text-slate-200' : 'hover:bg-slate-100 text-slate-800'
+                }`}
             >
               {link.label}
             </button>
           ))}
-          <div className="pt-3 border-t border-slate-700/30 flex flex-col gap-2">
+          <div className="pt-3 border-t border-slate-700/30 grid grid-cols-2 gap-2">
             <Button
               asChild
               variant="outline"
-              className={`w-full justify-center h-10 rounded-sm font-bold text-xs uppercase tracking-wider ${
-                isDark ? 'border-sky-500/30 bg-slate-900 text-sky-300' : 'border-slate-300 text-slate-800'
-              }`}
+              className={`w-full justify-center h-9 sm:h-10 rounded-sm font-bold text-[11px] sm:text-xs uppercase tracking-wider ${isDark ? 'border-sky-500/30 bg-slate-900 text-sky-300' : 'border-slate-300 text-slate-800'
+                }`}
             >
-              <a href="#/login">
-                <LogIn className="size-4 mr-2 text-sky-500" />
-                Sign In to Account
+              <a href="#/login" className="truncate px-1">
+                <LogIn className="size-3.5 mr-1 text-sky-500 shrink-0" />
+                Sign In
               </a>
             </Button>
             <Button
               asChild
-              className="w-full justify-center h-10 rounded-sm bg-gradient-to-r from-blue-700 to-sky-600 text-white font-extrabold text-xs uppercase tracking-wider"
+              className="w-full justify-center h-9 sm:h-10 rounded-sm bg-gradient-to-r from-blue-700 to-sky-600 text-white font-extrabold text-[11px] sm:text-xs uppercase tracking-wider"
             >
-              <a href="#/register">
-                Get Started Free
-                <ArrowRight className="size-4 ml-2" />
+              <a href="#/register" className="truncate px-1">
+                Get Started
+                <ArrowRight className="size-3.5 ml-1 shrink-0" />
               </a>
             </Button>
           </div>
@@ -622,13 +613,13 @@ export default function LandingPage() {
   useEffect(() => {
     fetch(`${API_URL}/api/catalog/shop-services`)
       ? fetch(`${API_URL}/api/catalog/shop-services`)
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (Array.isArray(data) && data.length > 0) {
-              setLiveServices(data)
-            }
-          })
-          .catch(() => {})
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (Array.isArray(data) && data.length > 0) {
+            setLiveServices(data)
+          }
+        })
+        .catch(() => { })
       : null
   }, [])
 
@@ -657,21 +648,18 @@ export default function LandingPage() {
 
   return (
     <div
-      className={`min-h-screen font-sans selection:bg-sky-500 selection:text-white relative overflow-x-hidden transition-colors duration-300 scroll-smooth ${
-        isDark ? 'bg-[#030b21] text-slate-100' : 'bg-gradient-to-br from-[#eef4ff] via-[#f4f8ff] to-[#e6efff] text-slate-800'
-      }`}
+      className={`min-h-screen font-sans selection:bg-sky-500 selection:text-white relative overflow-x-hidden transition-colors duration-300 scroll-smooth ${isDark ? 'bg-[#030b21] text-slate-100' : 'bg-gradient-to-br from-[#eef4ff] via-[#f4f8ff] to-[#e6efff] text-slate-800'
+        }`}
     >
       {/* Ambient Glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div
-          className={`absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] rounded-sm blur-[160px] transition-colors duration-500 ${
-            isDark ? 'bg-sky-600/15' : 'bg-blue-300/30'
-          }`}
+          className={`absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] rounded-sm blur-[160px] transition-colors duration-500 ${isDark ? 'bg-sky-600/15' : 'bg-blue-300/30'
+            }`}
         />
         <div
-          className={`absolute top-1/3 -left-40 w-[600px] h-[600px] rounded-sm blur-[170px] transition-colors duration-500 ${
-            isDark ? 'bg-indigo-600/15' : 'bg-indigo-200/30'
-          }`}
+          className={`absolute top-1/3 -left-40 w-[600px] h-[600px] rounded-sm blur-[170px] transition-colors duration-500 ${isDark ? 'bg-indigo-600/15' : 'bg-indigo-200/30'
+            }`}
         />
       </div>
 
@@ -679,19 +667,18 @@ export default function LandingPage() {
       <PublicTopbar isDark={isDark} toggleTheme={toggleTheme} scrollToSection={scrollToSection} />
 
       {/* Spacer for Fixed Topbar */}
-      <div aria-hidden className="h-20 shrink-0" />
+      <div aria-hidden className="h-16 sm:h-20 shrink-0" />
 
       {/* Main Content Container */}
       <main className="relative">
         {/* Fixed Hero Section (Pinned under topbar while next section slides over it) */}
-        <section id="hero" className="fixed top-20 inset-x-0 z-0 w-full h-[calc(100vh-5rem)] min-h-[600px] max-h-[760px] flex items-center overflow-hidden">
+        <section id="hero" className="fixed top-16 sm:top-20 inset-x-0 z-0 w-full h-[calc(100svh-4rem)] sm:h-[calc(100vh-5rem)] min-h-[480px] sm:min-h-[600px] max-h-[760px] flex items-center overflow-hidden">
           {/* Background Images Carousel */}
           {HERO_SLIDES.map((slide, idx) => (
             <div
               key={slide.id}
-              className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out ${
-                idx === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'
-              }`}
+              className={`absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out ${idx === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'
+                }`}
               style={{
                 backgroundImage: `url('${slide.image}')`,
               }}
@@ -700,40 +687,36 @@ export default function LandingPage() {
 
           {/* Gradient Tint Overlay */}
           <div
-            className={`absolute inset-0 transition-colors duration-500 ${
-              isDark
-                ? 'bg-gradient-to-r from-[#030b21]/95 via-[#030b21]/85 via-50% to-[#030b21]/40'
-                : 'bg-gradient-to-r from-[#eef4ff] via-[#eef4ff]/95 via-50% to-[#eef4ff]/40'
-            }`}
+            className={`absolute inset-0 transition-colors duration-500 ${isDark
+              ? 'bg-gradient-to-r from-[#030b21]/95 via-[#030b21]/85 via-50% to-[#030b21]/40'
+              : 'bg-gradient-to-r from-[#eef4ff] via-[#eef4ff]/95 via-50% to-[#eef4ff]/40'
+              }`}
           />
 
           {/* Hero Content Container */}
-          <div className="relative z-10 w-full px-6 sm:px-12 lg:px-16 py-8 max-w-4xl text-left space-y-4 sm:space-y-6">
+          <div className="relative z-10 w-full px-4 sm:px-12 lg:px-16 py-4 sm:py-8 max-w-4xl text-left space-y-3 sm:space-y-6">
             {/* Tagline Pill Badge */}
             <div
-              className={`inline-flex items-center gap-2 rounded-sm border px-4 py-1.5 text-xs font-bold shadow-xs backdrop-blur-md transition-all duration-500 ${
-                isDark
-                  ? 'border-sky-500/40 bg-sky-950/80 text-sky-300'
-                  : 'border-blue-500/40 bg-white/95 text-blue-800'
-              }`}
+              className={`inline-flex items-center gap-1.5 sm:gap-2 rounded-sm border px-3 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs font-bold shadow-xs backdrop-blur-md transition-all duration-500 ${isDark
+                ? 'border-sky-500/40 bg-sky-950/80 text-sky-300'
+                : 'border-blue-500/40 bg-white/95 text-blue-800'
+                }`}
             >
-              <Sparkles className="size-3.5 text-sky-400 animate-pulse" />
-              <span>{activeSlideData.tagline}</span>
+              <Sparkles className="size-3 sm:size-3.5 text-sky-400 animate-pulse shrink-0" />
+              <span className="truncate">{activeSlideData.tagline}</span>
             </div>
 
             {/* Headline */}
             <h1
-              className={`text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] transition-all duration-500 ${
-                isDark ? 'text-white' : 'text-slate-900'
-              }`}
+              className={`text-2xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.18] sm:leading-[1.12] transition-all duration-500 ${isDark ? 'text-white' : 'text-slate-900'
+                }`}
             >
               {activeSlideData.titlePrefix}
               <span
-                className={`bg-clip-text text-transparent block sm:inline ${
-                  isDark
-                    ? 'bg-gradient-to-r from-sky-400 via-indigo-300 to-blue-200'
-                    : 'bg-gradient-to-r from-blue-700 via-indigo-800 to-sky-700'
-                }`}
+                className={`bg-clip-text text-transparent block sm:inline ${isDark
+                  ? 'bg-gradient-to-r from-sky-400 via-indigo-300 to-blue-200'
+                  : 'bg-gradient-to-r from-blue-700 via-indigo-800 to-sky-700'
+                  }`}
               >
                 {activeSlideData.titleHighlight}
               </span>
@@ -741,24 +724,23 @@ export default function LandingPage() {
 
             {/* Subtitle */}
             <p
-              className={`text-sm sm:text-base leading-relaxed max-w-2xl font-medium transition-all duration-500 ${
-                isDark ? 'text-slate-300' : 'text-slate-700'
-              }`}
+              className={`text-xs sm:text-base leading-relaxed max-w-2xl font-medium line-clamp-3 sm:line-clamp-none transition-all duration-500 ${isDark ? 'text-slate-300' : 'text-slate-700'
+                }`}
             >
               {activeSlideData.subtitle}
             </p>
 
             {/* Hero Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="grid grid-cols-1 min-[440px]:grid-cols-2 sm:flex sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-1 sm:pt-2">
               <Button
                 asChild
                 size="lg"
-                className="h-12 px-8 text-sm bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white font-extrabold shadow-lg shadow-blue-700/30 gap-2 rounded-sm uppercase tracking-wider"
+                className="h-10 sm:h-12 px-4 sm:px-8 text-xs sm:text-sm bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white font-extrabold shadow-lg shadow-blue-700/30 gap-1.5 sm:gap-2 rounded-sm uppercase tracking-wider justify-center"
               >
                 <a href="#/register">
-                  <Wrench className="size-4" />
-                  Get Started Now
-                  <ArrowRight className="size-4" />
+                  <Wrench className="size-3.5 sm:size-4 shrink-0" />
+                  <span className="truncate">Get Started Now</span>
+                  <ArrowRight className="size-3.5 sm:size-4 shrink-0" />
                 </a>
               </Button>
 
@@ -766,47 +748,44 @@ export default function LandingPage() {
                 asChild
                 size="lg"
                 variant="outline"
-                className={`h-12 px-6 text-sm border font-bold shadow-xs gap-2 rounded-sm uppercase tracking-wider ${
-                  isDark
-                    ? 'border-sky-500/30 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white'
-                    : 'border-slate-300 bg-white/90 text-slate-800 hover:bg-slate-50'
-                }`}
+                className={`h-10 sm:h-12 px-4 sm:px-6 text-xs sm:text-sm border font-bold shadow-xs gap-1.5 sm:gap-2 rounded-sm uppercase tracking-wider justify-center ${isDark
+                  ? 'border-sky-500/30 bg-slate-900/80 text-slate-200 hover:bg-slate-800 hover:text-white'
+                  : 'border-slate-300 bg-white/90 text-slate-800 hover:bg-slate-50'
+                  }`}
               >
                 <a href="#/login">
-                  <LogIn className="size-4 text-sky-500" />
-                  Sign In to Account
+                  <LogIn className="size-3.5 sm:size-4 text-sky-500 shrink-0" />
+                  <span className="truncate">Sign In to Account</span>
                 </a>
               </Button>
             </div>
 
-            {/* Quick Metrics Bar */}
-            <div className="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl">
+            {/* Quick Metrics Bar (2-columns on mobile, 4 on desktop) */}
+            <div className="pt-2 sm:pt-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 max-w-3xl">
               {activeSlideData.metrics.map((m, idx) => (
                 <div
                   key={idx}
-                  className={`p-3.5 rounded-sm border backdrop-blur-md shadow-xs transition-colors ${
-                    isDark
-                      ? 'bg-slate-900/80 border-sky-900/40'
-                      : 'bg-white/90 border-slate-200'
-                  }`}
+                  className={`p-2 sm:p-3.5 rounded-sm border backdrop-blur-md shadow-xs transition-colors ${isDark
+                    ? 'bg-slate-900/80 border-sky-900/40'
+                    : 'bg-white/90 border-slate-200'
+                    }`}
                 >
-                  <p className="text-xl sm:text-2xl font-black text-sky-400">{m.val}</p>
-                  <p className={`text-[11px] font-semibold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className="text-sm sm:text-2xl font-black text-sky-400 truncate">{m.val}</p>
+                  <p className={`text-[9px] sm:text-[11px] font-semibold mt-0.5 truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     {m.label}
                   </p>
                 </div>
               ))}
               <div
-                className={`p-3.5 rounded-sm border backdrop-blur-md shadow-xs transition-colors ${
-                  isDark
-                    ? 'bg-slate-900/80 border-sky-900/40'
-                    : 'bg-white/90 border-slate-200'
-                }`}
+                className={`p-2 sm:p-3.5 rounded-sm border backdrop-blur-md shadow-xs transition-colors ${isDark
+                  ? 'bg-slate-900/80 border-sky-900/40'
+                  : 'bg-white/90 border-slate-200'
+                  }`}
               >
-                <p className={`text-xl sm:text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <p className={`text-sm sm:text-2xl font-black truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   Marinduque
                 </p>
-                <p className={`text-[11px] font-semibold mt-0.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                <p className={`text-[9px] sm:text-[11px] font-semibold mt-0.5 truncate ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                   Island Wide
                 </p>
               </div>
@@ -814,33 +793,31 @@ export default function LandingPage() {
           </div>
 
           {/* Floating Carousel Controls & Slide Indicators */}
-          <div className="absolute bottom-6 right-6 sm:right-12 z-20 flex items-center gap-3">
+          <div className="absolute bottom-3 right-3 sm:bottom-6 sm:right-12 z-20 flex items-center gap-1.5 sm:gap-3">
             <button
               type="button"
               onClick={prevSlide}
-              className={`p-2 rounded-sm border backdrop-blur-md transition-all cursor-pointer ${
-                isDark
-                  ? 'bg-slate-900/80 border-slate-700 text-white/80 hover:text-sky-400'
-                  : 'bg-white/80 border-slate-200 text-slate-700 hover:text-blue-700'
-              }`}
+              className={`p-1.5 sm:p-2 rounded-sm border backdrop-blur-md transition-all cursor-pointer ${isDark
+                ? 'bg-slate-900/80 border-slate-700 text-white/80 hover:text-sky-400'
+                : 'bg-white/80 border-slate-200 text-slate-700 hover:text-blue-700'
+                }`}
               title="Previous Slide"
             >
-              <ChevronLeft className="size-5" />
+              <ChevronLeft className="size-4 sm:size-5" />
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {HERO_SLIDES.map((slide, idx) => (
                 <button
                   key={slide.id}
                   type="button"
                   onClick={() => setCurrentSlide(idx)}
-                  className={`h-1.5 transition-all rounded-sm cursor-pointer ${
-                    idx === currentSlide
-                      ? 'w-7 bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]'
-                      : isDark
-                      ? 'w-2 bg-white/40 hover:bg-white/70'
-                      : 'w-2 bg-slate-400/60 hover:bg-slate-700'
-                  }`}
+                  className={`h-1.5 transition-all rounded-sm cursor-pointer ${idx === currentSlide
+                    ? 'w-5 sm:w-7 bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]'
+                    : isDark
+                      ? 'w-1.5 sm:w-2 bg-white/40 hover:bg-white/70'
+                      : 'w-1.5 sm:w-2 bg-slate-400/60 hover:bg-slate-700'
+                    }`}
                   title={`Slide ${idx + 1}`}
                 />
               ))}
@@ -849,14 +826,13 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={nextSlide}
-              className={`p-2 rounded-sm border backdrop-blur-md transition-all cursor-pointer ${
-                isDark
-                  ? 'bg-slate-900/80 border-slate-700 text-white/80 hover:text-sky-400'
-                  : 'bg-white/80 border-slate-200 text-slate-700 hover:text-blue-700'
-              }`}
+              className={`p-1.5 sm:p-2 rounded-sm border backdrop-blur-md transition-all cursor-pointer ${isDark
+                ? 'bg-slate-900/80 border-slate-700 text-white/80 hover:text-sky-400'
+                : 'bg-white/80 border-slate-200 text-slate-700 hover:text-blue-700'
+                }`}
               title="Next Slide"
             >
-              <ChevronRight className="size-5" />
+              <ChevronRight className="size-4 sm:size-5" />
             </button>
           </div>
 
@@ -864,7 +840,7 @@ export default function LandingPage() {
           <button
             type="button"
             onClick={scrollToNextSection}
-            className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer group"
+            className="hidden sm:flex absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex-col items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors cursor-pointer group"
             title="Scroll to next section"
           >
             <span className="text-[10px] font-extrabold uppercase tracking-widest opacity-80 group-hover:opacity-100 transition-opacity">
@@ -877,52 +853,48 @@ export default function LandingPage() {
         </section>
 
         {/* Spacer for Fixed Hero Section */}
-        <div aria-hidden className="h-[calc(100vh-5rem)] min-h-[600px] max-h-[760px] pointer-events-none" />
+        <div aria-hidden className="h-[calc(100svh-4rem)] sm:h-[calc(100vh-5rem)] min-h-[480px] sm:min-h-[600px] max-h-[760px] pointer-events-none" />
 
         {/* Main Content Overlay Sheet (Slides up over fixed Hero with minimal top curve) */}
         <div
-          className={`relative z-10 rounded-t-md sm:rounded-t-lg border-t transition-colors duration-300 shadow-[0_-25px_60px_rgba(0,0,0,0.3)] ${
-            isDark
-              ? 'bg-[#030b21] border-sky-900/40'
-              : 'bg-[#f4f8ff] border-slate-200'
-          }`}
+          className={`relative z-10 rounded-t-md sm:rounded-t-lg border-t transition-colors duration-300 shadow-[0_-25px_60px_rgba(0,0,0,0.3)] ${isDark
+            ? 'bg-[#030b21] border-sky-900/40'
+            : 'bg-[#f4f8ff] border-slate-200'
+            }`}
         >
           {/* About Section */}
-          <section id="about" className="mx-auto max-w-7xl px-4 pt-16 pb-14 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
+          <section id="about" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 pt-10 sm:pt-16 pb-10 sm:pb-14">
+            <div className="text-center mb-8 sm:mb-12">
               <span
-                className={`inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1 text-xs font-bold uppercase tracking-wider mb-3 ${
-                  isDark
-                    ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
-                    : 'border-blue-500/30 bg-blue-50 text-blue-800'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-sm border px-3 sm:px-3.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2.5 sm:mb-3 ${isDark
+                  ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
+                  : 'border-blue-500/30 bg-blue-50 text-blue-800'
+                  }`}
               >
                 <ShieldCheck className="size-3.5 text-sky-400" />
                 LMD-PESO Accredited System
               </span>
-              <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h2 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 About the E-Paayos Platform
               </h2>
-              <div className="w-16 h-1 bg-gradient-to-r from-blue-600 to-sky-400 mx-auto mt-4 rounded-sm" />
+              <div className="w-12 sm:w-16 h-1 bg-gradient-to-r from-blue-600 to-sky-400 mx-auto mt-3 sm:mt-4 rounded-sm" />
             </div>
 
-            {/* 3 Pillars Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {/* 3 Pillars Cards - Responsive 1-col on mobile, 2-col on tablet (sm:), 3-col on desktop (lg:) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-6 mb-8 sm:mb-12">
               <div
-                className={`p-6 rounded-sm border transition-all ${
-                  isDark
-                    ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/40 shadow-lg'
-                    : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
-                }`}
+                className={`p-4 sm:p-6 rounded-sm border transition-all ${isDark
+                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/40 shadow-lg'
+                  : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                  }`}
               >
                 <div
-                  className={`size-12 rounded-sm flex items-center justify-center mb-5 ${
-                    isDark ? 'bg-sky-950/80 text-sky-400' : 'bg-blue-50 text-blue-700'
-                  }`}
+                  className={`size-10 sm:size-12 rounded-sm flex items-center justify-center mb-3 sm:mb-5 ${isDark ? 'bg-sky-950/80 text-sky-400' : 'bg-blue-50 text-blue-700'
+                    }`}
                 >
-                  <UserCheck className="size-6" />
+                  <UserCheck className="size-5 sm:size-6" />
                 </div>
-                <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h3 className={`text-sm sm:text-lg font-bold mb-1 sm:mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   PESO Credential Verification
                 </h3>
                 <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
@@ -931,20 +903,18 @@ export default function LandingPage() {
               </div>
 
               <div
-                className={`p-6 rounded-sm border transition-all ${
-                  isDark
-                    ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/40 shadow-lg'
-                    : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
-                }`}
+                className={`p-4 sm:p-6 rounded-sm border transition-all ${isDark
+                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/40 shadow-lg'
+                  : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                  }`}
               >
                 <div
-                  className={`size-12 rounded-sm flex items-center justify-center mb-5 ${
-                    isDark ? 'bg-indigo-950/80 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
-                  }`}
+                  className={`size-10 sm:size-12 rounded-sm flex items-center justify-center mb-3 sm:mb-5 ${isDark ? 'bg-indigo-950/80 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
+                    }`}
                 >
-                  <MapPin className="size-6" />
+                  <MapPin className="size-5 sm:size-6" />
                 </div>
-                <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h3 className={`text-sm sm:text-lg font-bold mb-1 sm:mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   Location-Based Discovery
                 </h3>
                 <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
@@ -953,20 +923,18 @@ export default function LandingPage() {
               </div>
 
               <div
-                className={`p-6 rounded-sm border transition-all ${
-                  isDark
-                    ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/40 shadow-lg'
-                    : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
-                }`}
+                className={`p-4 sm:p-6 rounded-sm border transition-all sm:col-span-2 lg:col-span-1 ${isDark
+                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/40 shadow-lg'
+                  : 'bg-white border-slate-200 shadow-sm hover:shadow-md'
+                  }`}
               >
                 <div
-                  className={`size-12 rounded-sm flex items-center justify-center mb-5 ${
-                    isDark ? 'bg-sky-950/80 text-sky-300' : 'bg-sky-50 text-sky-700'
-                  }`}
+                  className={`size-10 sm:size-12 rounded-sm flex items-center justify-center mb-3 sm:mb-5 ${isDark ? 'bg-sky-950/80 text-sky-300' : 'bg-sky-50 text-sky-700'
+                    }`}
                 >
-                  <Wrench className="size-6" />
+                  <Wrench className="size-5 sm:size-6" />
                 </div>
-                <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h3 className={`text-sm sm:text-lg font-bold mb-1 sm:mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   Home Service & Shop Booking
                 </h3>
                 <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
@@ -977,13 +945,12 @@ export default function LandingPage() {
 
             {/* Narrative Box */}
             <div
-              className={`p-8 sm:p-10 rounded-sm border transition-all ${
-                isDark
-                  ? 'bg-slate-900/60 border-sky-900/30'
-                  : 'bg-white border-slate-200 shadow-xs'
-              }`}
+              className={`p-4 sm:p-10 rounded-sm border transition-all ${isDark
+                ? 'bg-slate-900/60 border-sky-900/30'
+                : 'bg-white border-slate-200 shadow-xs'
+                }`}
             >
-              <div className="space-y-4 text-sm sm:text-base leading-relaxed">
+              <div className="space-y-2.5 sm:space-y-4 text-xs sm:text-base leading-relaxed">
                 <p className={isDark ? 'text-slate-200' : 'text-slate-700'}>
                   <strong>E-Paayos</strong> is a web-based repair service management platform engineered specifically for Marinduque.
                   It bridges households and businesses with accredited service providers, making repair discovery, appointment scheduling, and customer communication fast, transparent, and dependable.
@@ -996,27 +963,26 @@ export default function LandingPage() {
           </section>
 
           {/* Featured Repair Services Showcase matching findServices.jsx catalog cards */}
-          <section id="featured-services" className="mx-auto max-w-7xl px-4 pt-10 pb-16 sm:px-6 lg:px-8 border-t border-sky-900/20">
-            <div className="text-center mb-10">
+          <section id="featured-services" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-10 sm:pb-16 border-t border-sky-900/20">
+            <div className="text-center mb-6 sm:mb-10">
               <span
-                className={`inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1 text-xs font-bold uppercase tracking-wider mb-2 ${
-                  isDark
-                    ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
-                    : 'border-blue-500/30 bg-blue-50 text-blue-800'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-sm border px-3 sm:px-3.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2 ${isDark
+                  ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
+                  : 'border-blue-500/30 bg-blue-50 text-blue-800'
+                  }`}
               >
                 <Award className="size-3.5 text-sky-400" />
                 Available Shop & On-Call Services
               </span>
-              <h3 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Featured Repair Services & Supplies
+              <h3 className={`text-xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                Featured Repair Services in Marinduque
               </h3>
-              <p className={`text-xs sm:text-sm mt-2 max-w-xl mx-auto ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p className={`text-xs sm:text-sm mt-1.5 sm:mt-2 max-w-xl mx-auto ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 Active listings from verified shops and on-call mechanics across Marinduque.
               </p>
 
               {/* Filter Category Tabs matching PUBLIC_CATEGORIES */}
-              <div className="flex flex-wrap justify-center gap-2 mt-6">
+              <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mt-4 sm:mt-6">
                 {PUBLIC_CATEGORIES.map((cat) => {
                   const isActive = selectedFeaturedCategory === cat
                   return (
@@ -1024,13 +990,12 @@ export default function LandingPage() {
                       key={cat}
                       type="button"
                       onClick={() => setSelectedFeaturedCategory(cat)}
-                      className={`px-4 py-2 rounded-sm text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                        isActive
-                          ? 'bg-gradient-to-r from-blue-700 to-sky-600 text-white shadow-md shadow-blue-700/20 scale-105'
-                          : isDark
+                      className={`px-2.5 py-1 sm:px-4 sm:py-2 rounded-sm text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${isActive
+                        ? 'bg-gradient-to-r from-blue-700 to-sky-600 text-white shadow-md shadow-blue-700/20 scale-105'
+                        : isDark
                           ? 'bg-[#0a1836] text-slate-300 hover:bg-slate-800 hover:text-white border border-sky-900/50'
                           : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                      }`}
+                        }`}
                     >
                       {cat}
                     </button>
@@ -1039,163 +1004,156 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Services Cards Grid featuring exact findServices.jsx Card Structure */}
+            {/* Services Cards Grid featuring exact findServices.jsx Card Structure (1-col on tiny mobile, 2-col on min-480px/tablet, 4-col on desktop) */}
             {filteredServicesList.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
                 {filteredServicesList.map((service) => (
                   <PublicCatalogServiceCard key={service.id} item={service} isDark={isDark} />
                 ))}
               </div>
             ) : (
-              <div className={`p-8 text-center border rounded-sm max-w-md mx-auto ${
-                isDark ? 'bg-[#0a1836] border-sky-900/40 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-xs'
-              }`}>
-                <Wrench className="size-10 text-sky-400 mx-auto mb-3 opacity-80" />
-                <p className="text-sm font-bold uppercase tracking-wider mb-1">No services found in this category</p>
-                <p className="text-xs text-slate-400 mb-4">Try selecting another category tab above to explore available repair services.</p>
+              <div className={`p-6 sm:p-8 text-center border rounded-sm max-w-md mx-auto ${isDark ? 'bg-[#0a1836] border-sky-900/40 text-slate-300' : 'bg-white border-slate-200 text-slate-600 shadow-xs'
+                }`}>
+                <Wrench className="size-8 sm:size-10 text-sky-400 mx-auto mb-2 sm:mb-3 opacity-80" />
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-wider mb-1">No services found in this category</p>
+                <p className="text-[11px] sm:text-xs text-slate-400 mb-3 sm:mb-4">Try selecting another category tab above to explore available repair services.</p>
                 <Button asChild size="sm" className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-sm uppercase">
                   <a href="#/login">View All Services in App</a>
                 </Button>
               </div>
             )}
 
-            <div className="mt-10 text-center">
+            <div className="mt-6 sm:mt-10 text-center">
               <Button
                 asChild
                 size="lg"
-                className={`h-11 px-8 rounded-sm font-extrabold text-xs sm:text-sm border shadow-md gap-2 uppercase tracking-wider ${
-                  isDark
-                    ? 'bg-[#0a1836] hover:bg-sky-950 text-sky-300 border-sky-500/30'
-                    : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
-                }`}
+                className={`w-full sm:w-auto h-10 sm:h-11 px-5 sm:px-8 rounded-sm font-extrabold text-xs sm:text-sm border shadow-md gap-2 uppercase tracking-wider justify-center ${isDark
+                  ? 'bg-[#0a1836] hover:bg-sky-950 text-sky-300 border-sky-500/30'
+                  : 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300'
+                  }`}
               >
                 <a href="#/login">
-                  <Search className="size-4 text-sky-500" />
-                  Explore All Marinduque Repair Services
-                  <ArrowRight className="size-4" />
+                  <Search className="size-3.5 sm:size-4 text-sky-500" />
+                  Explore All Marinduque Services
+                  <ArrowRight className="size-3.5 sm:size-4" />
                 </a>
               </Button>
             </div>
           </section>
 
-          {/* Multi Platform Portals Preview Section */}
-          <section id="portals" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 border-t border-sky-900/20">
-            <div className="text-center mb-12">
+          {/* Multi Platform Portals Preview Section (1-col on mobile, 2-col on md, 3-col on lg) */}
+          <section id="portals" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
+            <div className="text-center mb-8 sm:mb-12">
               <span
-                className={`inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1 text-xs font-bold uppercase tracking-wider mb-2 ${
-                  isDark
-                    ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
-                    : 'border-blue-500/30 bg-blue-50 text-blue-800'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-sm border px-3 sm:px-3.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2 ${isDark
+                  ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
+                  : 'border-blue-500/30 bg-blue-50 text-blue-800'
+                  }`}
               >
                 Multi-Role Portals
               </span>
-              <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h2 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Explore E-Paayos System Workspaces
               </h2>
-              <p className={`text-xs sm:text-sm mt-2 max-w-xl mx-auto ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p className={`text-xs sm:text-sm mt-1.5 sm:mt-2 max-w-xl mx-auto ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 Tailored web portals designed for customers, repair providers, and PESO administrators.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-6">
               {/* Customer Portal Card */}
               <div
-                className={`group p-8 border rounded-sm flex flex-col justify-between transition-all ${
-                  isDark
-                    ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
-                    : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
-                }`}
+                className={`group p-4 sm:p-8 border rounded-sm flex flex-col justify-between transition-all ${isDark
+                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
+                  : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
+                  }`}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3 sm:mb-6">
                     <div
-                      className={`size-12 rounded-sm flex items-center justify-center ${
-                        isDark ? 'bg-sky-950 text-sky-400' : 'bg-sky-50 text-sky-700'
-                      }`}
+                      className={`size-9 sm:size-12 rounded-sm flex items-center justify-center ${isDark ? 'bg-sky-950 text-sky-400' : 'bg-sky-50 text-sky-700'
+                        }`}
                     >
-                      <Users className="size-6" />
+                      <Users className="size-4.5 sm:size-6" />
                     </div>
-                    <span className="bg-sky-600 text-white font-bold text-[11px] px-3 py-1 rounded-sm uppercase tracking-wider">
+                    <span className="bg-sky-600 text-white font-bold text-[9px] sm:text-[11px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-sm uppercase tracking-wider">
                       Customer Workspace
                     </span>
                   </div>
 
-                  <h3 className={`text-xl font-bold mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  <h3 className={`text-base sm:text-xl font-bold mb-1.5 sm:mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     Customer Storefront & Booking
-                    <ArrowUpRight className="size-5 text-slate-400 group-hover:text-sky-400 transition-colors" />
+                    <ArrowUpRight className="size-4 sm:size-5 text-slate-400 group-hover:text-sky-400 transition-colors" />
                   </h3>
 
-                  <p className={`text-xs sm:text-sm mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className={`text-xs sm:text-sm mb-3.5 sm:mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Browse verified repair shops & on-call technicians, filter by municipality, book home service visits, track progress live, and direct message providers.
                   </p>
 
-                  <div className={`space-y-2.5 mb-8 text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <div className={`space-y-1.5 sm:space-y-2.5 mb-5 sm:mb-8 text-[11px] sm:text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>Search Repair Shops & On-Call Techs</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>On-Site Home Service & Walk-In Booking</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>In-App Chat & Review Evaluations</span>
                     </div>
                   </div>
                 </div>
 
-                <Button asChild className="w-full h-11 rounded-sm bg-gradient-to-r from-blue-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white font-bold text-xs gap-2 uppercase tracking-wider">
+                <Button asChild className="w-full h-9 sm:h-11 rounded-sm bg-gradient-to-r from-blue-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white font-bold text-[11px] sm:text-xs gap-1.5 sm:gap-2 uppercase tracking-wider">
                   <a href="#/login">
                     Enter Customer Storefront
-                    <ArrowRight className="size-4" />
+                    <ArrowRight className="size-3.5 sm:size-4" />
                   </a>
                 </Button>
               </div>
 
               {/* Service Provider Portal Card */}
               <div
-                className={`group p-8 border rounded-sm flex flex-col justify-between transition-all ${
-                  isDark
-                    ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
-                    : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
-                }`}
+                className={`group p-4 sm:p-8 border rounded-sm flex flex-col justify-between transition-all ${isDark
+                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
+                  : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
+                  }`}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3 sm:mb-6">
                     <div
-                      className={`size-12 rounded-sm flex items-center justify-center ${
-                        isDark ? 'bg-indigo-950 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
-                      }`}
+                      className={`size-9 sm:size-12 rounded-sm flex items-center justify-center ${isDark ? 'bg-indigo-950 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
+                        }`}
                     >
-                      <LayoutDashboard className="size-6" />
+                      <LayoutDashboard className="size-4.5 sm:size-6" />
                     </div>
-                    <span className="bg-indigo-600 text-white font-bold text-[11px] px-3 py-1 rounded-sm uppercase tracking-wider">
+                    <span className="bg-indigo-600 text-white font-bold text-[9px] sm:text-[11px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-sm uppercase tracking-wider">
                       Provider Workspace
                     </span>
                   </div>
 
-                  <h3 className={`text-xl font-bold mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  <h3 className={`text-base sm:text-xl font-bold mb-1.5 sm:mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     Technician & Repair Console
-                    <ArrowUpRight className="size-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                    <ArrowUpRight className="size-4 sm:size-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
                   </h3>
 
-                  <p className={`text-xs sm:text-sm mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className={`text-xs sm:text-sm mb-3.5 sm:mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Dedicated console for repair shop owners and independent mechanics to manage service offerings, accept incoming job requests, view earnings, and dispatch technicians.
                   </p>
 
-                  <div className={`space-y-2.5 mb-8 text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <div className={`space-y-1.5 sm:space-y-2.5 mb-5 sm:mb-8 text-[11px] sm:text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>Manage Service Listings & Pricing</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>Accept Booking Requests & Schedule Shifts</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>Revenue Analytics & Performance Reports</span>
                     </div>
                   </div>
@@ -1203,61 +1161,58 @@ export default function LandingPage() {
 
                 <Button
                   asChild
-                  className={`w-full h-11 rounded-sm font-bold text-xs gap-2 transition-colors uppercase tracking-wider ${
-                    isDark
-                      ? 'bg-slate-800 hover:bg-sky-600 text-sky-300 hover:text-white'
-                      : 'bg-slate-900 hover:bg-blue-700 text-white'
-                  }`}
+                  className={`w-full h-9 sm:h-11 rounded-sm font-bold text-[11px] sm:text-xs gap-1.5 sm:gap-2 transition-colors uppercase tracking-wider ${isDark
+                    ? 'bg-slate-800 hover:bg-sky-600 text-sky-300 hover:text-white'
+                    : 'bg-slate-900 hover:bg-blue-700 text-white'
+                    }`}
                 >
                   <a href="#/register">
                     Register as Service Provider
-                    <ArrowRight className="size-4" />
+                    <ArrowRight className="size-3.5 sm:size-4" />
                   </a>
                 </Button>
               </div>
 
-              {/* LMD-PESO Admin Console Card */}
+              {/* LMD-PESO Admin Console Card (Spans 2-col on tablet md:, 1-col on desktop lg:) */}
               <div
-                className={`group p-8 border rounded-sm flex flex-col justify-between transition-all ${
-                  isDark
-                    ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
-                    : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
-                }`}
+                className={`group p-4 sm:p-8 border rounded-sm flex flex-col justify-between transition-all md:col-span-2 lg:col-span-1 ${isDark
+                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
+                  : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
+                  }`}
               >
                 <div>
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-between mb-3 sm:mb-6">
                     <div
-                      className={`size-12 rounded-sm flex items-center justify-center ${
-                        isDark ? 'bg-amber-950 text-amber-400' : 'bg-amber-50 text-amber-700'
-                      }`}
+                      className={`size-9 sm:size-12 rounded-sm flex items-center justify-center ${isDark ? 'bg-amber-950 text-amber-400' : 'bg-amber-50 text-amber-700'
+                        }`}
                     >
-                      <ShieldCheck className="size-6" />
+                      <ShieldCheck className="size-4.5 sm:size-6" />
                     </div>
-                    <span className="bg-amber-500 text-slate-950 font-bold text-[11px] px-3 py-1 rounded-sm uppercase tracking-wider">
+                    <span className="bg-amber-500 text-slate-950 font-bold text-[9px] sm:text-[11px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-sm uppercase tracking-wider">
                       LMD-PESO Admin
                     </span>
                   </div>
 
-                  <h3 className={`text-xl font-bold mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  <h3 className={`text-base sm:text-xl font-bold mb-1.5 sm:mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
                     PESO Administration Console
-                    <ArrowUpRight className="size-5 text-slate-400 group-hover:text-amber-400 transition-colors" />
+                    <ArrowUpRight className="size-4 sm:size-5 text-slate-400 group-hover:text-amber-400 transition-colors" />
                   </h3>
 
-                  <p className={`text-xs sm:text-sm mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <p className={`text-xs sm:text-sm mb-3.5 sm:mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     Verification management dashboard for LMD-PESO administrators to evaluate technician credentials, audit system compliance, monitor island activity, and maintain quality assurance.
                   </p>
 
-                  <div className={`space-y-2.5 mb-8 text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <div className={`space-y-1.5 sm:space-y-2.5 mb-5 sm:mb-8 text-[11px] sm:text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>Review & Approve Provider Applications</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>Island-Wide Activity & Audit Logs</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-4 text-sky-400 shrink-0" />
+                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
                       <span>Community Livelihood Analytics</span>
                     </div>
                   </div>
@@ -1265,127 +1220,119 @@ export default function LandingPage() {
 
                 <Button
                   asChild
-                  className="w-full h-11 rounded-sm bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs gap-2 uppercase tracking-wider"
+                  className="w-full h-9 sm:h-11 rounded-sm bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] sm:text-xs gap-1.5 sm:gap-2 uppercase tracking-wider"
                 >
                   <a href="#/login">
                     Launch Admin Console
-                    <ArrowRight className="size-4" />
+                    <ArrowRight className="size-3.5 sm:size-4" />
                   </a>
                 </Button>
               </div>
             </div>
           </section>
 
-          {/* Platform Key Features */}
-          <section id="features" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 border-t border-sky-900/20">
-            <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          {/* Platform Key Features (1-col on tiny mobile, 2-col on min-480px/tablet, 3-col on md/lg) */}
+          <section id="features" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
+            <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+              <h2 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Designed for Transparency, Efficiency & Trust
               </h2>
-              <p className={`mt-3 text-sm sm:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p className={`mt-2 sm:mt-3 text-xs sm:text-base ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 Key capabilities empowering customers, repair shops, and technicians across Marinduque.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
               <div
-                className={`p-6 border rounded-sm ${
-                  isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
-                }`}
+                className={`p-3.5 sm:p-6 border rounded-sm ${isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
+                  }`}
               >
                 <div
-                  className={`size-12 flex items-center justify-center rounded-sm mb-4 ${
-                    isDark ? 'bg-sky-950 text-sky-400' : 'bg-blue-50 text-blue-700'
-                  }`}
+                  className={`size-9 sm:size-12 flex items-center justify-center rounded-sm mb-2.5 sm:mb-4 ${isDark ? 'bg-sky-950 text-sky-400' : 'bg-blue-50 text-blue-700'
+                    }`}
                 >
-                  <ShieldCheck className="size-6" />
+                  <ShieldCheck className="size-4.5 sm:size-6" />
                 </div>
-                <h3 className={`text-base font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h3 className={`text-xs sm:text-base font-bold mb-1 sm:mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   LMD-PESO Accreditation
                 </h3>
-                <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                <p className={`text-[11px] sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                   Government-linked credential screening ensures every service provider meets skill & safety standards.
                 </p>
               </div>
 
               <div
-                className={`p-6 border rounded-sm ${
-                  isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
-                }`}
+                className={`p-3.5 sm:p-6 border rounded-sm ${isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
+                  }`}
               >
                 <div
-                  className={`size-12 flex items-center justify-center rounded-sm mb-4 ${
-                    isDark ? 'bg-sky-950 text-sky-400' : 'bg-blue-50 text-blue-700'
-                  }`}
+                  className={`size-9 sm:size-12 flex items-center justify-center rounded-sm mb-2.5 sm:mb-4 ${isDark ? 'bg-sky-950 text-sky-400' : 'bg-blue-50 text-blue-700'
+                    }`}
                 >
-                  <MessageSquare className="size-6" />
+                  <MessageSquare className="size-4.5 sm:size-6" />
                 </div>
-                <h3 className={`text-base font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h3 className={`text-xs sm:text-base font-bold mb-1 sm:mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   Real-Time Direct Messaging
                 </h3>
-                <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                <p className={`text-[11px] sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                   Communicate directly with your technician or shop owner for repair quotes, scheduling, and live status.
                 </p>
               </div>
 
               <div
-                className={`p-6 border rounded-sm ${
-                  isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
-                }`}
+                className={`p-3.5 sm:p-6 border rounded-sm min-[480px]:col-span-2 md:col-span-1 ${isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
+                  }`}
               >
                 <div
-                  className={`size-12 flex items-center justify-center rounded-sm mb-4 ${
-                    isDark ? 'bg-sky-950 text-sky-400' : 'bg-blue-50 text-blue-700'
-                  }`}
+                  className={`size-9 sm:size-12 flex items-center justify-center rounded-sm mb-2.5 sm:mb-4 ${isDark ? 'bg-sky-950 text-sky-400' : 'bg-blue-50 text-blue-700'
+                    }`}
                 >
-                  <Bot className="size-6" />
+                  <Bot className="size-4.5 sm:size-6" />
                 </div>
-                <h3 className={`text-base font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <h3 className={`text-xs sm:text-base font-bold mb-1 sm:mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   AI Assistant & Guidance
                 </h3>
-                <p className={`text-xs sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                <p className={`text-[11px] sm:text-sm leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                   Instant AI chatbot guidance for common device issues, troubleshooting tips, and platform navigation.
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Product & Service Categories Overview */}
-          <section id="categories" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 border-t border-sky-900/20">
-            <div className="text-center max-w-3xl mx-auto mb-12">
+          {/* Product & Service Categories Overview (2-col on mobile, 4-col on sm/desktop) */}
+          <section id="categories" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
+            <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
               <span
-                className={`inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1 text-xs font-bold uppercase tracking-wider mb-2 ${
-                  isDark
-                    ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
-                    : 'border-blue-500/30 bg-blue-50 text-blue-800'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-sm border px-3 sm:px-3.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2 ${isDark
+                  ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
+                  : 'border-blue-500/30 bg-blue-50 text-blue-800'
+                  }`}
               >
                 Coverage
               </span>
-              <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h2 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Service Categories
               </h2>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
               {CATEGORIES_OVERVIEW.map((cat, idx) => {
                 const IconComp = cat.icon
                 return (
                   <div
                     key={idx}
-                    className={`p-5 rounded-sm border text-center transition-all ${
-                      isDark
-                        ? 'bg-slate-900/70 border-sky-900/40 hover:border-sky-500/50'
-                        : 'bg-white border-slate-200 shadow-xs hover:shadow-md'
-                    }`}
+                    className={`p-3 sm:p-5 rounded-sm border text-center transition-all ${isDark
+                      ? 'bg-slate-900/70 border-sky-900/40 hover:border-sky-500/50'
+                      : 'bg-white border-slate-200 shadow-xs hover:shadow-md'
+                      }`}
                   >
-                    <div className={`size-12 flex items-center justify-center rounded-sm mx-auto mb-3 border ${cat.color}`}>
-                      <IconComp className="size-6" />
+                    <div className={`size-8 sm:size-12 flex items-center justify-center rounded-sm mx-auto mb-2 sm:mb-3 border ${cat.color}`}>
+                      <IconComp className="size-4 sm:size-6" />
                     </div>
-                    <h4 className={`text-xs sm:text-sm font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                    <h4 className={`text-xs sm:text-sm font-bold mb-0.5 sm:mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       {cat.name}
                     </h4>
-                    <p className={`text-[11px] font-medium leading-tight ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    <p className={`text-[9px] sm:text-[11px] font-medium leading-tight line-clamp-2 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                       {cat.desc}
                     </p>
                   </div>
@@ -1394,120 +1341,112 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* Process Workflow (How E-Paayos Works) */}
-          <section id="process" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 border-t border-sky-900/20">
-            <div className="text-center max-w-3xl mx-auto mb-12">
+          {/* Process Workflow (2-column on mobile, 4-column on desktop) */}
+          <section id="process" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
+            <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
               <span
-                className={`inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1 text-xs font-bold uppercase tracking-wider mb-2 ${
-                  isDark
-                    ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
-                    : 'border-blue-500/30 bg-blue-50 text-blue-800'
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-sm border px-3 sm:px-3.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2 ${isDark
+                  ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
+                  : 'border-blue-500/30 bg-blue-50 text-blue-800'
+                  }`}
               >
                 Simple Steps
               </span>
-              <h2 className={`text-3xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              <h2 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 How E-Paayos Works
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* 2-column on mobile, 4-column on desktop */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
               <div
-                className={`p-6 rounded-sm border text-center ${
-                  isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
-                }`}
+                className={`p-3 sm:p-6 rounded-sm border text-center ${isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
+                  }`}
               >
-                <div className="size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-sm flex items-center justify-center rounded-sm mx-auto mb-4 shadow-md">
+                <div className="size-7 sm:size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-[11px] sm:text-sm flex items-center justify-center rounded-sm mx-auto mb-2 sm:mb-4 shadow-md">
                   1
                 </div>
-                <h4 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Register Account</h4>
-                <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Create your Customer, Repair Shop Owner, or Independent Mechanic profile in seconds.
+                <h4 className={`text-xs sm:text-base font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>Register Account</h4>
+                <p className={`text-[10px] sm:text-xs line-clamp-3 sm:line-clamp-none ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  Create your Customer, Shop Owner, or Mechanic profile in seconds.
                 </p>
               </div>
 
               <div
-                className={`p-6 rounded-sm border text-center ${
-                  isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
-                }`}
+                className={`p-3 sm:p-6 rounded-sm border text-center ${isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
+                  }`}
               >
-                <div className="size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-sm flex items-center justify-center rounded-sm mx-auto mb-4 shadow-md">
+                <div className="size-7 sm:size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-[11px] sm:text-sm flex items-center justify-center rounded-sm mx-auto mb-2 sm:mb-4 shadow-md">
                   2
                 </div>
-                <h4 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Discover Services</h4>
-                <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Search nearby providers by category, rating, location, and PESO accreditation status.
+                <h4 className={`text-xs sm:text-base font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>Discover Services</h4>
+                <p className={`text-[10px] sm:text-xs line-clamp-3 sm:line-clamp-none ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  Search nearby providers by category, rating, location, and PESO accreditation.
                 </p>
               </div>
 
               <div
-                className={`p-6 rounded-sm border text-center ${
-                  isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
-                }`}
+                className={`p-3 sm:p-6 rounded-sm border text-center ${isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
+                  }`}
               >
-                <div className="size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-sm flex items-center justify-center rounded-sm mx-auto mb-4 shadow-md">
+                <div className="size-7 sm:size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-[11px] sm:text-sm flex items-center justify-center rounded-sm mx-auto mb-2 sm:mb-4 shadow-md">
                   3
                 </div>
-                <h4 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Book & Coordinate</h4>
-                <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Schedule home service or shop walk-in, chat directly, and clarify repair quotes.
+                <h4 className={`text-xs sm:text-base font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>Book & Coordinate</h4>
+                <p className={`text-[10px] sm:text-xs line-clamp-3 sm:line-clamp-none ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  Schedule home service or shop walk-in, chat directly, and clarify quotes.
                 </p>
               </div>
 
               <div
-                className={`p-6 rounded-sm border text-center ${
-                  isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
-                }`}
+                className={`p-3 sm:p-6 rounded-sm border text-center ${isDark ? 'bg-slate-900/70 border-sky-900/40' : 'bg-white border-slate-200 shadow-xs'
+                  }`}
               >
-                <div className="size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-sm flex items-center justify-center rounded-sm mx-auto mb-4 shadow-md">
+                <div className="size-7 sm:size-10 bg-gradient-to-r from-blue-700 to-sky-600 text-white font-black text-[11px] sm:text-sm flex items-center justify-center rounded-sm mx-auto mb-2 sm:mb-4 shadow-md">
                   4
                 </div>
-                <h4 className={`text-base font-bold mb-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>Complete & Rate</h4>
-                <p className={`text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Get your repair completed reliably, track job history, and leave feedback for community trust.
+                <h4 className={`text-xs sm:text-base font-bold mb-1 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>Complete & Rate</h4>
+                <p className={`text-[10px] sm:text-xs line-clamp-3 sm:line-clamp-none ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                  Get repairs completed reliably, track job history, and leave feedback.
                 </p>
               </div>
             </div>
           </section>
 
           {/* Interactive Accordion FAQ */}
-          <section id="faq" className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 border-t border-sky-900/20">
-            <div className="text-center max-w-2xl mx-auto mb-10">
-              <h2 className={`text-2xl sm:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          <section id="faq" className="mx-auto max-w-4xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
+            <div className="text-center max-w-2xl mx-auto mb-6 sm:mb-10">
+              <h2 className={`text-xl sm:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 Frequently Asked Questions
               </h2>
-              <p className={`text-xs sm:text-sm mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+              <p className={`text-xs sm:text-sm mt-1.5 sm:mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                 Quick answers about using E-Paayos in Marinduque.
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5 sm:space-y-3">
               {PUBLIC_FAQS.map((faq, idx) => (
                 <div
                   key={idx}
-                  className={`border rounded-sm overflow-hidden transition-all ${
-                    isDark ? 'bg-slate-900/80 border-sky-900/40' : 'bg-white border-slate-200'
-                  }`}
+                  className={`border rounded-sm overflow-hidden transition-all ${isDark ? 'bg-slate-900/80 border-sky-900/40' : 'bg-white border-slate-200'
+                    }`}
                 >
                   <button
                     type="button"
                     onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
-                    className={`w-full p-5 text-left font-bold flex items-center justify-between gap-4 text-sm sm:text-base cursor-pointer transition-colors ${
-                      isDark ? 'text-white hover:text-sky-400' : 'text-slate-900 hover:text-blue-700'
-                    }`}
+                    className={`w-full p-3.5 sm:p-5 text-left font-bold flex items-center justify-between gap-3 text-xs sm:text-base cursor-pointer transition-colors ${isDark ? 'text-white hover:text-sky-400' : 'text-slate-900 hover:text-blue-700'
+                      }`}
                   >
                     <span>{faq.question}</span>
                     <ChevronDown
-                      className={`size-5 transition-transform duration-200 shrink-0 ${
-                        openFaq === idx ? 'rotate-180 text-sky-400' : 'text-slate-400'
-                      }`}
+                      className={`size-4 sm:size-5 transition-transform duration-200 shrink-0 ${openFaq === idx ? 'rotate-180 text-sky-400' : 'text-slate-400'
+                        }`}
                     />
                   </button>
                   {openFaq === idx && (
                     <div
-                      className={`px-5 pb-5 text-xs sm:text-sm leading-relaxed border-t pt-3 ${
-                        isDark ? 'border-sky-900/30 text-slate-300' : 'border-slate-100 text-slate-600'
-                      }`}
+                      className={`px-3.5 sm:px-5 pb-3.5 sm:pb-5 text-xs sm:text-sm leading-relaxed border-t pt-2.5 sm:pt-3 ${isDark ? 'border-sky-900/30 text-slate-300' : 'border-slate-100 text-slate-600'
+                        }`}
                     >
                       {faq.answer}
                     </div>
@@ -1518,26 +1457,25 @@ export default function LandingPage() {
           </section>
 
           {/* Call-To-Action Banner */}
-          <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <section className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-8 sm:py-14">
             <div
-              className={`relative overflow-hidden p-8 sm:p-14 text-center text-white rounded-sm shadow-2xl ${
-                isDark
-                  ? 'bg-gradient-to-r from-blue-950 via-[#04133d] to-indigo-950 border border-sky-500/30'
-                  : 'bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600'
-              }`}
+              className={`relative overflow-hidden p-5 sm:p-14 text-center text-white rounded-sm shadow-2xl ${isDark
+                ? 'bg-gradient-to-r from-blue-950 via-[#04133d] to-indigo-950 border border-sky-500/30'
+                : 'bg-gradient-to-r from-blue-700 via-indigo-700 to-sky-600'
+                }`}
             >
-              <div className="relative z-10 max-w-2xl mx-auto space-y-4">
-                <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+              <div className="relative z-10 max-w-2xl mx-auto space-y-3 sm:space-y-4">
+                <h2 className="text-xl sm:text-4xl font-black tracking-tight leading-tight">
                   Ready to Experience Safer, Smarter Repair Services in Marinduque?
                 </h2>
-                <p className="text-sm sm:text-base text-sky-100 font-medium">
+                <p className="text-xs sm:text-base text-sky-100 font-medium">
                   Join thousands of households, repair shops, and technicians building a connected repair community today.
                 </p>
-                <div className="pt-4 flex flex-wrap justify-center gap-4">
+                <div className="pt-2 sm:pt-4 grid grid-cols-1 min-[480px]:grid-cols-2 sm:flex sm:flex-row justify-center gap-2.5 sm:gap-4">
                   <Button
                     asChild
                     size="lg"
-                    className="bg-white text-blue-900 hover:bg-sky-50 font-extrabold px-8 rounded-sm shadow-lg uppercase tracking-wider"
+                    className="w-full sm:w-auto h-10 sm:h-12 bg-white text-blue-900 hover:bg-sky-50 font-extrabold px-5 sm:px-8 text-xs sm:text-sm rounded-sm shadow-lg uppercase tracking-wider justify-center"
                   >
                     <a href="#/register">Create Free Account</a>
                   </Button>
@@ -1545,7 +1483,7 @@ export default function LandingPage() {
                     asChild
                     size="lg"
                     variant="outline"
-                    className="border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold px-8 rounded-sm backdrop-blur-md uppercase tracking-wider"
+                    className="w-full sm:w-auto h-10 sm:h-12 border-white/40 bg-white/10 text-white hover:bg-white/20 font-bold px-5 sm:px-8 text-xs sm:text-sm rounded-sm backdrop-blur-md uppercase tracking-wider justify-center"
                   >
                     <a href="#/login">Sign In to Dashboard</a>
                   </Button>
@@ -1554,25 +1492,26 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* Modern Footer */}
+          {/* Modern Footer (2-column on mobile, 4-column on desktop) */}
           <footer
-            className={`border-t py-12 px-4 sm:px-6 lg:px-8 text-center sm:text-left transition-colors ${
-              isDark ? 'bg-[#020718] border-sky-900/40 text-slate-400' : 'bg-white border-slate-200 text-slate-600'
-            }`}
+            className={`border-t py-8 sm:py-12 px-3.5 sm:px-6 lg:px-8 text-left transition-colors ${isDark ? 'bg-[#020718] border-sky-900/40 text-slate-400' : 'bg-white border-slate-200 text-slate-600'
+              }`}
           >
-            <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-              <div className="space-y-3">
-                <img src={logoEpaayos} alt="E-PAAYOS" className="h-10 w-auto mx-auto sm:mx-0 object-contain" />
+            <div className="mx-auto max-w-7xl grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-8 mb-6 sm:mb-8">
+              {/* Brand Column (Full width 2-cols on mobile, 1-col on md+) */}
+              <div className="col-span-2 md:col-span-1 space-y-2 sm:space-y-3">
+                <img src={logoEpaayos} alt="E-PAAYOS" className="h-8 sm:h-10 w-auto object-contain" />
                 <p className="text-xs leading-relaxed">
                   Web-Based Repair Service Management System facilitating accredited, location-based repair bookings across Marinduque.
                 </p>
               </div>
 
-              <div>
-                <h5 className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  Quick Navigation
+              {/* Quick Navigation Column */}
+              <div className="col-span-1">
+                <h5 className={`text-xs font-bold uppercase tracking-wider mb-2.5 sm:mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  Navigation
                 </h5>
-                <ul className="space-y-2 text-xs">
+                <ul className="space-y-1.5 sm:space-y-2 text-xs">
                   <li>
                     <button type="button" onClick={() => scrollToSection('hero')} className="hover:text-sky-400 cursor-pointer">
                       Home
@@ -1580,27 +1519,28 @@ export default function LandingPage() {
                   </li>
                   <li>
                     <button type="button" onClick={() => scrollToSection('about')} className="hover:text-sky-400 cursor-pointer">
-                      About Platform
+                      About
                     </button>
                   </li>
                   <li>
                     <button type="button" onClick={() => scrollToSection('featured-services')} className="hover:text-sky-400 cursor-pointer">
-                      Featured Services
+                      Services
                     </button>
                   </li>
                   <li>
                     <button type="button" onClick={() => scrollToSection('portals')} className="hover:text-sky-400 cursor-pointer">
-                      Portals & Roles
+                      Portals
                     </button>
                   </li>
                 </ul>
               </div>
 
-              <div>
-                <h5 className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {/* Municipalities Column */}
+              <div className="col-span-1">
+                <h5 className={`text-xs font-bold uppercase tracking-wider mb-2.5 sm:mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   Municipalities
                 </h5>
-                <ul className="grid grid-cols-2 gap-1 text-xs">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs">
                   <li>Boac</li>
                   <li>Gasan</li>
                   <li>Mogpog</li>
@@ -1610,27 +1550,28 @@ export default function LandingPage() {
                 </ul>
               </div>
 
-              <div>
-                <h5 className={`text-xs font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {/* Access Portals Column (Full width 2-cols on mobile, 1-col on md+) */}
+              <div className="col-span-2 md:col-span-1">
+                <h5 className={`text-xs font-bold uppercase tracking-wider mb-2.5 sm:mb-3 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   Access Portals
                 </h5>
-                <div className="space-y-2 text-xs">
-                  <a href="#/login" className="block hover:text-sky-400 font-semibold">
+                <div className="space-y-1.5 sm:space-y-2 text-xs">
+                  <a href="#/login" className="block hover:text-sky-400 font-semibold truncate">
                     Customer Account Sign In →
                   </a>
-                  <a href="#/register" className="block hover:text-sky-400 font-semibold">
+                  <a href="#/register" className="block hover:text-sky-400 font-semibold truncate">
                     Register Service Provider →
                   </a>
-                  <a href="#/login" className="block hover:text-sky-400 font-semibold">
+                  <a href="#/login" className="block hover:text-sky-400 font-semibold truncate">
                     LMD-PESO Admin Portal →
                   </a>
                 </div>
               </div>
             </div>
 
-            <div className="mx-auto max-w-7xl pt-6 border-t border-slate-800/40 flex flex-col sm:flex-row items-center justify-between text-xs gap-3">
+            <div className="mx-auto max-w-7xl pt-4 sm:pt-6 border-t border-slate-800/40 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs gap-2 sm:gap-3 text-center sm:text-left">
               <p>© {new Date().getFullYear()} E-Paayos Marinduque. All rights reserved.</p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[10px] sm:text-[11px] text-slate-500">
                 Development of a Web-Based Repair Service Management System in Marinduque
               </p>
             </div>

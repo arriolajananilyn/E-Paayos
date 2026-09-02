@@ -1035,7 +1035,7 @@ const Register = () => {
             Change role
           </button>
         </div>
-        <div className={`h-10 px-3 border rounded-lg flex items-center justify-between ${validationAttempted && errors.role ? 'border-red-500' : 'border-gray-300'} bg-gray-50`}>
+        <div className={`h-10 px-3 border rounded-none flex items-center justify-between ${validationAttempted && errors.role ? 'border-red-500' : 'border-gray-300'} bg-gray-50`}>
           <span className="text-sm text-gray-900">
             {ROLE_OPTIONS.find(r => r.value === formData.role)?.label || 'Not selected'}
           </span>
@@ -1054,7 +1054,7 @@ const Register = () => {
                 placeholder="Last name"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className={`h-10 ${validationAttempted && errors.lastName ? 'border-red-500' : ''}`}
+                className={`h-10 rounded-none ${validationAttempted && errors.lastName ? 'border-red-500' : ''}`}
               />
               {validationAttempted && errors.lastName && <p className="text-sm text-red-600">{errors.lastName}</p>}
             </div>
@@ -1066,7 +1066,7 @@ const Register = () => {
                 placeholder="First name"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className={`h-10 ${validationAttempted && errors.firstName ? 'border-red-500' : ''}`}
+                className={`h-10 rounded-none ${validationAttempted && errors.firstName ? 'border-red-500' : ''}`}
               />
               {validationAttempted && errors.firstName && <p className="text-sm text-red-600">{errors.firstName}</p>}
             </div>
@@ -1078,7 +1078,7 @@ const Register = () => {
                 placeholder="Middle name (optional)"
                 value={formData.middleName}
                 onChange={(e) => handleInputChange('middleName', e.target.value)}
-                className="h-10"
+                className="h-10 rounded-none"
               />
             </div>
           </div>
@@ -1091,13 +1091,13 @@ const Register = () => {
                 type="date"
                 value={formData.birthdate}
                 onChange={(e) => handleInputChange('birthdate', e.target.value)}
-                className={`h-10 ${validationAttempted && errors.birthdate ? 'border-red-500' : ''}`}
+                className={`h-10 rounded-none ${validationAttempted && errors.birthdate ? 'border-red-500' : ''}`}
               />
               {validationAttempted && errors.birthdate && <p className="text-sm text-red-600">{errors.birthdate}</p>}
             </div>
             <div className="space-y-2 md:col-span-1">
               <Label htmlFor="age" className="text-sm font-medium text-gray-700">Age</Label>
-              <Input id="age" type="text" value={computeAge(formData.birthdate)} className="h-10 bg-gray-50" disabled />
+              <Input id="age" type="text" value={computeAge(formData.birthdate)} className="h-10 bg-gray-50 rounded-none" disabled />
             </div>
             <div className="space-y-2 md:col-span-1">
               <Label className="text-sm font-medium text-gray-700">Sex *</Label>
@@ -1120,7 +1120,7 @@ const Register = () => {
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Civil Status *</Label>
             <Select value={formData.civilStatus} onValueChange={(value) => handleInputChange('civilStatus', value)}>
-              <SelectTrigger className={`h-10 ${validationAttempted && errors.civilStatus ? 'border-red-500' : ''}`}>
+              <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.civilStatus ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="Select civil status" />
               </SelectTrigger>
               <SelectContent>
@@ -1156,7 +1156,7 @@ const Register = () => {
                   type="checkbox"
                   checked={isPresentAddressSameAsBirthPlace}
                   onChange={(e) => handlePresentAddressSameAsBirthPlaceChange(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded-none border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span>Same as Place of Birth</span>
               </Label>
@@ -1181,7 +1181,7 @@ const Register = () => {
                 placeholder="Unit No., Building, Street, etc."
                 value={formData.detailedAddress}
                 onChange={(e) => handleInputChange('detailedAddress', e.target.value)}
-                className={`w-full h-20 resize-none ${validationAttempted && errors.detailedAddress ? 'border-red-500' : ''}`}
+                className={`w-full h-20 resize-none rounded-none ${validationAttempted && errors.detailedAddress ? 'border-red-500' : ''}`}
               />
               {validationAttempted && errors.detailedAddress && <p className="text-sm text-red-600">{errors.detailedAddress}</p>}
             </div>
@@ -1196,7 +1196,7 @@ const Register = () => {
                   type="checkbox"
                   checked={isPermanentAddressSameAsBirthPlace}
                   onChange={(e) => handlePermanentAddressSameAsBirthPlaceChange(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded-none border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span>Same as Present address</span>
               </Label>
@@ -1230,7 +1230,7 @@ const Register = () => {
                   const limited = withoutCode.slice(0, 11);
                   handleInputChange('phoneNumber', limited);
                 }}
-                className={`h-10 ${validationAttempted && errors.phoneNumber ? 'border-red-500' : ''}`}
+                className={`h-10 rounded-none ${validationAttempted && errors.phoneNumber ? 'border-red-500' : ''}`}
               />
               {validationAttempted && errors.phoneNumber && <p className="text-sm text-red-600">{errors.phoneNumber}</p>}
             </div>
@@ -1242,7 +1242,7 @@ const Register = () => {
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`h-10 ${validationAttempted && errors.email ? 'border-red-500' : ''}`}
+                className={`h-10 rounded-none ${validationAttempted && errors.email ? 'border-red-500' : ''}`}
               />
               {validationAttempted && errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
             </div>
@@ -1256,10 +1256,10 @@ const Register = () => {
                   handleInputChange('employmentStatusCategory', value);
                   handleInputChange('employmentStatusDetail', '');
                 }}>
-                  <SelectTrigger className={`h-10 ${validationAttempted && errors.employmentStatusCategory ? 'border-red-500' : ''}`}>
+                  <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.employmentStatusCategory ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-none">
                     <SelectItem value="employed">Employed</SelectItem>
                     <SelectItem value="unemployed">Unemployed</SelectItem>
                   </SelectContent>
@@ -1268,17 +1268,17 @@ const Register = () => {
               </div>
               <div className="space-y-2">
                 <Select value={formData.employmentStatusDetail} onValueChange={(value) => handleInputChange('employmentStatusDetail', value)}>
-                  <SelectTrigger className={`h-10 ${validationAttempted && errors.employmentStatusDetail ? 'border-red-500' : ''}`}>
+                  <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.employmentStatusDetail ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder="Select detail" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-none">
                     {(formData.employmentStatusCategory === 'employed'
                       ? [
-                          { value: 'wage-employed', label: 'Wage Employed' },
-                          { value: 'self-employed', label: 'Self employed' },
-                        ]
+                        { value: 'wage-employed', label: 'Wage Employed' },
+                        { value: 'self-employed', label: 'Self employed' },
+                      ]
                       : formData.employmentStatusCategory === 'unemployed'
-                      ? [
+                        ? [
                           { value: 'new-entrant-fresh-graduate', label: 'New Entrant/Fresh Graduate' },
                           { value: 'finished-contract', label: 'Finished Contract' },
                           { value: 'resigned', label: 'Resigned' },
@@ -1286,7 +1286,7 @@ const Register = () => {
                           { value: 'terminated-laidoff-local', label: 'Terminated/Laidoff (local)' },
                           { value: 'terminated-laidoff-overseas', label: 'Terminated/Laidoff (overseas)' },
                         ]
-                      : []
+                        : []
                     ).map(opt => (
                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                     ))}
@@ -1309,7 +1309,7 @@ const Register = () => {
                 placeholder="Enter your full name"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className={`h-10 pl-10 ${validationAttempted && errors.fullName ? 'border-red-500' : ''}`}
+                className={`h-10 pl-10 rounded-none ${validationAttempted && errors.fullName ? 'border-red-500' : ''}`}
                 required
               />
             </div>
@@ -1346,7 +1346,7 @@ const Register = () => {
                 type="date"
                 value={formData.birthdate}
                 onChange={(e) => handleInputChange('birthdate', e.target.value)}
-                className={`h-10 pl-10 ${validationAttempted && errors.birthdate ? 'border-red-500' : ''}`}
+                className={`h-10 pl-10 rounded-none ${validationAttempted && errors.birthdate ? 'border-red-500' : ''}`}
                 required
               />
             </div>
@@ -1382,7 +1382,7 @@ const Register = () => {
           placeholder="Unit No., Building, Street, etc."
           value={formData.detailedAddress}
           onChange={(e) => handleInputChange('detailedAddress', e.target.value)}
-          className={`w-full h-20 resize-none ${errors.detailedAddress ? 'border-red-500' : ''}`}
+          className={`w-full h-20 resize-none rounded-none ${errors.detailedAddress ? 'border-red-500' : ''}`}
         />
         {errors.detailedAddress && <p className="text-sm text-red-600">{errors.detailedAddress}</p>}
       </div>
@@ -1396,7 +1396,7 @@ const Register = () => {
             placeholder="Postal Code"
             value={formData.postalCode}
             onChange={(e) => handleInputChange('postalCode', e.target.value)}
-            className="h-10"
+            className="h-10 rounded-none"
           />
         </div>
 
@@ -1413,7 +1413,7 @@ const Register = () => {
               const limited = withoutCode.slice(0, 11);
               handleInputChange('phoneNumber', limited);
             }}
-            className={`h-10 ${errors.phoneNumber ? 'border-red-500' : ''}`}
+            className={`h-10 rounded-none ${errors.phoneNumber ? 'border-red-500' : ''}`}
             required
           />
           {errors.phoneNumber && <p className="text-sm text-red-600">{errors.phoneNumber}</p>}
@@ -1432,7 +1432,7 @@ const Register = () => {
           value={formData.highestEducationalLevel}
           onValueChange={(value) => handleInputChange('highestEducationalLevel', value)}
         >
-          <SelectTrigger className={`h-10 ${validationAttempted && errors.highestEducationalLevel ? 'border-red-500' : ''}`}>
+          <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.highestEducationalLevel ? 'border-red-500' : ''}`}>
             <SelectValue placeholder="Select highest educational level" />
           </SelectTrigger>
           <SelectContent>
@@ -1465,7 +1465,7 @@ const Register = () => {
               handleInputChange('yearGraduatedLastAttended', formatMonthYearForStorage(e.target.value));
             }}
             max={currentMonthInputValue}
-            className={`h-10 ${validationAttempted && errors.yearGraduatedLastAttended ? 'border-red-500' : ''}`}
+            className={`h-10 rounded-none ${validationAttempted && errors.yearGraduatedLastAttended ? 'border-red-500' : ''}`}
           />
           {validationAttempted && errors.yearGraduatedLastAttended && <p className="text-sm text-red-600">{errors.yearGraduatedLastAttended}</p>}
         </div>
@@ -1478,7 +1478,7 @@ const Register = () => {
             placeholder="Enter school/university"
             value={formData.schoolUniversity}
             onChange={(e) => handleInputChange('schoolUniversity', e.target.value)}
-            className={`h-10 ${validationAttempted && errors.schoolUniversity ? 'border-red-500' : ''}`}
+            className={`h-10 rounded-none ${validationAttempted && errors.schoolUniversity ? 'border-red-500' : ''}`}
           />
           {validationAttempted && errors.schoolUniversity && <p className="text-sm text-red-600">{errors.schoolUniversity}</p>}
         </div>
@@ -1492,7 +1492,7 @@ const Register = () => {
           placeholder="Enter course/program"
           value={formData.courseProgram}
           onChange={(e) => handleInputChange('courseProgram', e.target.value)}
-          className={`h-10 ${validationAttempted && errors.courseProgram ? 'border-red-500' : ''}`}
+          className={`h-10 rounded-none ${validationAttempted && errors.courseProgram ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.courseProgram && <p className="text-sm text-red-600">{errors.courseProgram}</p>}
       </div>
@@ -1540,7 +1540,7 @@ const Register = () => {
           placeholder="Unit No., Building, Street, etc."
           value={formData.shopDetailedAddress}
           onChange={(e) => handleInputChange('shopDetailedAddress', e.target.value)}
-          className={`w-full h-20 resize-none ${validationAttempted && errors.shopDetailedAddress ? 'border-red-500' : ''}`}
+          className={`w-full h-20 resize-none rounded-none ${validationAttempted && errors.shopDetailedAddress ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.shopDetailedAddress && <p className="text-sm text-red-600">{errors.shopDetailedAddress}</p>}
       </div>
@@ -1553,7 +1553,7 @@ const Register = () => {
           placeholder="e.g., near barangay hall"
           value={formData.shopLandmark}
           onChange={(e) => handleInputChange('shopLandmark', e.target.value)}
-          className="h-10"
+          className="h-10 rounded-none"
         />
       </div>
     </div>
@@ -1604,7 +1604,7 @@ const Register = () => {
           placeholder={isOnCallMechanic ? 'Enter business name' : 'Enter shop name'}
           value={formData.shopName}
           onChange={(e) => handleInputChange('shopName', e.target.value)}
-          className={`h-10 ${validationAttempted && errors.shopName ? 'border-red-500' : ''}`}
+          className={`h-10 rounded-none ${validationAttempted && errors.shopName ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.shopName && <p className="text-sm text-red-600">{errors.shopName}</p>}
       </div>
@@ -1612,7 +1612,7 @@ const Register = () => {
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">Type of Business *</Label>
         <Select value={formData.businessType} onValueChange={(v) => handleInputChange('businessType', v)}>
-          <SelectTrigger className={`h-10 ${validationAttempted && errors.businessType ? 'border-red-500' : ''}`}>
+          <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.businessType ? 'border-red-500' : ''}`}>
             <SelectValue placeholder="Select type of business" />
           </SelectTrigger>
           <SelectContent>
@@ -1634,9 +1634,8 @@ const Register = () => {
                 key={s}
                 type="button"
                 onClick={() => toggleArrayValue('repairServicesOffered', s)}
-                className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
-                  selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
+                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
               >
                 {s}
               </button>
@@ -1649,17 +1648,17 @@ const Register = () => {
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">Service Type *</Label>
         <Select value={formData.serviceType} onValueChange={(v) => handleInputChange('serviceType', v)}>
-          <SelectTrigger className={`h-10 ${validationAttempted && errors.serviceType ? 'border-red-500' : ''}`}>
+          <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.serviceType ? 'border-red-500' : ''}`}>
             <SelectValue placeholder="Select service type" />
           </SelectTrigger>
           <SelectContent>
             {isOnCallMechanic
               ? INDEPENDENT_SERVICE_TYPE_OPTIONS.map(({ value, label }) => (
-                  <SelectItem key={value} value={value}>{label}</SelectItem>
-                ))
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))
               : SERVICE_TYPES.map((opt) => (
-                  <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                ))}
+                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+              ))}
           </SelectContent>
         </Select>
         {validationAttempted && errors.serviceType && <p className="text-sm text-red-600">{errors.serviceType}</p>}
@@ -1677,7 +1676,7 @@ const Register = () => {
             min="0"
             step="1"
             onChange={(e) => handleInputChange('yearsOfOperation', (e.target.value || '').replace(/\D/g, '').slice(0, 2))}
-            className={`h-10 ${validationAttempted && errors.yearsOfOperation ? 'border-red-500' : ''}`}
+            className={`h-10 rounded-none ${validationAttempted && errors.yearsOfOperation ? 'border-red-500' : ''}`}
           />
           {validationAttempted && errors.yearsOfOperation && <p className="text-sm text-red-600">{errors.yearsOfOperation}</p>}
         </div>
@@ -1694,7 +1693,7 @@ const Register = () => {
               min="0"
               step="1"
               onChange={(e) => handleInputChange('numberOfEmployees', (e.target.value || '').replace(/\D/g, '').slice(0, 3))}
-              className={`h-10 ${validationAttempted && errors.numberOfEmployees ? 'border-red-500' : ''}`}
+              className={`h-10 rounded-none ${validationAttempted && errors.numberOfEmployees ? 'border-red-500' : ''}`}
             />
             {validationAttempted && errors.numberOfEmployees && <p className="text-sm text-red-600">{errors.numberOfEmployees}</p>}
           </div>
@@ -1721,7 +1720,7 @@ const Register = () => {
                       step="1"
                       value={p.openHH}
                       onChange={(e) => setOperatingHoursPart('openHH', e.target.value)}
-                      className={`h-10 w-20 text-center ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
+                      className={`h-10 w-20 text-center rounded-none ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
                     />
                     <span className="text-gray-500">:</span>
                     <Input
@@ -1733,7 +1732,7 @@ const Register = () => {
                       step="1"
                       value={p.openMM}
                       onChange={(e) => setOperatingHoursPart('openMM', e.target.value)}
-                      className={`h-10 w-20 text-center ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
+                      className={`h-10 w-20 text-center rounded-none ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
                     />
                     <div className="flex gap-1">
                       {['AM', 'PM'].map((meridiem) => (
@@ -1741,11 +1740,10 @@ const Register = () => {
                           key={`open-${meridiem}`}
                           type="button"
                           onClick={() => setOperatingHoursPart('openPeriod', meridiem)}
-                          className={`h-10 px-3 rounded-md border text-sm ${
-                            p.openPeriod === meridiem
-                              ? 'border-violet-300 bg-violet-50 text-violet-700'
-                              : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                          }`}
+                          className={`h-10 px-3 rounded-none border text-sm ${p.openPeriod === meridiem
+                            ? 'border-violet-300 bg-violet-50 text-violet-700'
+                            : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                            }`}
                         >
                           {meridiem}
                         </button>
@@ -1765,7 +1763,7 @@ const Register = () => {
                       step="1"
                       value={p.closeHH}
                       onChange={(e) => setOperatingHoursPart('closeHH', e.target.value)}
-                      className={`h-10 w-20 text-center ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
+                      className={`h-10 w-20 text-center rounded-none ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
                     />
                     <span className="text-gray-500">:</span>
                     <Input
@@ -1777,7 +1775,7 @@ const Register = () => {
                       step="1"
                       value={p.closeMM}
                       onChange={(e) => setOperatingHoursPart('closeMM', e.target.value)}
-                      className={`h-10 w-20 text-center ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
+                      className={`h-10 w-20 text-center rounded-none ${validationAttempted && errors.operatingHours ? 'border-red-500' : ''}`}
                     />
                     <div className="flex gap-1">
                       {['AM', 'PM'].map((meridiem) => (
@@ -1785,11 +1783,10 @@ const Register = () => {
                           key={`close-${meridiem}`}
                           type="button"
                           onClick={() => setOperatingHoursPart('closePeriod', meridiem)}
-                          className={`h-10 px-3 rounded-md border text-sm ${
-                            p.closePeriod === meridiem
-                              ? 'border-violet-300 bg-violet-50 text-violet-700'
-                              : 'border-gray-300 text-gray-600 hover:bg-gray-50'
-                          }`}
+                          className={`h-10 px-3 rounded-none border text-sm ${p.closePeriod === meridiem
+                            ? 'border-violet-300 bg-violet-50 text-violet-700'
+                            : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                            }`}
                         >
                           {meridiem}
                         </button>
@@ -1814,9 +1811,8 @@ const Register = () => {
                 key={d}
                 type="button"
                 onClick={() => toggleArrayValue('daysOfOperation', d)}
-                className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
-                  selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
+                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
               >
                 {d}
               </button>
@@ -1835,7 +1831,7 @@ const Register = () => {
           placeholder={isOnCallMechanic ? 'Tell customers about you Business.' : 'Tell customers about your shop (optional)'}
           value={formData.shopDescription}
           onChange={(e) => handleInputChange('shopDescription', e.target.value)}
-          className="w-full h-24 resize-none"
+          className="w-full h-24 resize-none rounded-none"
         />
       </div>
     </div>
@@ -1851,7 +1847,7 @@ const Register = () => {
           placeholder="Enter DTI/SEC registration number"
           value={formData.dtiSecRegistrationNumber}
           onChange={(e) => handleInputChange('dtiSecRegistrationNumber', e.target.value)}
-          className={`h-10 ${validationAttempted && errors.dtiSecRegistrationNumber ? 'border-red-500' : ''}`}
+          className={`h-10 rounded-none ${validationAttempted && errors.dtiSecRegistrationNumber ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.dtiSecRegistrationNumber && <p className="text-sm text-red-600">{errors.dtiSecRegistrationNumber}</p>}
       </div>
@@ -1864,7 +1860,7 @@ const Register = () => {
           placeholder="Enter business permit number"
           value={formData.businessPermitNumber}
           onChange={(e) => handleInputChange('businessPermitNumber', e.target.value)}
-          className={`h-10 ${validationAttempted && errors.businessPermitNumber ? 'border-red-500' : ''}`}
+          className={`h-10 rounded-none ${validationAttempted && errors.businessPermitNumber ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.businessPermitNumber && <p className="text-sm text-red-600">{errors.businessPermitNumber}</p>}
       </div>
@@ -1877,7 +1873,7 @@ const Register = () => {
           placeholder="Enter TIN number"
           value={formData.tinNumber}
           onChange={(e) => handleInputChange('tinNumber', e.target.value)}
-          className={`h-10 ${validationAttempted && errors.tinNumber ? 'border-red-500' : ''}`}
+          className={`h-10 rounded-none ${validationAttempted && errors.tinNumber ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.tinNumber && <p className="text-sm text-red-600">{errors.tinNumber}</p>}
       </div>
@@ -1893,7 +1889,7 @@ const Register = () => {
             setFormData(prev => ({ ...prev, businessPermitCertificate: file }));
             if (errors.businessPermitCertificate) setErrors(prev => ({ ...prev, businessPermitCertificate: '' }));
           }}
-          className={`h-10 ${validationAttempted && errors.businessPermitCertificate ? 'border-red-500' : ''}`}
+          className={`h-10 rounded-none ${validationAttempted && errors.businessPermitCertificate ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.businessPermitCertificate && <p className="text-sm text-red-600">{errors.businessPermitCertificate}</p>}
         {formData.businessPermitCertificate && !errors.businessPermitCertificate ? (
@@ -1913,7 +1909,7 @@ const Register = () => {
           placeholder="Enter office/company name"
           value={formData.workCompanyName}
           onChange={(e) => handleInputChange('workCompanyName', e.target.value)}
-          className={`h-10 ${validationAttempted && errors.workCompanyName ? 'border-red-500' : ''}`}
+          className={`h-10 rounded-none ${validationAttempted && errors.workCompanyName ? 'border-red-500' : ''}`}
         />
         {validationAttempted && errors.workCompanyName && <p className="text-sm text-red-600">{errors.workCompanyName}</p>}
       </div>
@@ -1945,7 +1941,7 @@ const Register = () => {
             placeholder="Enter position held"
             value={formData.workPositionHeld}
             onChange={(e) => handleInputChange('workPositionHeld', e.target.value)}
-            className={`h-10 ${validationAttempted && errors.workPositionHeld ? 'border-red-500' : ''}`}
+            className={`h-10 rounded-none ${validationAttempted && errors.workPositionHeld ? 'border-red-500' : ''}`}
           />
           {validationAttempted && errors.workPositionHeld && <p className="text-sm text-red-600">{errors.workPositionHeld}</p>}
         </div>
@@ -1958,7 +1954,7 @@ const Register = () => {
             placeholder="e.g., Regular, Contractual"
             value={formData.workAppointmentStatus}
             onChange={(e) => handleInputChange('workAppointmentStatus', e.target.value)}
-            className={`h-10 ${validationAttempted && errors.workAppointmentStatus ? 'border-red-500' : ''}`}
+            className={`h-10 rounded-none ${validationAttempted && errors.workAppointmentStatus ? 'border-red-500' : ''}`}
           />
           {validationAttempted && errors.workAppointmentStatus && <p className="text-sm text-red-600">{errors.workAppointmentStatus}</p>}
         </div>
@@ -1976,7 +1972,7 @@ const Register = () => {
               onChange={(e) => handleInputChange('workInclusiveFrom', formatMonthYearForStorage(e.target.value))}
               onClick={openMonthPicker}
               max={currentMonthInputValue}
-              className={`h-10 ${validationAttempted && errors.workInclusiveFrom ? 'border-red-500' : ''}`}
+              className={`h-10 rounded-none ${validationAttempted && errors.workInclusiveFrom ? 'border-red-500' : ''}`}
             />
             {validationAttempted && errors.workInclusiveFrom && <p className="text-sm text-red-600">{errors.workInclusiveFrom}</p>}
           </div>
@@ -1989,7 +1985,7 @@ const Register = () => {
               onChange={(e) => handleInputChange('workInclusiveTo', formatMonthYearForStorage(e.target.value))}
               onClick={openMonthPicker}
               max={currentMonthInputValue}
-              className={`h-10 ${validationAttempted && errors.workInclusiveTo ? 'border-red-500' : ''}`}
+              className={`h-10 rounded-none ${validationAttempted && errors.workInclusiveTo ? 'border-red-500' : ''}`}
             />
             {validationAttempted && errors.workInclusiveTo && <p className="text-sm text-red-600">{errors.workInclusiveTo}</p>}
           </div>
@@ -2041,9 +2037,8 @@ const Register = () => {
                 key={skill}
                 type="button"
                 onClick={() => toggleArrayValue('skillsSelfAssessment', skill, 5)}
-                className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
-                  selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
+                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
               >
                 {skill}
               </button>
@@ -2082,9 +2077,8 @@ const Register = () => {
                 key={s}
                 type="button"
                 onClick={() => toggleArrayValue('technicalSkillsNoFormalTraining', s)}
-                className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
-                  selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                }`}
+                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                  }`}
               >
                 {s}
               </button>
@@ -2108,7 +2102,7 @@ const Register = () => {
             placeholder="Enter your email address"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
-            className={`h-10 pl-10 ${errors.email ? 'border-red-500' : ''}`}
+            className={`h-10 pl-10 rounded-none ${errors.email ? 'border-red-500' : ''}`}
             required
           />
         </div>
@@ -2125,7 +2119,7 @@ const Register = () => {
             placeholder="Create a strong password"
             value={formData.password}
             onChange={(e) => handleInputChange('password', e.target.value)}
-            className={`h-10 pl-10 pr-10 ${errors.password ? 'border-red-500' : ''}`}
+            className={`h-10 pl-10 pr-10 rounded-none ${errors.password ? 'border-red-500' : ''}`}
             required
           />
           <button
@@ -2150,7 +2144,7 @@ const Register = () => {
             placeholder="Confirm your password"
             value={formData.confirmPassword}
             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-            className={`h-10 pl-10 pr-10 ${errors.confirmPassword ? 'border-red-500' : ''}`}
+            className={`h-10 pl-10 pr-10 rounded-none ${errors.confirmPassword ? 'border-red-500' : ''}`}
             required
           />
           <button
@@ -2171,7 +2165,7 @@ const Register = () => {
       <div className="space-y-2">
         <Label htmlFor="idType" className="text-sm font-medium text-gray-700">ID Type *</Label>
         <Select value={formData.idType} onValueChange={(value) => handleInputChange('idType', value)}>
-          <SelectTrigger id="idType" className={`h-10 ${errors.idType ? 'border-red-500' : ''}`}>
+          <SelectTrigger id="idType" className={`h-10 rounded-none ${errors.idType ? 'border-red-500' : ''}`}>
             <SelectValue placeholder="Select ID Type" />
           </SelectTrigger>
           <SelectContent>
@@ -2192,7 +2186,7 @@ const Register = () => {
 
       <div className="space-y-2">
         <Label htmlFor="validId" className="text-sm font-medium text-gray-700">Valid ID Upload *</Label>
-        <div className={`border-2 border-dashed rounded-lg p-0 text-center transition-colors overflow-hidden ${errors.validId ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-blue-400'}`}>
+        <div className={`border-2 border-dashed rounded-none p-0 text-center transition-colors overflow-hidden ${errors.validId ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-blue-400'}`}>
           <input
             type="file"
             id="validId"
@@ -2231,7 +2225,7 @@ const Register = () => {
         </div>
         {errors.validId && <p className="text-sm text-red-600">{errors.validId}</p>}
         {formData.validId && !errors.validId && !validIdPreview && (
-          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-none">
             <p className="text-sm text-green-700 flex items-center">
               <FileText className="h-4 w-4 mr-2" />
               {formData.validId.name} selected
@@ -2242,7 +2236,7 @@ const Register = () => {
 
       <div className="space-y-2">
         <Label htmlFor="selfie" className="text-sm font-medium text-gray-700">Selfie with ID *</Label>
-        <div className={`border-2 border-dashed rounded-lg p-0 text-center transition-colors overflow-hidden ${errors.selfie ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-blue-400'}`}>
+        <div className={`border-2 border-dashed rounded-none p-0 text-center transition-colors overflow-hidden ${errors.selfie ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-blue-400'}`}>
           <input
             type="file"
             id="selfie"
@@ -2278,7 +2272,7 @@ const Register = () => {
         </div>
         {errors.selfie && <p className="text-sm text-red-600">{errors.selfie}</p>}
         {formData.selfie && !errors.selfie && !selfiePreview && (
-          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-none">
             <p className="text-sm text-green-700 flex items-center">
               <FileText className="h-4 w-4 mr-2" />
               {formData.selfie.name} selected
@@ -2288,7 +2282,7 @@ const Register = () => {
       </div>
 
       {/* Registration Summary (bottom of Step 4) */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-none p-4">
         <h4 className="font-semibold text-blue-900 mb-2">Registration Summary</h4>
         {!isExtendedRegistration ? (
           <div className="text-sm text-blue-800 space-y-1">
@@ -2379,8 +2373,8 @@ const Register = () => {
                 <p><strong>Service Type:</strong>{' '}
                   {isOnCallMechanic
                     ? INDEPENDENT_SERVICE_TYPE_OPTIONS.find((o) => o.value === formData.serviceType)?.label ||
-                      formData.serviceType ||
-                      'Not provided'
+                    formData.serviceType ||
+                    'Not provided'
                     : formData.serviceType || 'Not provided'}
                 </p>
                 <p><strong>Years of Operation:</strong> {formData.yearsOfOperation || 'Not provided'}</p>
@@ -2395,12 +2389,12 @@ const Register = () => {
                   <p>
                     <strong>{isOnCallMechanic ? 'Location address' : 'Shop Location'}:</strong>{' '}
                     {formatAddressFrom({
-                    regionCode: formData.shopRegion,
-                    provinceCode: formData.shopProvince,
-                    cityCode: formData.shopCityMunicipality,
-                    barangayCode: formData.shopBarangay,
-                    detailed: formData.shopDetailedAddress,
-                  }) || 'Not provided'}
+                      regionCode: formData.shopRegion,
+                      provinceCode: formData.shopProvince,
+                      cityCode: formData.shopCityMunicipality,
+                      barangayCode: formData.shopBarangay,
+                      detailed: formData.shopDetailedAddress,
+                    }) || 'Not provided'}
                   </p>
                   <p><strong>Landmark:</strong> {formData.shopLandmark || '—'}</p>
                   {/* removed: available equipment & specialization (per requirement) */}
@@ -2476,7 +2470,7 @@ const Register = () => {
 
   return (
     <div
-      className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden p-4"
+      className="relative flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden p-0 sm:p-4"
       style={{
         backgroundImage: `url(${loginBackground})`,
         backgroundSize: 'cover',
@@ -2487,346 +2481,335 @@ const Register = () => {
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 hidden sm:block"
         style={{ backgroundColor: 'rgba(4, 19, 61, 0.35)' }}
       />
-      <div className="relative z-10 flex min-h-0 w-full flex-1 items-center justify-center">
+      <div className="relative z-10 flex min-h-0 w-full h-full flex-1 items-center justify-center">
         <div
-          className={`flex max-h-full w-full min-h-0 flex-col ${
-            !isRoleSelected && !mechanicShopGateOpen ? 'max-w-4xl' : 'max-w-2xl'
-          }`}
+          className={`flex h-full max-h-full w-full min-h-0 flex-col ${!isRoleSelected && !mechanicShopGateOpen ? 'sm:max-w-4xl' : 'sm:max-w-2xl'
+            }`}
         >
-        <Card
-          className="flex max-h-full min-h-0 w-full flex-1 flex-col border shadow-2xl"
-          style={{
-            borderColor: 'rgba(255, 255, 255, 0.22)',
-            backgroundColor: 'rgba(255, 255, 255, 0.96)',
-            backdropFilter: 'blur(10px)',
-            boxShadow:
-              '0 28px 70px rgba(0,0,0,0.35), 0 10px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.75)'
-          }}
-        >
-          <CardHeader className="shrink-0 text-center">
-            <div className="flex justify-start">
-              <button
-                type="button"
-                className="inline-flex items-center hover:opacity-80"
-                style={{ color: navy }}
-                onClick={() => { window.location.hash = '#/' }}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
-              </button>
-            </div>
-            <img
-              src={logoEpaayos}
-              alt="E-PAAYOS"
-              className="mx-auto mb-2 h-12 w-auto max-w-[200px] object-contain"
-              decoding="async"
-            />
-            <CardTitle className="text-2xl" style={{ color: navy }}>
-              {isRoleSelected
-                ? 'Create your account'
-                : mechanicShopGateOpen
-                  ? 'Select shop and shop owner'
-                  : 'Choose your role'}
-            </CardTitle>
-            <CardDescription style={{ color: textBodyOnLight }}>
-              {isRoleSelected
-                ? 'Fill in the details to register'
-                : mechanicShopGateOpen
-                  ? 'Pick the shop you work for and its registered owner, then tap Confirm to open the registration form.'
-                  : 'Select one role to continue registration'}
-            </CardDescription>
+          <Card
+            className="flex h-full max-h-full min-h-0 w-full flex-1 flex-col border-0 sm:border shadow-none sm:shadow-2xl rounded-none bg-white sm:bg-[rgba(255,255,255,0.96)] sm:backdrop-blur-md"
+            style={{
+              borderColor: 'rgba(255, 255, 255, 0.22)',
+              boxShadow: undefined,
+            }}
+          >
+            <CardHeader className="shrink-0 p-4 sm:p-6 pb-2 sm:pb-3 text-center rounded-none">
+              <div className="flex justify-start">
+                <button
+                  type="button"
+                  className="inline-flex items-center hover:opacity-80 transition-opacity cursor-pointer"
+                  style={{ color: navy }}
+                  onClick={() => { window.location.hash = '#/' }}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Home
+                </button>
+              </div>
+              <img
+                src={logoEpaayos}
+                alt="E-PAAYOS"
+                className="mx-auto mb-2 h-10 sm:h-12 w-auto max-w-[160px] sm:max-w-[200px] object-contain"
+                decoding="async"
+              />
+              <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: navy }}>
+                {isRoleSelected
+                  ? 'Create your account'
+                  : mechanicShopGateOpen
+                    ? 'Select shop and shop owner'
+                    : 'Choose your role'}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm" style={{ color: textBodyOnLight }}>
+                {isRoleSelected
+                  ? 'Fill in the details to register'
+                  : mechanicShopGateOpen
+                    ? 'Pick the shop you work for and its registered owner, then tap Confirm to open the registration form.'
+                    : 'Select one role to continue registration'}
+              </CardDescription>
 
-            {/* Progress Steps */}
-            {isRoleSelected && (
-              <>
-                <div className="flex justify-center mt-6">
-                  <div className="flex items-center space-x-4">
-                    {activeSteps.map((step, index) => (
-                      <div key={step.number} className="flex items-center">
-                        <div
-                          className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
-                            currentStep >= step.number
-                              ? 'text-white'
-                              : 'border-gray-300 text-gray-500'
-                          }`}
-                          style={currentStep >= step.number ? { backgroundImage: gradientNavyButton, borderColor: 'transparent' } : {}}
-                        >
-                          {step.number}
-                        </div>
-                        {index < activeSteps.length - 1 && (
+              {/* Progress Steps */}
+              {isRoleSelected && (
+                <>
+                  <div className="flex justify-center mt-3 sm:mt-6 max-w-full overflow-x-hidden px-1">
+                    <div className="flex items-center space-x-1 sm:space-x-4 max-w-full justify-center">
+                      {activeSteps.map((step, index) => (
+                        <div key={step.number} className="flex items-center shrink-0">
                           <div
-                            className="w-12 h-0.5 mx-2 rounded-full"
-                            style={{ backgroundColor: currentStep > step.number ? bvSoft : '#e5e7eb' }}
-                          />
-                        )}
-                      </div>
-                    ))}
+                            className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 text-xs sm:text-sm font-semibold rounded-none border-2 ${currentStep >= step.number
+                                ? 'text-white'
+                                : 'border-gray-300 text-gray-500 bg-white'
+                              }`}
+                            style={currentStep >= step.number ? { backgroundImage: gradientNavyButton, borderColor: 'transparent' } : {}}
+                          >
+                            {step.number}
+                          </div>
+                          {index < activeSteps.length - 1 && (
+                            <div
+                              className="w-3 sm:w-12 h-0.5 mx-1 sm:mx-2 rounded-none"
+                              style={{ backgroundColor: currentStep > step.number ? bvSoft : '#e5e7eb' }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <p className="text-sm mt-2" style={{ color: textBodyOnLight }}>
-                  Step {currentStep} of {activeSteps.length}: {activeSteps[currentStep - 1]?.title}
-                </p>
-              </>
-            )}
-          </CardHeader>
-
-          <CardContent className="flex min-h-0 flex-1 flex-col gap-0 p-0">
-            <div
-              ref={registrationContentRef}
-              className="min-h-0 flex-1 space-y-6 overflow-x-hidden overflow-y-auto px-4 pb-4 pt-0"
-            >
-              {errors.general && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                  <p className="text-sm text-red-700">{errors.general}</p>
-                </div>
+                  <p className="text-xs sm:text-sm font-medium mt-1.5 sm:mt-2" style={{ color: textBodyOnLight }}>
+                    Step {currentStep} of {activeSteps.length}: {activeSteps[currentStep - 1]?.title}
+                  </p>
+                </>
               )}
+            </CardHeader>
 
-              {!isRoleSelected ? (
-                mechanicShopGateOpen ? (
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-blue-100 bg-blue-50/80 p-4">
-                      <div className="flex items-start gap-2">
-                        <Wrench className="h-5 w-5 shrink-0 mt-0.5" style={{ color: navy }} aria-hidden />
-                        <p className="text-sm" style={{ color: textBodyOnLight }}>
-                          <span className="font-semibold" style={{ color: navy }}>Mechanic / Technician</span>
-                          {' — '}Choose the shop you are joining. Each row lists the shop name and the registered shop owner.
-                        </p>
+            <CardContent className="flex min-h-0 flex-1 flex-col gap-0 p-0">
+              <div
+                ref={registrationContentRef}
+                className="min-h-0 flex-1 space-y-4 sm:space-y-6 overflow-x-hidden overflow-y-auto px-4 pb-4 sm:px-6 pt-0"
+              >
+                {errors.general && (
+                  <div className="rounded-none border border-red-200 bg-red-50 p-3">
+                    <p className="text-xs sm:text-sm text-red-700">{errors.general}</p>
+                  </div>
+                )}
+
+                {!isRoleSelected ? (
+                  mechanicShopGateOpen ? (
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="rounded-none border border-blue-100 bg-blue-50/80 p-3 sm:p-4">
+                        <div className="flex items-start gap-2">
+                          <Wrench className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5" style={{ color: navy }} aria-hidden />
+                          <p className="text-xs sm:text-sm" style={{ color: textBodyOnLight }}>
+                            <span className="font-semibold" style={{ color: navy }}>Mechanic / Technician</span>
+                            {' — '}Choose the shop you are joining. Each row lists the shop name and the registered shop owner.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="mechanicShopSearch" className="text-sm font-medium text-gray-700">Search shops or owners</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden />
-                        <Input
-                          id="mechanicShopSearch"
-                          className="h-10 pl-10"
-                          placeholder="Type shop name or owner name"
-                          value={shopOwnerListSearch}
-                          onChange={(e) => setShopOwnerListSearch(e.target.value)}
-                        />
+                      <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="mechanicShopSearch" className="text-xs sm:text-sm font-medium text-gray-700">Search shops or owners</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden />
+                          <Input
+                            id="mechanicShopSearch"
+                            className="h-10 pl-10 rounded-none text-sm"
+                            placeholder="Type shop name or owner name"
+                            value={shopOwnerListSearch}
+                            onChange={(e) => setShopOwnerListSearch(e.target.value)}
+                          />
+                        </div>
                       </div>
-                    </div>
-                    {loadingShopOwners && <p className="text-sm text-gray-600">Loading registered shops...</p>}
-                    {shopOwnersLoadError && <p className="text-sm text-red-600">{shopOwnersLoadError}</p>}
-                    {!loadingShopOwners && !shopOwnersLoadError && registeredShopOwners.length === 0 && (
-                      <p className="text-sm text-gray-600">No registered shops yet. A shop owner must create an account before mechanics can register under a shop.</p>
-                    )}
-                    <div className="space-y-2 max-h-[min(320px,45vh)] overflow-y-auto pr-1">
-                      {registeredShopOwners
-                        .filter((o) => {
-                          const q = shopOwnerListSearch.trim().toLowerCase();
-                          if (!q) return true;
-                          const hay = `${o.shopName || ''} ${o.fullName || ''} ${o.shopDetailedAddress || ''} ${o.shopLandmark || ''}`.toLowerCase();
-                          return hay.includes(q);
-                        })
-                        .map((owner) => {
-                          const selected = formData.employedByShopOwnerId === owner._id;
-                          return (
-                            <button
-                              key={owner._id}
-                              type="button"
-                              onClick={() => handleInputChange('employedByShopOwnerId', owner._id)}
-                              className={[
-                                'w-full text-left rounded-xl border-2 p-3 transition-all duration-200',
-                                selected
-                                  ? 'text-white shadow-lg ring-2 ring-offset-2 ring-[rgba(8,31,92,0.4)] hover:brightness-110'
-                                  : [
+                      {loadingShopOwners && <p className="text-xs sm:text-sm text-gray-600">Loading registered shops...</p>}
+                      {shopOwnersLoadError && <p className="text-xs sm:text-sm text-red-600">{shopOwnersLoadError}</p>}
+                      {!loadingShopOwners && !shopOwnersLoadError && registeredShopOwners.length === 0 && (
+                        <p className="text-xs sm:text-sm text-gray-600">No registered shops yet. A shop owner must create an account before mechanics can register under a shop.</p>
+                      )}
+                      <div className="space-y-2 max-h-[min(320px,45vh)] overflow-y-auto pr-1">
+                        {registeredShopOwners
+                          .filter((o) => {
+                            const q = shopOwnerListSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            const hay = `${o.shopName || ''} ${o.fullName || ''} ${o.shopDetailedAddress || ''} ${o.shopLandmark || ''}`.toLowerCase();
+                            return hay.includes(q);
+                          })
+                          .map((owner) => {
+                            const selected = formData.employedByShopOwnerId === owner._id;
+                            return (
+                              <button
+                                key={owner._id}
+                                type="button"
+                                onClick={() => handleInputChange('employedByShopOwnerId', owner._id)}
+                                className={[
+                                  'w-full text-left rounded-none border-2 p-3 transition-all duration-200 cursor-pointer',
+                                  selected
+                                    ? 'text-white shadow-lg ring-2 ring-offset-2 ring-[rgba(8,31,92,0.4)] hover:brightness-110'
+                                    : [
                                       'bg-white text-gray-900 border-[rgba(8,31,92,0.14)]',
                                       'hover:border-[rgba(8,31,92,0.4)] hover:shadow-md',
                                       'hover:bg-gradient-to-br hover:from-[rgba(8,31,92,0.06)] hover:via-[rgba(11,43,115,0.08)] hover:to-[rgba(20,71,166,0.14)]',
                                     ].join(' '),
-                              ].join(' ')}
-                              style={
-                                selected
-                                  ? {
+                                ].join(' ')}
+                                style={
+                                  selected
+                                    ? {
                                       backgroundImage: gradientNavyButton,
                                       borderColor: 'transparent',
                                       boxShadow: '0 8px 24px rgba(8, 31, 92, 0.35)',
                                     }
-                                  : undefined
-                              }
-                            >
-                              <div className={`font-semibold ${selected ? 'text-white' : 'text-gray-900'}`}>{owner.shopName || 'Shop'}</div>
-                              <div className={`text-sm ${selected ? 'text-white/90' : 'text-gray-600'}`}>Shop owner: {owner.fullName}</div>
-                              {(owner.shopDetailedAddress || owner.shopLandmark) && (
-                                <div className={`text-xs mt-1 ${selected ? 'text-white/75' : 'text-gray-500'}`}>
-                                  {[owner.shopDetailedAddress, owner.shopLandmark].filter(Boolean).join(' · ')}
-                                </div>
-                              )}
-                            </button>
-                          );
-                        })}
+                                    : undefined
+                                }
+                              >
+                                <div className={`font-semibold text-sm ${selected ? 'text-white' : 'text-gray-900'}`}>{owner.shopName || 'Shop'}</div>
+                                <div className={`text-xs sm:text-sm ${selected ? 'text-white/90' : 'text-gray-600'}`}>Shop owner: {owner.fullName}</div>
+                                {(owner.shopDetailedAddress || owner.shopLandmark) && (
+                                  <div className={`text-[11px] sm:text-xs mt-1 ${selected ? 'text-white/75' : 'text-gray-500'}`}>
+                                    {[owner.shopDetailedAddress, owner.shopLandmark].filter(Boolean).join(' · ')}
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                      </div>
+                      {validationAttempted && errors.employedByShopOwnerId && (
+                        <p className="text-xs sm:text-sm text-red-600">{errors.employedByShopOwnerId}</p>
+                      )}
+                      <div className="grid grid-cols-2 sm:flex sm:flex-row sm:justify-end gap-2 pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full sm:w-auto bg-white rounded-none text-xs sm:text-sm font-medium"
+                          style={{ borderColor: borderNavySoft, color: navy }}
+                          onClick={cancelMechanicShopGate}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          className="w-full sm:w-auto border-0 shadow-md hover:brightness-110 rounded-none text-xs sm:text-sm font-medium"
+                          style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
+                          onClick={confirmMechanicShopGate}
+                        >
+                          Confirm
+                        </Button>
+                      </div>
                     </div>
-                    {validationAttempted && errors.employedByShopOwnerId && (
-                      <p className="text-sm text-red-600">{errors.employedByShopOwnerId}</p>
-                    )}
-                    <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full sm:w-auto bg-white"
-                        style={{ borderColor: borderNavySoft, color: navy }}
-                        onClick={cancelMechanicShopGate}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="button"
-                        className="w-full sm:w-auto border-0 shadow-md hover:brightness-110"
-                        style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
-                        onClick={confirmMechanicShopGate}
-                      >
-                        Confirm
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] sm:overflow-visible">
-                      <div
-                        className="grid w-full gap-3 sm:gap-4"
-                        style={{
-                          gridTemplateColumns: `repeat(${ROLE_OPTIONS.length}, minmax(0, 1fr))`,
-                        }}
-                      >
-                      {ROLE_OPTIONS.map((role) => {
-                        const active = formData.role === role.value;
-                        const RoleIcon = role.Icon;
-                        return (
-                          <button
-                            key={role.value}
-                            type="button"
-                            onClick={() => selectRole(role.value)}
-                            className={[
-                              'group flex min-h-full min-w-[148px] flex-col items-center gap-2 overflow-hidden rounded-2xl border-0 p-3.5 text-center ring-0 sm:min-w-0 sm:gap-4 sm:p-5',
-                              'cursor-pointer bg-white/95 shadow-[0_3px_10px_rgba(15,23,42,0.12)]',
-                              'transition-all duration-200 ease-out',
-                              'hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-slate-50/95 hover:shadow-[0_12px_24px_rgba(15,23,42,0.18)]',
-                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#081F5C]/40',
-                              active
-                                ? '-translate-y-0.5 scale-[1.01] bg-slate-50/95 shadow-[0_12px_24px_rgba(15,23,42,0.2)]'
-                                : '',
-                            ]
-                              .filter(Boolean)
-                              .join(' ')}
-                          >
-                            <div
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Responsive 2-Column on Mobile, 4-Column on PC/Laptop */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 w-full">
+                        {ROLE_OPTIONS.map((role) => {
+                          const active = formData.role === role.value;
+                          const RoleIcon = role.Icon;
+                          return (
+                            <button
+                              key={role.value}
+                              type="button"
+                              onClick={() => selectRole(role.value)}
                               className={[
-                                'flex h-19 w-19 shrink-0 items-center justify-center rounded-2xl',
-                                'shadow-[0_2px_8px_rgba(15,23,42,0.08)] transition-all duration-200 ease-out',
-                                'group-hover:scale-110 group-hover:shadow-[0_6px_16px_rgba(15,23,42,0.14)]',
-                                active ? 'shadow-[0_4px_14px_rgba(15,23,42,0.14)]' : '',
+                                'group flex min-h-full flex-col items-center gap-2 sm:gap-4 overflow-hidden rounded-none border-0 p-3 sm:p-5 text-center ring-0',
+                                'cursor-pointer bg-white/95 shadow-[0_3px_10px_rgba(15,23,42,0.12)]',
+                                'transition-all duration-200 ease-out',
+                                'hover:-translate-y-0.5 hover:scale-[1.01] hover:bg-slate-50/95 hover:shadow-[0_12px_24px_rgba(15,23,42,0.18)]',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#081F5C]/40',
+                                active
+                                  ? '-translate-y-0.5 scale-[1.01] bg-slate-50/95 shadow-[0_12px_24px_rgba(15,23,42,0.2)]'
+                                  : '',
                               ]
                                 .filter(Boolean)
                                 .join(' ')}
-                              style={{
-                                background: active ? role.iconBgActive : role.iconBgIdle,
-                                color: role.iconColor,
-                              }}
-                              aria-hidden
                             >
-                              <RoleIcon className="h-11 w-11" strokeWidth={active ? 2.25 : 2} />
-                            </div>
-                            <div className="font-semibold leading-tight" style={{ color: navy }}>
-                              {role.label}
-                            </div>
-                            <div className="text-xs leading-snug sm:text-sm" style={{ color: textBodyOnLight }}>
-                              {role.description}
-                            </div>
-                          </button>
-                        );
-                      })}
+                              <div
+                                className={[
+                                  'flex h-14 w-14 sm:h-19 sm:w-19 shrink-0 items-center justify-center rounded-none',
+                                  'shadow-[0_2px_8px_rgba(15,23,42,0.08)] transition-all duration-200 ease-out',
+                                  'group-hover:scale-110 group-hover:shadow-[0_6px_16px_rgba(15,23,42,0.14)]',
+                                  active ? 'shadow-[0_4px_14px_rgba(15,23,42,0.14)]' : '',
+                                ]
+                                  .filter(Boolean)
+                                  .join(' ')}
+                                style={{
+                                  background: active ? role.iconBgActive : role.iconBgIdle,
+                                  color: role.iconColor,
+                                }}
+                                aria-hidden
+                              >
+                                <RoleIcon className="h-7 w-7 sm:h-11 sm:w-11" strokeWidth={active ? 2.25 : 2} />
+                              </div>
+                              <div className="font-semibold text-xs sm:text-base leading-tight" style={{ color: navy }}>
+                                {role.label}
+                              </div>
+                              <div className="text-[10px] sm:text-sm leading-snug line-clamp-2 sm:line-clamp-none" style={{ color: textBodyOnLight }}>
+                                {role.description}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
+
+                      {validationAttempted && errors.role && <p className="text-xs sm:text-sm text-red-600">{errors.role}</p>}
                     </div>
+                  )
+                ) : (
+                  <>
+                    {currentStep === 1 && renderStep1()}
+                    {!isExtendedRegistration && currentStep === 2 && renderStep2()}
+                    {isMechanic && currentStep === 2 && renderMechanicStep2Educational()}
+                    {isShopOwnerFlow && currentStep === 2 && renderShopOwnerStep2BusinessInfo()}
+                    {isMechanic && currentStep === 3 && renderMechanicStep3WorkExperience()}
+                    {isShopOwnerFlow && currentStep === 3 && renderShopOwnerStep3LocationFacilities()}
+                    {isMechanic && currentStep === 4 && renderMechanicStep4Skills()}
+                    {isOnCallMechanic && currentStep === 4 && renderMechanicStep2Educational()}
+                    {isOnCallMechanic && currentStep === 4 && renderMechanicStep4Skills()}
+                    {isShopOwnerFlow && currentStep === 4 && !isOnCallMechanic && renderShopOwnerStep4BusinessRegistration()}
+                    {(!isExtendedRegistration && currentStep === 3) && renderStep3()}
+                    {(!isExtendedRegistration && currentStep === 4) && renderStep4()}
+                    {(isExtendedRegistration && currentStep === 5) && renderStep3()}
+                    {(isExtendedRegistration && currentStep === 6) && renderStep4()}
 
-                    {validationAttempted && errors.role && <p className="text-sm text-red-600">{errors.role}</p>}
-                  </div>
-                )
-              ) : (
-                <>
-                  {currentStep === 1 && renderStep1()}
-                  {!isExtendedRegistration && currentStep === 2 && renderStep2()}
-                  {isMechanic && currentStep === 2 && renderMechanicStep2Educational()}
-                  {isShopOwnerFlow && currentStep === 2 && renderShopOwnerStep2BusinessInfo()}
-                  {isMechanic && currentStep === 3 && renderMechanicStep3WorkExperience()}
-                  {isShopOwnerFlow && currentStep === 3 && renderShopOwnerStep3LocationFacilities()}
-                  {isMechanic && currentStep === 4 && renderMechanicStep4Skills()}
-                  {isOnCallMechanic && currentStep === 4 && renderMechanicStep2Educational()}
-                  {isOnCallMechanic && currentStep === 4 && renderMechanicStep4Skills()}
-                  {isShopOwnerFlow && currentStep === 4 && !isOnCallMechanic && renderShopOwnerStep4BusinessRegistration()}
-                  {(!isExtendedRegistration && currentStep === 3) && renderStep3()}
-                  {(!isExtendedRegistration && currentStep === 4) && renderStep4()}
-                  {(isExtendedRegistration && currentStep === 5) && renderStep3()}
-                  {(isExtendedRegistration && currentStep === 6) && renderStep4()}
-
-                  <div className="flex justify-between pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={prevStep}
-                      disabled={currentStep === 1}
-                      className="flex items-center bg-white"
-                      style={{ borderColor: borderNavySoft, color: navy }}
-                    >
-                      <ArrowLeftCircle className="mr-2 h-4 w-4" />
-                      Previous
-                    </Button>
-
-                    {currentStep < activeSteps.length ? (
+                    <div className="flex justify-between items-center gap-2 pt-4">
                       <Button
-                        onClick={nextStep}
-                        className="flex items-center border-0 shadow-md hover:brightness-110 hover:shadow-lg"
-                        style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
+                        variant="outline"
+                        onClick={prevStep}
+                        disabled={currentStep === 1}
+                        className="h-10 px-3 sm:px-4 text-xs sm:text-sm font-medium flex items-center bg-white rounded-none cursor-pointer"
+                        style={{ borderColor: borderNavySoft, color: navy }}
                       >
-                        Next
-                        <ArrowRightCircle className="ml-2 h-4 w-4" />
+                        <ArrowLeftCircle className="mr-1.5 sm:mr-2 h-4 w-4" />
+                        Previous
                       </Button>
-                    ) : (
-                      <Button
-                        onClick={handleSubmit}
-                        className="border-0 shadow-md hover:brightness-110 hover:shadow-lg"
-                        style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Creating Account...' : 'Create Account'}
-                      </Button>
-                    )}
-                  </div>
-                </>
-              )}
 
-              <div className="border-t pt-4 text-center text-sm" style={{ color: textBodyOnLight, borderColor: borderNavySoft }}>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  className="font-medium hover:opacity-80"
-                  style={{ color: navy }}
-                  onClick={() => { window.location.hash = '#/login'; }}
-                >
-                  Sign in
-                </button>
+                      {currentStep < activeSteps.length ? (
+                        <Button
+                          onClick={nextStep}
+                          className="h-10 px-4 sm:px-6 text-xs sm:text-sm font-medium flex items-center border-0 shadow-md hover:brightness-110 hover:shadow-lg rounded-none cursor-pointer"
+                          style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
+                        >
+                          Next
+                          <ArrowRightCircle className="ml-1.5 sm:ml-2 h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={handleSubmit}
+                          className="h-10 px-4 sm:px-6 text-xs sm:text-sm font-medium border-0 shadow-md hover:brightness-110 hover:shadow-lg rounded-none cursor-pointer"
+                          style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? 'Creating Account...' : 'Create Account'}
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div className="border-t pt-3 sm:pt-4 text-center text-xs sm:text-sm" style={{ color: textBodyOnLight, borderColor: borderNavySoft }}>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    className="font-medium underline hover:opacity-80 transition-opacity cursor-pointer"
+                    style={{ color: navy }}
+                    onClick={() => { window.location.hash = '#/login'; }}
+                  >
+                    Sign in
+                  </button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       <Dialog open={registrationSuccessOpen} onOpenChange={setRegistrationSuccessOpen}>
-        <DialogContent className="border-[#081F5C]/15 sm:max-w-md dark:border-white/10">
-          <DialogHeader>
+        <DialogContent className="border-[#081F5C]/15 sm:max-w-md dark:border-white/10 rounded-none">
+          <DialogHeader className="rounded-none">
             <DialogTitle className="text-[#081F5C] dark:text-gray-100">Registration submitted</DialogTitle>
-            <DialogDescription className="text-left text-sm text-gray-600 dark:text-gray-400">
+            <DialogDescription className="text-left text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Please wait a few minutes for an administrator to approve your account. You can sign in only after your account has been approved.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="sm:justify-end">
+          <DialogFooter className="sm:justify-end rounded-none">
             <Button
               type="button"
-              className="border-0 shadow-md hover:brightness-110"
+              className="border-0 shadow-md hover:brightness-110 rounded-none text-xs sm:text-sm font-medium"
               style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
               onClick={() => {
                 setRegistrationSuccessOpen(false);

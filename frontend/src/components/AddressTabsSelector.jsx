@@ -272,7 +272,7 @@ export default function AddressTabsSelector({
               return next
             })
           }}
-          className={`flex h-10 w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left ${
+          className={`flex h-10 w-full items-center justify-between rounded-none border bg-white px-3 py-2 text-left ${
             anyError ? 'border-red-500' : 'border-gray-300'
           } hover:border-gray-400`}
           disabled={isLoadingPSGC}
@@ -296,13 +296,13 @@ export default function AddressTabsSelector({
 
       {showTabs && (
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1">
+          <div className="flex flex-wrap gap-1 rounded-none bg-gray-100 p-1">
             {!isLockedProvince ? (
               <>
                 <button
                   type="button"
                   onClick={() => setLevel('region')}
-                  className={`min-w-0 flex-1 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+                  className={`min-w-0 flex-1 rounded-none px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                     level === 'region' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
@@ -311,7 +311,7 @@ export default function AddressTabsSelector({
                 <button
                   type="button"
                   onClick={() => setLevel('province')}
-                  className={`min-w-0 flex-1 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+                  className={`min-w-0 flex-1 rounded-none px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                     level === 'province' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'
                   }`}
                   disabled={!canGoProvince}
@@ -324,7 +324,7 @@ export default function AddressTabsSelector({
               <button
                 type="button"
                 onClick={() => setLevel('province')}
-                className={`min-w-0 flex-1 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+                className={`min-w-0 flex-1 rounded-none px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                   level === 'province' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'
                 }`}
               >
@@ -334,7 +334,7 @@ export default function AddressTabsSelector({
             <button
               type="button"
               onClick={() => setLevel('city')}
-              className={`min-w-0 flex-1 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+              className={`min-w-0 flex-1 rounded-none px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                 level === 'city' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'
               }`}
               disabled={!canGoCity}
@@ -344,7 +344,7 @@ export default function AddressTabsSelector({
             <button
               type="button"
               onClick={() => setLevel('barangay')}
-              className={`min-w-0 flex-1 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+              className={`min-w-0 flex-1 rounded-none px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                 level === 'barangay' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'
               }`}
               disabled={!canGoBarangay}
@@ -355,7 +355,7 @@ export default function AddressTabsSelector({
               <button
                 type="button"
                 onClick={() => setLevel('street')}
-                className={`min-w-0 flex-1 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+                className={`min-w-0 flex-1 rounded-none px-2 py-2 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                   level === 'street' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'
                 }`}
                 disabled={!canGoStreetTab}
@@ -366,7 +366,7 @@ export default function AddressTabsSelector({
           </div>
 
           <div
-            className={`overflow-y-auto rounded-lg border border-gray-200 ${
+            className={`overflow-y-auto rounded-none border border-gray-200 ${
               level === 'street' && streetKey ? 'max-h-none' : 'max-h-60'
             }`}
           >
@@ -378,7 +378,7 @@ export default function AddressTabsSelector({
                     value={formData?.[streetKey] ?? ''}
                     onChange={(e) => handleInputChange(streetKey, e.target.value)}
                     rows={4}
-                    className="min-h-[100px] w-full resize-y text-sm"
+                    className="min-h-[100px] w-full resize-y text-sm rounded-none"
                     placeholder="House / unit no., building, street name, etc. (optional)"
                   />
                 ) : isOptionsLoading ? (
@@ -390,7 +390,7 @@ export default function AddressTabsSelector({
                         key={option.code}
                         type="button"
                         onClick={() => handleSelect(option.code)}
-                        className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 hover:text-blue-700"
+                        className="w-full rounded-none px-3 py-2 text-left text-sm transition-colors hover:bg-blue-50 hover:text-blue-700"
                       >
                         {option.name}
                       </button>
