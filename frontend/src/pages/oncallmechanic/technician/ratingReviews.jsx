@@ -201,7 +201,7 @@ function StatCard({ theme, label, value, icon: Icon, hint, progress }) {
   return (
     <div
       className={cn(
-        'group relative flex items-center gap-3.5 overflow-hidden rounded-none py-4 pl-4 pr-4 ring-1 ring-slate-200/45 transition-all duration-300 hover:-translate-y-0.5 hover:ring-slate-200/80 sm:gap-4 sm:py-5 sm:pl-5 sm:pr-5',
+        'group relative flex items-center gap-2.5 overflow-hidden rounded-none py-3 px-3 ring-1 ring-slate-200/45 transition-all duration-300 hover:-translate-y-0.5 hover:ring-slate-200/80 sm:gap-4 sm:py-5 sm:px-5',
         colors.surface,
         cardShadow,
         'hover:shadow-[0_10px_36px_-10px_rgba(15,23,42,0.24)]'
@@ -225,22 +225,22 @@ function StatCard({ theme, label, value, icon: Icon, hint, progress }) {
       />
       <div
         className={cn(
-          'relative flex size-10 shrink-0 items-center justify-center rounded-none ring-4 sm:size-11',
+          'relative flex size-8 shrink-0 items-center justify-center rounded-none ring-2 ring-white/60 sm:size-11 sm:ring-4',
           colors.icon,
           colors.iconRing
         )}
       >
-        <Icon className="size-4 sm:size-[1.15rem]" strokeWidth={2.25} />
+        <Icon className="size-3.5 sm:size-[1.15rem]" strokeWidth={2.25} />
       </div>
       <div className="relative min-w-0 flex-1">
-        <p className="mb-0.5 truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
+        <p className="mb-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 sm:text-xs">
           {label}
         </p>
-        <p className="truncate text-xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-2xl">
+        <p className="truncate text-lg font-bold tabular-nums tracking-tight text-slate-900 sm:text-2xl">
           {value}
         </p>
         {hint ? (
-          <p className={cn('mt-0.5 truncate text-[11px] font-medium sm:text-xs', colors.hint)}>
+          <p className={cn('mt-0.5 truncate text-[10px] font-medium sm:text-xs', colors.hint)}>
             {hint}
           </p>
         ) : null}
@@ -693,10 +693,11 @@ export default function OnCallMechanicRatingReviews() {
         title: 'Ratings & Reviews',
         description: 'View and respond to customer feedback on your services.',
       }}
+      wrapContent={false}
     >
       <div className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
           <StatCard
             theme="amber"
             label="Average Rating"
@@ -920,7 +921,7 @@ export default function OnCallMechanicRatingReviews() {
 
         {/* ── Reply Dialog ─────────────────────────────────────────────────────── */}
         <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
-          <DialogContent className="max-w-lg rounded-none sm:max-w-xl">
+          <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg rounded-none sm:max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-slate-900">
                 {selectedReview?.adminReply ? 'Edit reply' : 'Reply to review'}
@@ -971,11 +972,11 @@ export default function OnCallMechanicRatingReviews() {
               </div>
             ) : null}
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-none cursor-pointer"
+                className="w-full sm:w-auto rounded-none cursor-pointer"
                 onClick={() => setReplyDialogOpen(false)}
                 disabled={submitting}
               >
@@ -983,7 +984,7 @@ export default function OnCallMechanicRatingReviews() {
               </Button>
               <Button
                 type="button"
-                className="rounded-none bg-[#081F5C] text-white hover:bg-[#04133d] cursor-pointer"
+                className="w-full sm:w-auto rounded-none bg-[#081F5C] text-white hover:bg-[#04133d] cursor-pointer"
                 disabled={!replyDraft.trim() || submitting}
                 onClick={handleSubmitReply}
               >
@@ -1000,7 +1001,7 @@ export default function OnCallMechanicRatingReviews() {
 
         {/* ── Detail Dialog ─────────────────────────────────────────────────────── */}
         <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-          <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto rounded-none sm:max-w-2xl">
+          <DialogContent className="w-[calc(100vw-1.5rem)] max-h-[90vh] max-w-lg overflow-y-auto rounded-none sm:max-w-2xl">
             {selectedReview ? (
               <>
                 <DialogHeader>
@@ -1137,11 +1138,11 @@ export default function OnCallMechanicRatingReviews() {
                   ) : null}
                 </div>
 
-                <DialogFooter className="flex-col gap-2 sm:flex-row">
+                <DialogFooter className="flex flex-col sm:flex-row gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-none cursor-pointer"
+                    className="w-full sm:w-auto rounded-none cursor-pointer"
                     onClick={() => {
                       setDetailDialogOpen(false)
                       openReplyDialog(selectedReview)
@@ -1153,7 +1154,7 @@ export default function OnCallMechanicRatingReviews() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-none cursor-pointer"
+                    className="w-full sm:w-auto rounded-none cursor-pointer"
                     onClick={() => toggleFlag(selectedReview.id)}
                   >
                     <Flag className="size-4" />
@@ -1162,7 +1163,7 @@ export default function OnCallMechanicRatingReviews() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-none cursor-pointer"
+                    className="w-full sm:w-auto rounded-none cursor-pointer"
                     onClick={() => toggleHidden(selectedReview.id)}
                   >
                     {selectedReview.hidden ? (
@@ -1185,7 +1186,7 @@ export default function OnCallMechanicRatingReviews() {
 
         {/* ── Image Lightbox Modal ─────────────────────────────────────────────── */}
         <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
-          <DialogContent overlayClassName="bg-black/80 z-[99999]" className="max-w-3xl p-2 bg-black/90 border-none z-[99999] rounded-none">
+          <DialogContent overlayClassName="bg-black/80 z-[99999]" className="w-[calc(100vw-1.5rem)] max-w-3xl p-2 bg-black/90 border-none z-[99999] rounded-none">
             <div className="relative flex items-center justify-center p-4">
               <button
                 onClick={() => setLightboxImage(null)}

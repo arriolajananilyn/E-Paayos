@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Home,
   LogOut,
-  Menu,
   MessageSquare,
   Package,
   Search,
@@ -15,7 +14,6 @@ import {
   Store,
   User,
   Wrench,
-  X,
 } from 'lucide-react'
 import logoEpaayos from '../assets/epaayosLOGO.png'
 import {
@@ -99,35 +97,35 @@ function CustomerPageTopBar({
   return (
     <header
       aria-label={config.title}
-      className="sticky top-0 z-40 flex h-[68px] min-w-0 shrink-0 items-center gap-4 bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 shadow-md sm:gap-6 sm:px-6 lg:px-8 border-b border-indigo-900/40"
+      className="sticky top-0 z-40 flex h-14 sm:h-16 min-w-0 shrink-0 items-center justify-between gap-2 sm:gap-4 bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-3 sm:px-6 lg:px-8 shadow-md border-b border-indigo-900/40"
     >
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(255,255,255,0.18),transparent)]"
       />
 
-      <div className="relative flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+      <div className="relative flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
         <button
           type="button"
           onClick={handleBack}
-          className="flex size-10 shrink-0 items-center justify-center rounded-none text-white hover:bg-white/15 hover:text-white transition-colors cursor-pointer"
+          className="flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-none text-white hover:bg-white/15 hover:text-white transition-colors cursor-pointer"
           title="Go back"
         >
           <ArrowLeft className="size-5" />
           <span className="sr-only">Go back</span>
         </button>
-        <div className="flex size-10 shrink-0 items-center justify-center bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-sm rounded-none">
-          <PageIcon className="size-5" strokeWidth={2} />
+        <div className="hidden xs:flex size-8 sm:size-10 shrink-0 items-center justify-center bg-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-sm rounded-none">
+          <PageIcon className="size-4 sm:size-5" strokeWidth={2} />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-black tracking-tight text-white sm:text-lg">
+          <h1 className="truncate text-sm font-black tracking-tight text-white sm:text-base md:text-lg leading-tight">
             {config.title}
           </h1>
           <p className="hidden truncate text-xs text-indigo-100/80 md:block font-medium">{config.description}</p>
         </div>
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+      <div className="relative flex shrink-0 items-center gap-1 sm:gap-2.5">
         {/* Notification Bell Button */}
         <button
           type="button"
@@ -135,10 +133,10 @@ function CustomerPageTopBar({
           onClick={() => {
             window.location.hash = '#/customer/notification'
           }}
-          className="relative flex items-center justify-center p-2 text-white/90 hover:text-white hover:bg-white/15 transition-colors focus-visible:outline-none rounded-none cursor-pointer"
+          className="relative flex size-9 sm:size-10 items-center justify-center text-white/90 hover:text-white hover:bg-white/15 transition-colors focus-visible:outline-none rounded-none cursor-pointer"
         >
           <NotificationBellIndicator unreadCount={customerNotifUnread}>
-            <Bell className="size-5" />
+            <Bell className="size-4.5 sm:size-5" />
           </NotificationBellIndicator>
         </button>
 
@@ -148,9 +146,9 @@ function CustomerPageTopBar({
             type="button"
             aria-label="Profile menu"
             onClick={() => setProfileOpen((prev) => !prev)}
-            className="flex items-center gap-2 p-1.5 text-white hover:bg-white/15 transition-colors focus-visible:outline-none rounded-none cursor-pointer"
+            className="flex items-center gap-1.5 p-1 sm:p-1.5 text-white hover:bg-white/15 transition-colors focus-visible:outline-none rounded-none cursor-pointer"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center bg-white/20 text-xs font-extrabold text-white border border-white/30">
+            <span className="flex size-7 sm:size-8 shrink-0 items-center justify-center bg-white/20 text-xs font-extrabold text-white border border-white/30">
               {userInitial}
             </span>
             <span className="hidden lg:inline-block max-w-[110px] truncate text-xs font-bold uppercase tracking-wider text-white">
@@ -161,7 +159,7 @@ function CustomerPageTopBar({
 
           {/* Profile Dropdown Menu Card */}
           {profileOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 overflow-hidden rounded-none border border-slate-200 bg-white shadow-2xl z-50 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-none border border-slate-200 bg-white shadow-2xl z-50 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
               <div className="p-3.5 bg-slate-50 flex items-center gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-sm font-extrabold text-white shadow-sm">
                   {userInitial}
@@ -232,10 +230,103 @@ function CustomerPageTopBar({
   )
 }
 
-export default function CustomerLayout({ children, activePage }) {
+function CustomerBottomNav({ currentTab }) {
+  const navItems = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: Home,
+      onClick: () => {
+        sessionStorage.setItem('customerDashboardMenu', 'home')
+        window.location.hash = '#/customer/dashboard'
+      },
+      isActive: currentTab === 'home',
+    },
+    {
+      id: 'find-services',
+      label: 'Services',
+      icon: Search,
+      onClick: () => {
+        window.location.hash = '#/customer/find-services'
+      },
+      isActive: currentTab === 'find-services',
+    },
+    {
+      id: 'my-bookings',
+      label: 'Bookings',
+      icon: Package,
+      onClick: () => {
+        window.location.hash = '#/customer/my-bookings'
+      },
+      isActive: currentTab === 'my-bookings' || currentTab === 'booking-history',
+    },
+    {
+      id: 'messages',
+      label: 'Messages',
+      icon: MessageSquare,
+      onClick: () => {
+        window.location.hash = '#/customer/messages'
+      },
+      isActive: currentTab === 'messages',
+    },
+    {
+      id: 'account',
+      label: 'Account',
+      icon: User,
+      onClick: () => {
+        window.location.hash = '#/customer/account-settings'
+      },
+      isActive: currentTab === 'account-settings' || currentTab === 'reviews-ratings',
+    },
+  ]
+
+  return (
+    <nav
+      aria-label="Mobile bottom navigation"
+      className="fixed bottom-0 inset-x-0 z-40 md:hidden bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_20px_rgba(15,23,42,0.08)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1"
+    >
+      <div className="grid grid-cols-5 items-center h-14 max-w-lg mx-auto px-1">
+        {navItems.map((item) => {
+          const Icon = item.icon
+          const active = item.isActive
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={item.onClick}
+              className={`group flex flex-col items-center justify-center py-1 px-1 transition-all duration-150 cursor-pointer relative ${
+                active ? 'text-[#081F5C]' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {/* Active top indicator pill */}
+              {active && (
+                <span className="absolute -top-1 w-8 h-1 bg-gradient-to-r from-[#081F5C] to-[#1447a6] rounded-full shadow-xs animate-in fade-in zoom-in-75 duration-150" />
+              )}
+              <div
+                className={`flex items-center justify-center w-10 h-7 rounded-full transition-all duration-150 ${
+                  active ? 'bg-[#081F5C]/10 text-[#081F5C]' : 'group-hover:bg-slate-100/80 text-slate-500'
+                }`}
+              >
+                <Icon className={`size-4.5 transition-transform duration-150 ${active ? 'scale-110 stroke-[2.2]' : 'stroke-[1.8]'}`} />
+              </div>
+              <span
+                className={`text-[10px] uppercase tracking-wider transition-colors duration-150 truncate max-w-full ${
+                  active ? 'font-black text-[#081F5C]' : 'font-semibold text-slate-500'
+                }`}
+              >
+                {item.label}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </nav>
+  )
+}
+
+export default function CustomerLayout({ children, activePage, hideBottomNav = false }) {
   const [user, setUser] = useState(readCustomerUserSession)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const profileMenuRef = useRef(null)
 
   useEffect(() => {
@@ -287,6 +378,8 @@ export default function CustomerLayout({ children, activePage }) {
                   ? 'account-settings'
                   : 'home')
 
+  const shouldShowBottomNav = !hideBottomNav && currentTab !== 'service-details'
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-fixed bg-gradient-to-br from-sky-100 via-blue-50 to-indigo-100">
@@ -316,13 +409,13 @@ export default function CustomerLayout({ children, activePage }) {
           currentTab={currentTab}
         />
       ) : (
-        <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs transition-all">
-          <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-8 md:px-12 py-2.5 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-xs transition-all">
+          <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-6 md:px-12 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
             {/* Brand Logo & Customer Badge */}
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
               <button
                 type="button"
-                className="flex items-center focus-visible:outline-none group transition-transform duration-200 hover:scale-[1.02]"
+                className="flex items-center focus-visible:outline-none group transition-transform duration-200 hover:scale-[1.02] shrink-0"
                 aria-label="E-Paayos customer home"
                 onClick={() => {
                   sessionStorage.setItem('customerDashboardMenu', 'home')
@@ -332,7 +425,7 @@ export default function CustomerLayout({ children, activePage }) {
                 <img
                   src={logoEpaayos}
                   alt="E-PAAYOS"
-                  className="h-8 sm:h-9 w-auto max-h-10 max-w-[min(60vw,210px)] object-contain object-left"
+                  className="h-7 sm:h-8 md:h-9 w-auto max-h-10 max-w-[min(52vw,210px)] object-contain object-left"
                   decoding="async"
                 />
               </button>
@@ -409,7 +502,7 @@ export default function CustomerLayout({ children, activePage }) {
             </nav>
 
             {/* Right Controls: Notifications & Profile Trigger */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               {/* Notification Bell Button */}
               <button
                 type="button"
@@ -417,12 +510,12 @@ export default function CustomerLayout({ children, activePage }) {
                 onClick={() => {
                   window.location.hash = '#/customer/notification'
                 }}
-                className={`relative flex items-center justify-center p-2 text-slate-700 hover:text-[#081F5C] hover:bg-slate-100/80 transition-colors focus-visible:outline-none rounded-none cursor-pointer ${
-                  currentTab === 'notification' ? 'text-[#081F5C]' : ''
+                className={`relative flex size-9 sm:size-10 items-center justify-center text-slate-700 hover:text-[#081F5C] hover:bg-slate-100/80 transition-colors focus-visible:outline-none rounded-none cursor-pointer ${
+                  currentTab === 'notification' ? 'text-[#081F5C] bg-slate-100/80' : ''
                 }`}
               >
                 <NotificationBellIndicator unreadCount={customerNotifUnread}>
-                  <Bell className="h-5 w-5" />
+                  <Bell className="size-4.5 sm:size-5" />
                 </NotificationBellIndicator>
               </button>
 
@@ -432,16 +525,16 @@ export default function CustomerLayout({ children, activePage }) {
                   type="button"
                   aria-label="Profile menu"
                   onClick={() => setProfileOpen((prev) => !prev)}
-                  className="flex items-center gap-2 p-1.5 text-slate-700 hover:text-[#081F5C] transition-colors focus-visible:outline-none rounded-none cursor-pointer"
+                  className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 text-slate-700 hover:text-[#081F5C] transition-colors focus-visible:outline-none rounded-none cursor-pointer"
                 >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[11px] font-extrabold leading-none text-white shadow-2xs rounded-none">
+                  <span className="flex size-7 sm:size-8 shrink-0 items-center justify-center bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[11px] font-extrabold leading-none text-white shadow-2xs rounded-none">
                     {userInitial}
                   </span>
                   <span className="hidden lg:inline-block max-w-[110px] truncate text-xs font-bold uppercase tracking-wider">
                     {user.fullName ? user.fullName.split(' ')[0] : 'Account'}
                   </span>
                   <ChevronDown
-                    className={`h-3.5 w-3.5 text-slate-500 transition-transform duration-200 ${
+                    className={`size-3.5 text-slate-500 transition-transform duration-200 ${
                       profileOpen ? 'rotate-180 text-[#081F5C]' : ''
                     }`}
                   />
@@ -449,9 +542,9 @@ export default function CustomerLayout({ children, activePage }) {
 
                 {/* Profile Dropdown Menu Card */}
                 {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-64 overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] z-50 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_10px_25px_rgba(15,23,42,0.18)] z-50 divide-y divide-slate-100 animate-in fade-in zoom-in-95 duration-100">
                     <div className="p-3.5 bg-slate-50/90 flex items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-sm font-extrabold text-white shadow-sm">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-sm font-extrabold text-white shadow-sm">
                         {userInitial}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -515,139 +608,16 @@ export default function CustomerLayout({ children, activePage }) {
                   </div>
                 )}
               </div>
-
-              {/* Mobile Hamburger Drawer Toggle Button */}
-              <button
-                type="button"
-                aria-label="Toggle Navigation Menu"
-                onClick={() => setMobileMenuOpen((prev) => !prev)}
-                className="inline-flex md:hidden h-9 w-9 items-center justify-center rounded-none border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 shadow-2xs cursor-pointer"
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
             </div>
           </div>
-
-          {/* Mobile Navigation Drawer */}
-          {mobileMenuOpen && (
-            <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-1.5 shadow-lg animate-in slide-in-from-top-2 duration-150">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false)
-                  sessionStorage.setItem('customerDashboardMenu', 'home')
-                  window.location.hash = '#/customer/dashboard'
-                }}
-                className={`flex w-full items-center gap-3 px-3.5 py-2.5 rounded-none text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                  currentTab === 'home'
-                    ? 'bg-[#081F5C]/10 text-[#081F5C] border-l-4 border-l-[#081F5C]'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <Home className="h-4 w-4" />
-                <span>Home</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false)
-                  window.location.hash = '#/customer/find-services'
-                }}
-                className={`flex w-full items-center gap-3 px-3.5 py-2.5 rounded-none text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                  currentTab === 'find-services'
-                    ? 'bg-[#081F5C]/10 text-[#081F5C] border-l-4 border-l-[#081F5C]'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <Search className="h-4 w-4" />
-                <span>Find Services</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false)
-                  window.location.hash = '#/customer/my-bookings'
-                }}
-                className={`flex w-full items-center gap-3 px-3.5 py-2.5 rounded-none text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                  currentTab === 'my-bookings'
-                    ? 'bg-[#081F5C]/10 text-[#081F5C] border-l-4 border-l-[#081F5C]'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <Package className="h-4 w-4" />
-                <span>My Bookings</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false)
-                  window.location.hash = '#/customer/messages'
-                }}
-                className={`flex w-full items-center gap-3 px-3.5 py-2.5 rounded-none text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-                  currentTab === 'messages'
-                    ? 'bg-[#081F5C]/10 text-[#081F5C] border-l-4 border-l-[#081F5C]'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>Messages</span>
-              </button>
-
-              <div className="border-t border-slate-100 my-2 pt-2 space-y-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false)
-                    window.location.hash = '#/customer/reviews-ratings'
-                  }}
-                  className={`flex w-full items-center gap-3 px-3.5 py-2 rounded-none text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
-                    currentTab === 'reviews-ratings'
-                      ? 'bg-[#081F5C]/10 text-[#081F5C] font-bold border-l-4 border-l-[#081F5C]'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <Star className="h-4 w-4 text-[#081F5C]" />
-                  <span>Reviews &amp; Ratings</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false)
-                    window.location.hash = '#/customer/account-settings'
-                  }}
-                  className={`flex w-full items-center gap-3 px-3.5 py-2 rounded-none text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer ${
-                    currentTab === 'account-settings'
-                      ? 'bg-[#081F5C]/10 text-[#081F5C] font-bold border-l-4 border-l-[#081F5C]'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <Settings className="h-4 w-4 text-[#081F5C]" />
-                  <span>Account Settings</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false)
-                    requestLogout()
-                  }}
-                  className="flex w-full items-center gap-3 px-3.5 py-2 rounded-none text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Log out</span>
-                </button>
-              </div>
-            </div>
-          )}
         </header>
       )}
 
       {/* Main Page Content */}
-      <main className="w-full flex-1 flex flex-col">{children}</main>
+      <main className={`w-full flex-1 flex flex-col ${shouldShowBottomNav ? 'pb-20 md:pb-0' : ''}`}>{children}</main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      {shouldShowBottomNav && <CustomerBottomNav currentTab={currentTab} />}
 
       {/* Logout Confirmation Dialog */}
       {LogoutDialog}

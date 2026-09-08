@@ -2,9 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts"
 import AdminUserManagement from "@/pages/admin/userManagement.jsx"
-import AdminReportedUsers from "@/pages/admin/reportedUsers.jsx"
 import AdminAnnouncement from "@/pages/admin/announcement.jsx"
 import AdminTrackServices from "@/pages/admin/trackServices.jsx"
+import AdminNotification from "@/pages/admin/notification.jsx"
+import {
+  NotificationBellIndicator,
+  useAdminNotificationUnreadCount,
+} from "@/components/notifications/NotificationFeed.jsx"
 import {
   Sidebar,
   SidebarContent,
@@ -16,9 +20,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarSeparator,
   useSidebar,
@@ -30,10 +31,10 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
-  Flag,
   LayoutDashboard,
   LogOut,
   Megaphone,
+  Menu,
   PlayCircle,
   Settings,
   ShieldCheck,
@@ -57,7 +58,7 @@ const SECTIONS = {
   announcement: { title: "Announcement", description: "Create and manage system announcements." },
   trackServices: { title: "Track services", description: "Monitor service bookings across customers, shops, and mechanics." },
   users: { title: "User management", description: "View and manage user accounts." },
-  reportedUsers: { title: "Reported User", description: "Review users that have been reported." },
+  notification: { title: "Notifications", description: "Stay updated with platform service bookings and activity." },
 }
 
 const API_URL = getApiBaseUrl()
@@ -99,38 +100,39 @@ const STAT_CARD_GRADIENT = {
   completed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick }) {
+function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick, className }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-sm border cursor-pointer",
-        gradient
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border cursor-pointer",
+        gradient,
+        className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-2 -top-2 size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
 
-      <div className="relative z-10 space-y-2.5">
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs">
-            <Icon className="size-3 text-white/90" />
-            {label}
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
-          <div className="size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs">
-            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
 
         <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
               {value}
             </span>
           </div>
           {helper ? (
-            <p className="text-[11px] text-white/85 font-medium mt-1 leading-snug truncate">
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
               {helper}
             </p>
           ) : null}
@@ -384,13 +386,6 @@ function AdminDashboardOverview({ user, setSection }) {
       onClick: () => setSection("users"),
     },
     {
-      label: "Reported Users",
-      desc: "Review flagged accounts",
-      icon: Flag,
-      tone: "orange",
-      onClick: () => setSection("reportedUsers"),
-    },
-    {
       label: "Track Services",
       desc: "All bookings across the platform",
       icon: ClipboardList,
@@ -407,7 +402,7 @@ function AdminDashboardOverview({ user, setSection }) {
   ]
 
   return (
-    <div className="space-y-4 pr-2 md:pr-4">
+    <div className="space-y-3.5 sm:space-y-5 md:space-y-6 w-full max-w-full">
       {loadError ? (
         <div className="rounded-sm border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
           {loadError}
@@ -421,8 +416,8 @@ function AdminDashboardOverview({ user, setSection }) {
       ) : (
         <>
           {/* Modern Stat Cards Grid */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {kpis.map(({ label, value, icon, variant, helper, onClick }) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3.5">
+            {kpis.map(({ label, value, icon, variant, helper, onClick }, idx) => (
               <StatGradientCard
                 key={label}
                 label={label}
@@ -431,6 +426,7 @@ function AdminDashboardOverview({ user, setSection }) {
                 variant={variant}
                 helper={helper}
                 onClick={onClick}
+                className={idx === 4 ? "col-span-2 sm:col-span-1" : ""}
               />
             ))}
           </div>
@@ -438,13 +434,13 @@ function AdminDashboardOverview({ user, setSection }) {
           {/* Charts Section */}
           <section className="grid gap-4 lg:grid-cols-3">
             {/* New Bookings Created AreaChart */}
-            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2 flex flex-col justify-between">
+            <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2 flex flex-col justify-between">
               <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">New Bookings Received (Platform)</p>
                   <p className="text-xs text-slate-500">Volume trend of created service requests across all providers</p>
                 </div>
-                <div className="relative w-[148px] shrink-0 sm:w-[160px]">
+                <div className="relative w-full sm:w-[160px] shrink-0">
                   <select
                     value={range}
                     onChange={(e) => setRange(e.target.value)}
@@ -470,7 +466,7 @@ function AdminDashboardOverview({ user, setSection }) {
                 >
                   <AreaChart data={chartSeries} margin={{ top: 12, right: 12, left: -20, bottom: 4 }}>
                     <defs>
-                      <linearGradient id="fillAdminBookings" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="fillAdminBookings" x1="0" y1="0" x2="1" y2="1">
                         <stop offset="5%" stopColor="#1447a6" stopOpacity={0.4} />
                         <stop offset="95%" stopColor="#081F5C" stopOpacity={0.02} />
                       </linearGradient>
@@ -505,25 +501,31 @@ function AdminDashboardOverview({ user, setSection }) {
               </div>
 
               {/* Summary Metric Bar */}
-              <div className="mt-3 grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-100">
-                <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
-                  <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
-                  <span className="text-slate-500 truncate">Total in Period:</span>
-                  <span className="font-bold text-slate-900 tabular-nums ml-auto">
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
+                    <span className="text-slate-500 truncate">Total in Period:</span>
+                  </div>
+                  <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
                     {chartSeries.reduce((acc, curr) => acc + curr.value, 0)}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                  <span className="text-slate-500 truncate">Peak Volume:</span>
-                  <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="text-slate-500 truncate">Peak Volume:</span>
+                  </div>
+                  <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
                     {Math.max(0, ...chartSeries.map((s) => s.value))}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
-                  <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
-                  <span className="text-slate-500 truncate">Avg / Slot:</span>
-                  <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                    <span className="text-slate-500 truncate">Avg / Slot:</span>
+                  </div>
+                  <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
                     {chartSeries.length > 0
                       ? (chartSeries.reduce((acc, curr) => acc + curr.value, 0) / chartSeries.length).toFixed(1)
                       : 0}
@@ -533,14 +535,14 @@ function AdminDashboardOverview({ user, setSection }) {
             </div>
 
             {/* Bookings By Status Donut Chart */}
-            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm">
+            <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm">
               <div className="mb-2">
                 <p className="text-sm font-semibold text-slate-900">Bookings by Status</p>
                 <p className="text-xs text-slate-500">Platform status breakdown across all shops</p>
               </div>
 
-              <div className="relative mx-auto h-[210px] w-full max-w-[260px] flex items-center justify-center">
-                <PieChart width={220} height={210}>
+              <div className="relative mx-auto h-[200px] sm:h-[210px] w-full max-w-[260px] flex items-center justify-center">
+                <PieChart width={220} height={200}>
                   <defs>
                     <linearGradient id="gradAdminPiePending" x1="0" y1="0" x2="1" y2="1">
                       <stop offset="0%" stopColor="#f59e0b" />
@@ -566,9 +568,9 @@ function AdminDashboardOverview({ user, setSection }) {
                   <Pie
                     data={statusPieRows}
                     cx={110}
-                    cy={105}
-                    innerRadius={58}
-                    outerRadius={90}
+                    cy={100}
+                    innerRadius={56}
+                    outerRadius={88}
                     paddingAngle={3}
                     cornerRadius={3}
                     stroke="#ffffff"
@@ -592,7 +594,7 @@ function AdminDashboardOverview({ user, setSection }) {
                 </div>
               </div>
 
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+              <div className="mt-2 grid grid-cols-2 gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
                 {statusPieRows.map((row) => (
                   <div key={row.key} className="flex min-w-0 items-center gap-1.5 rounded-none bg-slate-50 px-2 py-1 border border-slate-200/50">
                     <span
@@ -621,7 +623,7 @@ function AdminDashboardOverview({ user, setSection }) {
           {/* Recent Activity & Quick Navigation */}
           <section className="grid gap-4 lg:grid-cols-5">
             {/* Recent Bookings List */}
-            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-3">
+            <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-900">Recent Platform Bookings</p>
@@ -657,14 +659,14 @@ function AdminDashboardOverview({ user, setSection }) {
                   return (
                     <div
                       key={o.rowKey}
-                      className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-2.5 sm:p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3"
                     >
                       <div className="space-y-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-slate-900 text-sm">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <span className="font-semibold text-slate-900 text-xs sm:text-sm">
                             {o.id} • {o.buyer}
                           </span>
-                          <span className={cn("inline-flex items-center rounded-none border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", badgeClass)}>
+                          <span className={cn("inline-flex items-center rounded-none border px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider", badgeClass)}>
                             {o.status}
                           </span>
                         </div>
@@ -672,8 +674,8 @@ function AdminDashboardOverview({ user, setSection }) {
                           {o.serviceName} • <span className="text-slate-700 font-semibold">{o.shopLabel}</span>
                         </div>
                       </div>
-                      <div className="mt-2 flex flex-row items-center justify-between gap-3 sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5">
-                        <div className="text-[11px] text-slate-400 font-medium">
+                      <div className="flex flex-row items-center justify-between sm:flex-col sm:items-end sm:gap-0.5 border-t border-slate-100 pt-1.5 sm:border-0 sm:pt-0">
+                        <div className="text-[10px] sm:text-[11px] text-slate-400 font-medium">
                           {o.when}
                         </div>
                       </div>
@@ -684,7 +686,7 @@ function AdminDashboardOverview({ user, setSection }) {
             </div>
 
             {/* Quick Navigation Links */}
-            <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2">
+            <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2">
               <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Quick Actions</h3>
               <p className="text-xs text-slate-500 mb-3">Shortcuts to system moderation and oversight tools.</p>
               <div className="space-y-2">
@@ -693,18 +695,18 @@ function AdminDashboardOverview({ user, setSection }) {
                     key={label}
                     type="button"
                     onClick={onClick}
-                    className="group flex w-full items-center justify-between p-3 bg-white hover:bg-slate-50/80 transition-all border border-slate-200/60 rounded-none text-left shadow-xs hover:shadow-sm"
+                    className="group flex w-full items-center justify-between p-2.5 sm:p-3 bg-white hover:bg-slate-50/80 transition-all border border-slate-200/60 rounded-none text-left shadow-xs hover:shadow-sm"
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                       <div
-                        className="flex size-9 shrink-0 items-center justify-center rounded-none text-white shadow-xs"
+                        className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-none text-white shadow-xs"
                         style={{ backgroundImage: chipTone(tone) }}
                       >
-                        <QaIcon className="size-4" />
+                        <QaIcon className="size-3.5 sm:size-4" />
                       </div>
                       <div className="min-w-0">
                         <span className="block text-xs font-semibold text-slate-900 truncate">{label}</span>
-                        <span className="block text-[11px] text-slate-500 truncate">{desc}</span>
+                        <span className="block text-[10px] sm:text-[11px] text-slate-500 truncate">{desc}</span>
                       </div>
                     </div>
                     <ChevronRight className="size-4 text-slate-400 shrink-0 group-hover:text-slate-700 transition-colors" />
@@ -715,31 +717,31 @@ function AdminDashboardOverview({ user, setSection }) {
           </section>
 
           {/* E-Paayos Navy Blue Footer Banner */}
-          <footer className="mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-6 sm:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
+          <footer className="mt-4 sm:mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-4 sm:p-6 md:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
             <div className="pointer-events-none absolute -top-16 -right-16 size-64 bg-[#1447a6]/25 blur-3xl rounded-full" />
             <div className="pointer-events-none absolute -bottom-16 -left-16 size-64 bg-[#081F5C]/40 blur-3xl rounded-full" />
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#081F5C] via-[#1447a6] to-sky-400" />
 
-            <div className="relative z-10 grid gap-6 md:grid-cols-12 md:items-center">
-              <div className="md:col-span-5 space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#081F5C] to-[#1447a6] text-white shadow-md shadow-blue-900/40 border border-white/10">
+            <div className="relative z-10 grid gap-4 sm:gap-6 md:grid-cols-12 md:items-center">
+              <div className="md:col-span-5 space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#081F5C] to-[#1447a6] text-white shadow-md shadow-blue-900/40 border border-white/10">
                     <ShieldCheck className="size-4" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 sm:gap-2 flex-wrap">
                       E-Paayos System Administration
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider bg-[#1447a6]/30 text-blue-200 border border-blue-400/30 px-2 py-0.5 rounded-none">
+                      <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-[#1447a6]/30 text-blue-200 border border-blue-400/30 px-1.5 sm:px-2 py-0.5 rounded-none">
                         v2.4 Enterprise
                       </span>
                     </h3>
-                    <p className="text-xs text-blue-200/80">
+                    <p className="text-[11px] sm:text-xs text-blue-200/80">
                       Central Administrative Control & Moderation Workspace
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2.5 text-xs text-blue-200/90 pt-1">
+                <div className="flex items-center gap-2 text-[11px] sm:text-xs text-blue-200/90 pt-0.5 sm:pt-1">
                   <span className="relative flex size-2">
                     <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-400 opacity-75" />
                     <span className="relative inline-flex size-2 rounded-full bg-sky-400" />
@@ -750,12 +752,9 @@ function AdminDashboardOverview({ user, setSection }) {
                 </div>
               </div>
 
-              <div className="md:col-span-4 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-blue-100">
+              <div className="md:col-span-4 flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 text-xs font-medium text-blue-100">
                 <button type="button" onClick={() => setSection("users")} className="hover:text-white transition-colors flex items-center gap-1">
                   <Users className="size-3.5 text-sky-400" /> User Management
-                </button>
-                <button type="button" onClick={() => setSection("reportedUsers")} className="hover:text-white transition-colors flex items-center gap-1">
-                  <Flag className="size-3.5 text-amber-300" /> Reported Users
                 </button>
                 <button type="button" onClick={() => setSection("trackServices")} className="hover:text-white transition-colors flex items-center gap-1">
                   <ClipboardList className="size-3.5 text-blue-400" /> Track Services
@@ -769,7 +768,7 @@ function AdminDashboardOverview({ user, setSection }) {
                 <p className="text-xs font-semibold text-white">
                   © {new Date().getFullYear()} E-Paayos Portal.
                 </p>
-                <p className="text-[11px] text-blue-200/70 leading-tight">
+                <p className="text-[10px] sm:text-[11px] text-blue-200/70 leading-tight">
                   Platform Administration & Management
                 </p>
               </div>
@@ -790,22 +789,105 @@ function AdminMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm text-foreground hover:bg-accent md:hidden transition-colors cursor-pointer"
       onClick={() => setOpenMobile(true)}
+      aria-label="Toggle navigation menu"
     >
-      Menu
+      <Menu className="size-5 text-foreground" />
     </button>
   )
 }
 
-function AdminDashboard() {
+function AdminSidebarNav({ section, setSection }) {
+  const { isMobile, setOpenMobile } = useSidebar()
+  const handleNav = (key) => {
+    setSection(key)
+    if (isMobile) setOpenMobile(false)
+  }
+  return (
+    <SidebarMenu className="gap-2.5">
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={section === "overview"}
+          tooltip="Dashboard"
+          onClick={() => handleNav("overview")}
+          className={sidebarMenuButtonClass}
+        >
+          <LayoutDashboard className="size-[18px] opacity-90" />
+          <span className="whitespace-nowrap">Dashboard</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={section === "users"}
+          tooltip="User Management"
+          onClick={() => handleNav("users")}
+          className={sidebarMenuButtonClass}
+        >
+          <Users className="size-[18px] opacity-90" />
+          <span className="whitespace-nowrap">User Management</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={section === "trackServices"}
+          tooltip="Track Services"
+          onClick={() => handleNav("trackServices")}
+          className={sidebarMenuButtonClass}
+        >
+          <ClipboardList className="size-[18px] opacity-90" />
+          <span className="whitespace-nowrap">Track Services</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={section === "announcement"}
+          tooltip="Announcement"
+          onClick={() => handleNav("announcement")}
+          className={sidebarMenuButtonClass}
+        >
+          <Megaphone className="size-[18px] opacity-90" />
+          <span className="whitespace-nowrap">Announcement</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={section === "notification"}
+          tooltip="Notifications"
+          onClick={() => handleNav("notification")}
+          className={sidebarMenuButtonClass}
+        >
+          <Bell className="size-[18px] opacity-90" />
+          <span className="whitespace-nowrap">Notifications</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  )
+}
+
+function AdminDashboard({ initialSection = "overview" } = {}) {
   const [user, setUser] = useState(null)
-  const [section, setSection] = useState("overview")
-  const [usersMenuOpen, setUsersMenuOpen] = useState(true)
+  const initialSec =
+    typeof window !== "undefined" && window.location.hash === "#/admin/notification"
+      ? "notification"
+      : initialSection
+  const [section, setSection] = useState(initialSec)
   const [sidebarOpen, setSidebarOpen] = useState(adminSidebarOpenState)
   const [profileOpen, setProfileOpen] = useState(false)
   const profileMenuRef = useRef(null)
-  const isUsersGroupActive = section === "users" || section === "reportedUsers"
+  const { unreadCount: adminUnreadCount } = useAdminNotificationUnreadCount(user)
+
+  useEffect(() => {
+    const onHash = () => {
+      if (window.location.hash === "#/admin/notification") {
+        setSection("notification")
+      } else if (window.location.hash === "#/admin/dashboard") {
+        setSection((prev) => (prev === "notification" ? "overview" : prev))
+      }
+    }
+    window.addEventListener("hashchange", onHash)
+    return () => window.removeEventListener("hashchange", onHash)
+  }, [])
 
   useEffect(() => {
     const raw = localStorage.getItem("user")
@@ -834,11 +916,6 @@ function AdminDashboard() {
     setProfileOpen(false)
   }, [section])
 
-  useEffect(() => {
-    if (isUsersGroupActive) {
-      setUsersMenuOpen(true)
-    }
-  }, [isUsersGroupActive])
 
   useEffect(() => {
     if (!profileOpen) return
@@ -906,81 +983,7 @@ function AdminDashboard() {
             <SidebarContent className="gap-0 px-2 py-4">
               <SidebarGroup>
                 <SidebarGroupContent>
-                  <SidebarMenu className="gap-2.5">
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        isActive={section === "overview"}
-                        tooltip="Overview"
-                        onClick={() => setSection("overview")}
-                        className={sidebarMenuButtonClass}
-                      >
-                        <LayoutDashboard className="size-[18px] opacity-90" />
-                        <span className="whitespace-nowrap">Dashboard</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        isActive={isUsersGroupActive}
-                        tooltip="Users"
-                        onClick={() => setUsersMenuOpen((prev) => !prev)}
-                        className={sidebarMenuButtonClass}
-                      >
-                        <Users className="size-[18px] opacity-90" />
-                        <span className="flex-1 whitespace-nowrap">Users</span>
-                        {usersMenuOpen ? (
-                          <ChevronDown className="size-4 opacity-90" />
-                        ) : (
-                          <ChevronRight className="size-4 opacity-90" />
-                        )}
-                      </SidebarMenuButton>
-                      {usersMenuOpen && (
-                        <SidebarMenuSub className="ml-10 gap-2.5 overflow-visible border-white/25">
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild={false}
-                              isActive={section === "users"}
-                              onClick={() => setSection("users")}
-                              className="min-w-max cursor-pointer overflow-visible pr-3 text-white hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black [&>svg]:text-current [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
-                            >
-                              <span>User management</span>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                          <SidebarMenuSubItem>
-                            <SidebarMenuSubButton
-                              asChild={false}
-                              isActive={section === "reportedUsers"}
-                              onClick={() => setSection("reportedUsers")}
-                              className="min-w-max cursor-pointer overflow-visible pr-3 text-white hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black [&>svg]:text-current [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
-                            >
-                              <span>Reported User</span>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        </SidebarMenuSub>
-                      )}
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        isActive={section === "trackServices"}
-                        tooltip="Track Services"
-                        onClick={() => setSection("trackServices")}
-                        className={sidebarMenuButtonClass}
-                      >
-                        <ClipboardList className="size-[18px] opacity-90" />
-                        <span className="whitespace-nowrap">Track Services</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        isActive={section === "announcement"}
-                        tooltip="Announcement"
-                        onClick={() => setSection("announcement")}
-                        className={sidebarMenuButtonClass}
-                      >
-                        <Megaphone className="size-[18px] opacity-90" />
-                        <span className="whitespace-nowrap">Announcement</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
+                  <AdminSidebarNav section={section} setSection={setSection} />
                 </SidebarGroupContent>
               </SidebarGroup>
             </SidebarContent>
@@ -1001,21 +1004,33 @@ function AdminDashboard() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <AdminMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                  {meta.title}
-                </h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{meta.description}</p>
+            <header className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 flex-none items-center justify-between gap-2 sm:gap-4 border-b border-border/60 bg-white/95 px-3 sm:px-4 md:px-6 shadow-xs backdrop-blur-md dark:bg-background/95">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
+                <AdminMobileNav />
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate text-sm sm:text-base md:text-lg font-black tracking-tight text-foreground leading-tight">
+                    {meta.title}
+                  </h1>
+                  <p className="hidden truncate text-xs text-muted-foreground md:block font-medium">{meta.description}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="relative flex shrink-0 items-center gap-1 sm:gap-2.5">
                 <button
                   type="button"
-                  aria-label="Notification"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  aria-label="Notification center"
+                  onClick={() => {
+                    setSection("notification")
+                    window.location.hash = "#/admin/notification"
+                  }}
+                  className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${
+                    section === "notification"
+                      ? "bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-300"
+                      : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
                 >
-                  <Bell className="h-5 w-5" />
+                  <NotificationBellIndicator unreadCount={adminUnreadCount}>
+                    <Bell className="size-4.5 sm:size-5" />
+                  </NotificationBellIndicator>
                 </button>
 
                 <div ref={profileMenuRef} className="relative">
@@ -1023,40 +1038,46 @@ function AdminDashboard() {
                     type="button"
                     aria-label="Profile menu"
                     onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      profileOpen
-                        ? "bg-blue-50 text-blue-700"
-                        : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
+                    className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 text-foreground hover:bg-accent rounded-sm transition-colors cursor-pointer"
                   >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
+                    <span className="flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold leading-none text-white shadow-xs">
                       {(user.fullName || user.email || "A").charAt(0).toUpperCase()}
                     </span>
+                    <span className="hidden lg:inline-block max-w-[110px] truncate text-xs font-bold uppercase tracking-wider">
+                      {user.fullName ? user.fullName.split(' ')[0] : 'Admin'}
+                    </span>
+                    <ChevronDown className={`size-3.5 text-muted-foreground transition-transform duration-200 ${profileOpen ? 'rotate-180 text-foreground' : ''}`} />
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
+                    <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-md border border-slate-200 dark:border-border/80 bg-white dark:bg-slate-900 shadow-2xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-sm font-extrabold text-white shadow-xs">
+                          {(user.fullName || user.email || "A").charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-bold text-foreground">
+                            {user.fullName || 'Administrator'}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">{user.email || ''}</p>
+                          <span className="inline-flex items-center gap-1 mt-1 rounded-sm border border-[#081F5C]/20 bg-[#081F5C]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#081F5C] dark:text-blue-300">
+                            Administrator
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false)
+                            requestLogout()
+                          }}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer transition-colors"
+                        >
+                          <LogOut className="size-4" />
+                          <span>Log out</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1065,27 +1086,27 @@ function AdminDashboard() {
 
             <div
               id="admin-main-scroll"
-              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
               {section === "overview" && <AdminDashboardOverview user={user} setSection={setSection} />}
               {section === "announcement" && (
-                <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
+                <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
                   <AdminAnnouncement />
                 </div>
               )}
               {section === "trackServices" && (
-                <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
+                <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
                   <AdminTrackServices />
                 </div>
               )}
               {section === "users" && (
-                <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
+                <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
                   <AdminUserManagement />
                 </div>
               )}
-              {section === "reportedUsers" && (
-                <div className="flex flex-1 flex-col gap-6 pr-3 md:pr-4">
-                  <AdminReportedUsers />
+              {section === "notification" && (
+                <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
+                  <AdminNotification isEmbedded />
                 </div>
               )}
             </div>

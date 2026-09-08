@@ -166,46 +166,46 @@ function IssuePhotoThumb({ src, label, size = 'sm' }) {
 }
 
 const selectShell =
-  'h-10 w-full appearance-none rounded-none border-0 bg-white px-3 py-2 pr-8 text-xs font-bold text-slate-700 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)] outline-none focus-visible:ring-1 focus-visible:ring-indigo-600 transition-shadow hover:shadow-[0_4px_24px_-4px_rgba(79,70,229,0.28)]'
+  'h-9 sm:h-10 w-full appearance-none rounded-none border-0 bg-white px-2 sm:px-3 py-1.5 sm:py-2 pr-6 sm:pr-8 text-[11px] sm:text-xs font-bold text-slate-700 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)] outline-none focus-visible:ring-1 focus-visible:ring-indigo-600 transition-shadow hover:shadow-[0_4px_24px_-4px_rgba(79,70,229,0.28)] truncate'
 
 function statusBadge(status) {
   const s = String(status || '').toLowerCase()
   if (s === 'completed') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs shrink-0">
+        <CheckCircle2 className="size-3 sm:size-4 text-emerald-600 shrink-0" />
         <span>Completed</span>
       </span>
     )
   }
   if (s === 'cancelled' || s === 'canceled') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
-        <X className="size-4 text-rose-600 shrink-0" />
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs shrink-0">
+        <X className="size-3 sm:size-4 text-rose-600 shrink-0" />
         <span>Cancelled</span>
       </span>
     )
   }
   if (s === 'confirmed') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-sky-100 text-sky-800 border border-sky-300 shadow-2xs">
-        <span className="size-2 rounded-full bg-sky-500 animate-pulse" />
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-sky-100 text-sky-800 border border-sky-300 shadow-2xs shrink-0">
+        <span className="size-1.5 sm:size-2 rounded-full bg-sky-500 animate-pulse" />
         <span>Confirmed</span>
       </span>
     )
   }
   if (s === 'working') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs">
-        <span className="size-2 rounded-full bg-purple-500 animate-pulse" />
-        <span>Working / In Progress</span>
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs shrink-0">
+        <span className="size-1.5 sm:size-2 rounded-full bg-purple-500 animate-pulse" />
+        <span>Working</span>
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
-      <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
-      <span>Pending Approval</span>
+    <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs shrink-0">
+      <span className="size-1.5 sm:size-2 rounded-full bg-amber-500 animate-pulse" />
+      <span>Pending</span>
     </span>
   )
 }
@@ -594,34 +594,34 @@ function CustomerMyBookings() {
 
   return (
     <CustomerLayout activePage="my-bookings">
-      <main className="w-full px-6 sm:px-10 md:px-16 pt-6 pb-8 space-y-6 max-w-[1440px] mx-auto">
+      <main className="w-full px-3.5 sm:px-10 md:px-16 pt-4 sm:pt-6 pb-6 sm:pb-8 space-y-4 sm:space-y-6 max-w-[1440px] mx-auto">
         {/* Header Banner */}
-        <header className="relative overflow-hidden rounded-none bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-4 sm:p-5 text-white shadow-lg space-y-4 border border-slate-800">
+        <header className="relative overflow-hidden rounded-none bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-3.5 sm:p-5 text-white shadow-lg space-y-3.5 sm:space-y-4 border border-slate-800">
           {/* Ambient Decorative Background Glows */}
           <div className="pointer-events-none absolute -top-24 -right-24 size-80 rounded-full bg-indigo-600/15 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -left-24 size-80 rounded-full bg-purple-600/10 blur-3xl" />
 
           {/* Top Row: Info & Action */}
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="relative flex size-12 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-800 shadow-md shadow-indigo-500/30">
-                <Wrench className="size-6 text-white" aria-hidden />
-                <span className="absolute -top-1 -right-1 flex size-3">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-3.5">
+              <div className="relative flex size-10 sm:size-12 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-indigo-500 via-purple-600 to-indigo-800 shadow-md shadow-indigo-500/30">
+                <Wrench className="size-5 sm:size-6 text-white" aria-hidden />
+                <span className="absolute -top-1 -right-1 flex size-2.5 sm:size-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex size-3 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
+                  <span className="relative inline-flex size-2.5 sm:size-3 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
                 </span>
               </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h1 className="text-lg sm:text-2xl font-black tracking-tight text-white">
                     My Booking Center
                   </h1>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-none bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-none bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
                     <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Live Service Sync
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-300 mt-0.5 font-medium">
+                <p className="text-[11px] sm:text-sm text-slate-300 mt-0.5 font-medium truncate">
                   Customer: <span className="font-bold text-white">{user?.fullName || user?.name || user?.email || 'Valued Customer'}</span>
                   {user?.phone ? ` • 📞 ${user.phone}` : ''}
                 </p>
@@ -633,7 +633,7 @@ function CustomerMyBookings() {
               onClick={() => {
                 window.location.hash = '#/customer/booking-history'
               }}
-              className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-none border border-indigo-500 shadow-md shadow-indigo-900/30 transition-all cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-none border border-indigo-500 shadow-md shadow-indigo-900/30 transition-all cursor-pointer shrink-0"
             >
               <History className="size-4" />
               <span>View Booking History</span>
@@ -641,16 +641,16 @@ function CustomerMyBookings() {
           </div>
 
           {/* Booking Stats Summary Bar */}
-          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
+          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 pt-1 text-xs">
             {/* Card 1: Total Bookings */}
-            <div className="bg-slate-800/80 p-3 rounded-none border border-slate-700/80 hover:border-indigo-500/50 space-y-1 transition-colors">
+            <div className="bg-slate-800/80 p-2.5 sm:p-3 rounded-none border border-slate-700/80 hover:border-indigo-500/50 space-y-1 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="text-slate-400 font-medium block text-[11px]">Total Bookings</span>
+                <span className="text-slate-400 font-medium block text-[10px] sm:text-[11px]">Total Bookings</span>
                 <Layers className="size-3.5 text-indigo-400" />
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-black text-white">{stats.total}</span>
-                <span className="text-[11px] text-slate-400 font-medium">Requests</span>
+                <span className="text-base sm:text-lg font-black text-white">{stats.total}</span>
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium">Requests</span>
               </div>
               <div className="h-1 w-full bg-slate-700/50 rounded-none overflow-hidden mt-1">
                 <div className="h-full bg-indigo-500 rounded-none" style={{ width: '100%' }} />
@@ -658,14 +658,14 @@ function CustomerMyBookings() {
             </div>
 
             {/* Card 2: Pending Approval */}
-            <div className="bg-slate-800/80 p-3 rounded-none border border-slate-700/80 hover:border-amber-500/50 space-y-1 transition-colors">
+            <div className="bg-slate-800/80 p-2.5 sm:p-3 rounded-none border border-slate-700/80 hover:border-amber-500/50 space-y-1 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="text-amber-300 font-medium block text-[11px]">Pending Approval</span>
+                <span className="text-amber-300 font-medium block text-[10px] sm:text-[11px]">Pending</span>
                 <Clock className="size-3.5 text-amber-400" />
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-black text-amber-300">{stats.pending}</span>
-                <span className="text-[11px] text-amber-400/70 font-medium">Pending</span>
+                <span className="text-base sm:text-lg font-black text-amber-300">{stats.pending}</span>
+                <span className="text-[10px] sm:text-[11px] text-amber-400/70 font-medium">Pending</span>
               </div>
               <div className="h-1 w-full bg-slate-700/50 rounded-none overflow-hidden mt-1">
                 <div
@@ -676,14 +676,14 @@ function CustomerMyBookings() {
             </div>
 
             {/* Card 3: Active Service */}
-            <div className="bg-slate-800/80 p-3 rounded-none border border-slate-700/80 hover:border-purple-500/50 space-y-1 transition-colors">
+            <div className="bg-slate-800/80 p-2.5 sm:p-3 rounded-none border border-slate-700/80 hover:border-purple-500/50 space-y-1 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="text-purple-300 font-medium block text-[11px]">Active Service</span>
+                <span className="text-purple-300 font-medium block text-[10px] sm:text-[11px]">Active</span>
                 <Activity className="size-3.5 text-purple-400 animate-pulse" />
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-black text-purple-300">{stats.active}</span>
-                <span className="text-[11px] text-purple-400/70 font-medium">Active</span>
+                <span className="text-base sm:text-lg font-black text-purple-300">{stats.active}</span>
+                <span className="text-[10px] sm:text-[11px] text-purple-400/70 font-medium">Active</span>
               </div>
               <div className="h-1 w-full bg-slate-700/50 rounded-none overflow-hidden mt-1">
                 <div
@@ -694,14 +694,14 @@ function CustomerMyBookings() {
             </div>
 
             {/* Card 4: Completed Jobs */}
-            <div className="bg-slate-800/80 p-3 rounded-none border border-slate-700/80 hover:border-emerald-500/50 space-y-1 transition-colors">
+            <div className="bg-slate-800/80 p-2.5 sm:p-3 rounded-none border border-slate-700/80 hover:border-emerald-500/50 space-y-1 transition-colors">
               <div className="flex items-center justify-between">
-                <span className="text-emerald-300 font-medium block text-[11px]">Completed Jobs</span>
+                <span className="text-emerald-300 font-medium block text-[10px] sm:text-[11px]">Completed</span>
                 <CheckCircle2 className="size-3.5 text-emerald-400" />
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-black text-emerald-400">{stats.completed}</span>
-                <span className="text-[11px] text-emerald-400/70 font-medium">Completed</span>
+                <span className="text-base sm:text-lg font-black text-emerald-400">{stats.completed}</span>
+                <span className="text-[10px] sm:text-[11px] text-emerald-400/70 font-medium">Done</span>
               </div>
               <div className="h-1 w-full bg-slate-700/50 rounded-none overflow-hidden mt-1">
                 <div
@@ -727,43 +727,41 @@ function CustomerMyBookings() {
           ) : null}
 
           {/* Filter Controls & Search Bar */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
             {/* Status Button Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-                {BOOKING_TABS.map((t) => {
-                  const count =
-                    t === 'All bookings'
-                      ? stats.total
-                      : t === 'Pending'
-                        ? stats.pending
-                        : t === 'Confirmed' || t === 'Working'
-                          ? bookings.filter((b) => String(b.status).toLowerCase() === t.toLowerCase()).length
-                          : t === 'Completed'
-                            ? stats.completed
-                            : stats.cancelled
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 md:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden -mx-1 px-1">
+              {BOOKING_TABS.map((t) => {
+                const count =
+                  t === 'All bookings'
+                    ? stats.total
+                    : t === 'Pending'
+                      ? stats.pending
+                      : t === 'Confirmed' || t === 'Working'
+                        ? bookings.filter((b) => String(b.status).toLowerCase() === t.toLowerCase()).length
+                        : t === 'Completed'
+                          ? stats.completed
+                          : stats.cancelled
 
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setActiveTab(t)}
-                      className={cn(
-                        "px-3.5 py-2.5 text-xs font-bold rounded-none border-0 transition-all cursor-pointer whitespace-nowrap",
-                        activeTab === t
-                          ? "bg-gradient-to-r from-[#081F5C] to-[#123B9B] text-white shadow-md shadow-[#081F5C]/35"
-                          : "bg-white text-slate-700 hover:bg-slate-50 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)]"
-                      )}
-                    >
-                      {t} ({count})
-                    </button>
-                  )
-                })}
-              </div>
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setActiveTab(t)}
+                    className={cn(
+                      "px-2.5 sm:px-3.5 py-2 sm:py-2.5 text-[11px] sm:text-xs font-bold rounded-none border-0 transition-all cursor-pointer whitespace-nowrap shrink-0",
+                      activeTab === t
+                        ? "bg-gradient-to-r from-[#081F5C] to-[#123B9B] text-white shadow-md shadow-[#081F5C]/35"
+                        : "bg-white text-slate-700 hover:bg-slate-50 shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)]"
+                    )}
+                  >
+                    {t} ({count})
+                  </button>
+                )
+              })}
             </div>
 
-            {/* Filters & Search Box */}
-            <div className="flex flex-col sm:flex-row items-center gap-2">
+            {/* Filters & Search Box (1 Row, 2 Columns: Compact Category + Wider Search Bar on Mobile) */}
+            <div className="grid grid-cols-[120px_1fr] sm:flex sm:flex-row items-center gap-2">
               <div className="relative w-full sm:w-44">
                 <select
                   value={categoryFilter}
@@ -774,24 +772,23 @@ function CustomerMyBookings() {
                   <option value="Appliance">Appliance</option>
                   <option value="Gadget">Gadget</option>
                   <option value="Vehicle">Vehicle</option>
-                  <option value="Others">Others</option>
                 </select>
-                <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
+                <ChevronDown className="pointer-events-none absolute top-1/2 right-1.5 sm:right-2.5 size-3.5 sm:size-4 -translate-y-1/2 text-slate-400" />
               </div>
 
               <div className="relative w-full sm:w-72 md:w-80">
                 <input
                   type="text"
-                  placeholder="Search by service, shop, or ref..."
+                  placeholder="Search service, ref..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-none border-0 bg-white px-4 py-2.5 pr-12 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)] transition-shadow duration-200 focus:shadow-[0_4px_24px_-4px_rgba(8,31,92,0.28)] font-medium"
+                  className="w-full rounded-none border-0 bg-white h-9 sm:h-10 px-2.5 sm:px-4 pr-8 sm:pr-12 text-[11px] sm:text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)] transition-shadow duration-200 focus:shadow-[0_4px_24px_-4px_rgba(8,31,92,0.28)] font-medium"
                 />
                 <button
                   type="button"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-none bg-gradient-to-r from-[#081F5C] to-[#123B9B] p-2 text-white shadow-md shadow-[#081F5C]/30 transition-all hover:from-[#0A2870] hover:to-[#1048BE] cursor-pointer"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded-none bg-gradient-to-r from-[#081F5C] to-[#123B9B] p-1.5 sm:p-2 text-white shadow-md shadow-[#081F5C]/30 transition-all hover:from-[#0A2870] hover:to-[#1048BE] cursor-pointer"
                 >
-                  <Search className="size-3.5" />
+                  <Search className="size-3 sm:size-3.5" />
                 </button>
               </div>
             </div>
@@ -799,16 +796,16 @@ function CustomerMyBookings() {
 
           {/* Content Body */}
           {loading && bookings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-16 bg-white border border-slate-200 text-slate-400">
-              <RefreshCw className="size-10 animate-spin text-indigo-600 mb-3" />
-              <p className="text-sm font-semibold text-slate-700">Connecting to Service Database...</p>
-              <p className="text-xs text-slate-400 mt-1">Loading your booking requests in real-time</p>
+            <div className="flex flex-col items-center justify-center p-8 sm:p-16 bg-white border border-slate-200 text-slate-400">
+              <RefreshCw className="size-8 sm:size-10 animate-spin text-indigo-600 mb-3" />
+              <p className="text-xs sm:text-sm font-semibold text-slate-700">Connecting to Service Database...</p>
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-1">Loading your booking requests in real-time</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-16 bg-white border border-slate-200 text-center">
-              <Wrench className="size-14 text-slate-300 mb-3" />
-              <h3 className="text-base font-bold text-slate-800">No Booking Requests Found</h3>
-              <p className="text-xs text-slate-500 max-w-md mt-1 leading-relaxed">
+            <div className="flex flex-col items-center justify-center p-8 sm:p-16 bg-white border border-slate-200 text-center">
+              <Wrench className="size-10 sm:size-14 text-slate-300 mb-3" />
+              <h3 className="text-sm sm:text-base font-bold text-slate-800">No Booking Requests Found</h3>
+              <p className="text-[11px] sm:text-xs text-slate-500 max-w-md mt-1 leading-relaxed">
                 {searchQuery
                   ? "No bookings match your search criteria."
                   : activeTab !== "All bookings"
@@ -824,50 +821,52 @@ function CustomerMyBookings() {
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filtered.map((b) => {
                 const CategoryIcon = categoryIcon(b.category)
 
                 return (
-                  <article key={b.id} className="bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-4 sm:p-5 space-y-4 rounded-none">
+                  <article key={b.id} className="bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-3.5 sm:p-5 space-y-3 sm:space-y-4 rounded-none">
                     {/* Top Bar Header */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-9 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
-                          <CategoryIcon className="size-5" />
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 pb-1 sm:pb-2">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
+                          <CategoryIcon className="size-4 sm:size-5" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-base font-black text-slate-900">{b.serviceName}</span>
-                            <span className="text-[11px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
-                              <Tag className="size-3 text-indigo-600" />
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span className="text-sm sm:text-base font-black text-slate-900 truncate max-w-[180px] sm:max-w-none">{b.serviceName}</span>
+                            <span className="text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-700 px-1.5 sm:px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
+                              <Tag className="size-2.5 sm:size-3 text-indigo-600" />
                               Ref: {b.ref}
                             </span>
                           </div>
-                          <span className="text-[11px] text-slate-500 block mt-0.5">
+                          <span className="text-[10px] sm:text-[11px] text-slate-500 block mt-0.5">
                             Submitted {formatSubmittedLine(b.createdAt)}
                           </span>
                         </div>
                       </div>
 
                       {/* Status Pill Badge */}
-                      {statusBadge(b.status)}
+                      <div className="shrink-0">
+                        {statusBadge(b.status)}
+                      </div>
                     </div>
 
                     {/* Recipient, Line Items & Payment Summary 3-Column Grid */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 text-xs sm:text-sm">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 sm:gap-3.5 text-xs sm:text-sm">
                       {/* 1. Service Provider Details */}
-                      <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2.5 rounded-none flex flex-col justify-between">
+                      <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between pb-1">
-                            <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
-                              <Store className="size-4 text-indigo-600" />
+                            <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[11px] sm:text-xs flex items-center gap-1.5">
+                              <Store className="size-3.5 sm:size-4 text-indigo-600" />
                               <span>Service Provider</span>
                             </span>
                             {b.contactPhone && (
                               <a
                                 href={`tel:${b.contactPhone}`}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-none shadow-2xs transition-colors"
+                                className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors"
                               >
                                 <Phone className="size-3" />
                                 <span>Call</span>
@@ -875,10 +874,10 @@ function CustomerMyBookings() {
                             )}
                           </div>
 
-                          <div className="space-y-1.5 text-xs pt-1">
-                            <p className="text-slate-900 font-bold text-sm">{b.shopName}</p>
+                          <div className="space-y-1 sm:space-y-1.5 text-xs pt-1">
+                            <p className="text-slate-900 font-bold text-xs sm:text-sm">{b.shopName}</p>
                             {b.subcategory?.trim() && (
-                              <p className="text-slate-600 font-medium">Subcategory: {b.subcategory.trim()}</p>
+                              <p className="text-slate-600 font-medium text-[11px] sm:text-xs">Subcategory: {b.subcategory.trim()}</p>
                             )}
                             <div className="flex flex-wrap items-center gap-1.5 pt-1">
                               <Badge className={cn("rounded-none text-[10px] uppercase font-bold", categoryBadgeClass(b.category))}>
@@ -887,9 +886,9 @@ function CustomerMyBookings() {
                               {serviceModeBadge(b.serviceMode)}
                             </div>
                             {b.contactName && (
-                              <p className="text-slate-700 font-mono flex items-center gap-1.5 pt-1">
-                                <User className="size-3.5 text-slate-400" />
-                                <span>Contact: {b.contactName} ({b.contactPhone || 'N/A'})</span>
+                              <p className="text-slate-700 font-mono text-[11px] sm:text-xs flex items-center gap-1.5 pt-1">
+                                <User className="size-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">Contact: {b.contactName} ({b.contactPhone || 'N/A'})</span>
                               </p>
                             )}
                           </div>
@@ -897,19 +896,19 @@ function CustomerMyBookings() {
                       </div>
 
                       {/* 2. Schedule & Address Details */}
-                      <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                      <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between pb-1">
-                            <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
-                              <Calendar className="size-4 text-indigo-600" />
+                            <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[11px] sm:text-xs flex items-center gap-1.5">
+                              <Calendar className="size-3.5 sm:size-4 text-indigo-600" />
                               <span>Schedule & Location</span>
                             </span>
                           </div>
 
-                          <div className="space-y-2 text-xs pt-1">
+                          <div className="space-y-1.5 sm:space-y-2 text-xs pt-1">
                             <div>
-                              <span className="text-slate-500 font-medium block">Preferred Schedule:</span>
-                              <p className="font-bold text-slate-900 text-xs mt-0.5 flex items-center gap-1">
+                              <span className="text-slate-500 font-medium block text-[11px] sm:text-xs">Preferred Schedule:</span>
+                              <p className="font-bold text-slate-900 text-[11px] sm:text-xs mt-0.5 flex items-center gap-1">
                                 <Clock className="size-3.5 text-indigo-600 shrink-0" />
                                 <span>{formatPreferredDateLong(b.date)} • {formatPreferredTime12h(b.preferredTime)}</span>
                               </p>
@@ -917,16 +916,16 @@ function CustomerMyBookings() {
 
                             {b.serviceMode === 'home' && b.serviceAddress?.trim() ? (
                               <div>
-                                <span className="text-slate-500 font-medium block">Service Address:</span>
-                                <p className="text-slate-700 flex items-start gap-1 mt-0.5 leading-relaxed">
+                                <span className="text-slate-500 font-medium block text-[11px] sm:text-xs">Service Address:</span>
+                                <p className="text-slate-700 flex items-start gap-1 mt-0.5 leading-relaxed text-[11px] sm:text-xs">
                                   <MapPin className="size-3.5 text-rose-500 shrink-0 mt-0.5" />
                                   <span>{b.serviceAddress.trim()}</span>
                                 </p>
                               </div>
                             ) : (
                               <div>
-                                <span className="text-slate-500 font-medium block">Service Location:</span>
-                                <p className="text-slate-700 flex items-center gap-1 mt-0.5">
+                                <span className="text-slate-500 font-medium block text-[11px] sm:text-xs">Service Location:</span>
+                                <p className="text-slate-700 flex items-center gap-1 mt-0.5 text-[11px] sm:text-xs">
                                   <Store className="size-3.5 text-slate-400 shrink-0" />
                                   <span>In-Shop Service at {b.shopName}</span>
                                 </p>
@@ -934,8 +933,8 @@ function CustomerMyBookings() {
                             )}
 
                             {b.problemDescription && (
-                              <div className="pt-1">
-                                <span className="text-slate-500 font-medium block">Issue Description:</span>
+                              <div className="pt-0.5">
+                                <span className="text-slate-500 font-medium block text-[11px]">Issue Description:</span>
                                 <p className="text-slate-700 line-clamp-2 italic text-[11px] mt-0.5">"{b.problemDescription}"</p>
                               </div>
                             )}
@@ -944,16 +943,16 @@ function CustomerMyBookings() {
                       </div>
 
                       {/* 3. Pricing & Financial Summary */}
-                      <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2.5 rounded-none flex flex-col justify-between">
+                      <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between pb-1">
-                            <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
-                              <DollarSign className="size-4 text-indigo-600" />
+                            <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[11px] sm:text-xs flex items-center gap-1.5">
+                              <DollarSign className="size-3.5 sm:size-4 text-indigo-600" />
                               <span>Fee Summary</span>
                             </span>
                             <span
                               className={cn(
-                                "px-2 py-0.5 text-[11px] font-extrabold uppercase rounded-none border",
+                                "px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold uppercase rounded-none border",
                                 b.paymentStatus === "paid"
                                   ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                                   : b.serviceFeeConfirmedAt
@@ -965,22 +964,22 @@ function CustomerMyBookings() {
                             </span>
                           </div>
 
-                          <div className="space-y-1.5 text-xs pt-1">
-                            <div className="flex justify-between items-center text-slate-600">
+                          <div className="space-y-1 sm:space-y-1.5 text-xs pt-1">
+                            <div className="flex justify-between items-center text-slate-600 text-[11px] sm:text-xs">
                               <span>Labor Rate / Fee:</span>
                               <span className="font-semibold text-slate-800">
                                 {b.serviceFeeLaborRateAtCalc != null ? formatPhp(b.serviceFeeLaborRateAtCalc) : "TBD"}
                               </span>
                             </div>
-                            <div className="flex justify-between items-center text-slate-600">
+                            <div className="flex justify-between items-center text-slate-600 text-[11px] sm:text-xs">
                               <span>Materials & Parts:</span>
                               <span className="font-semibold text-slate-800">
                                 {b.serviceFeeMaterialsAmount != null ? formatPhp(b.serviceFeeMaterialsAmount) : "TBD"}
                               </span>
                             </div>
                             <div className="flex justify-between items-center pt-1 font-bold">
-                              <span className="text-slate-900">Total Estimated Fee:</span>
-                              <span className="font-black text-indigo-700 text-base">
+                              <span className="text-slate-900 text-[11px] sm:text-xs">Total Estimated Fee:</span>
+                              <span className="font-black text-indigo-700 text-sm sm:text-base">
                                 {(b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null)
                                   ? formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))
                                   : "Awaiting Quote"}
@@ -993,20 +992,20 @@ function CustomerMyBookings() {
 
                     {/* Progress Hint */}
                     {bookingProgressHint(b.status) && (
-                      <div className="bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-600 flex items-center gap-2">
-                        <AlertCircle className="size-4 text-indigo-600 shrink-0" />
+                      <div className="bg-slate-50 border border-slate-200 p-2 sm:p-2.5 text-[11px] sm:text-xs text-slate-600 flex items-center gap-2">
+                        <AlertCircle className="size-3.5 sm:size-4 text-indigo-600 shrink-0" />
                         <span className="italic">{bookingProgressHint(b.status)}</span>
                       </div>
                     )}
 
                     {/* Uploaded Issue Photos */}
                     {Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0 && (
-                      <div className="bg-indigo-50/50 border border-indigo-100 p-3 text-xs space-y-2">
-                        <span className="font-bold text-indigo-900 flex items-center gap-1.5">
-                          <ImageIcon className="size-4 text-indigo-600" />
+                      <div className="bg-indigo-50/50 border border-indigo-100 p-2.5 sm:p-3 text-xs space-y-1.5 sm:space-y-2">
+                        <span className="font-bold text-indigo-900 text-[11px] sm:text-xs flex items-center gap-1.5">
+                          <ImageIcon className="size-3.5 sm:size-4 text-indigo-600" />
                           Uploaded Issue Photos ({b.issuePhotos.length})
                         </span>
-                        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5">
                           {b.issuePhotos.map((src, photoIndex) => (
                             <IssuePhotoThumb key={photoIndex} src={src} label={`Issue ${photoIndex + 1}`} size="sm" />
                           ))}
@@ -1016,18 +1015,18 @@ function CustomerMyBookings() {
 
                     {/* Cancellation Note */}
                     {String(b.status).toLowerCase() === 'cancelled' && b.rejectionReason?.trim() && (
-                      <div className="bg-rose-50 border border-rose-200 p-3 text-xs space-y-1">
+                      <div className="bg-rose-50 border border-rose-200 p-2.5 sm:p-3 text-[11px] sm:text-xs space-y-1">
                         <span className="font-bold text-rose-900 block">Shop Cancellation Note:</span>
                         <p className="text-rose-700">{b.rejectionReason.trim()}</p>
                       </div>
                     )}
 
                     {/* Action Controls */}
-                    <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
+                    <div className="pt-2 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end gap-1.5 sm:gap-2">
                       <button
                         type="button"
                         onClick={() => { window.location.hash = '#/customer/messages' }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
                       >
                         <MessageCircle className="size-3.5" />
                         <span>Message Shop</span>
@@ -1037,7 +1036,7 @@ function CustomerMyBookings() {
                         <button
                           type="button"
                           onClick={() => { setPayingBooking(b); setPayError('') }}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
                         >
                           <CreditCard className="size-3.5" />
                           <span>Pay Now</span>
@@ -1048,7 +1047,7 @@ function CustomerMyBookings() {
                         <button
                           type="button"
                           onClick={() => { window.location.hash = '#/customer/reviews-ratings' }}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                          className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
                         >
                           <Star className="size-3.5 text-amber-600" />
                           <span>Rate Service</span>
@@ -1062,7 +1061,7 @@ function CustomerMyBookings() {
                           if (!b.shopServiceId?.trim()) return
                           window.location.hash = `#/customer/shop/${encodeURIComponent(b.shopServiceId)}`
                         }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                       >
                         <Store className="size-3.5 text-slate-500" />
                         <span>View Service</span>
@@ -1071,7 +1070,7 @@ function CustomerMyBookings() {
                       <button
                         type="button"
                         onClick={() => setViewing(b)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
                       >
                         <FileText className="size-3.5" />
                         <span>Full Details</span>

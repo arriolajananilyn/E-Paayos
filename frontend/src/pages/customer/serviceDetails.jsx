@@ -9,9 +9,11 @@ import {
   Camera,
   Check,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock,
+  ExternalLink,
   FileText,
   Home,
   Image as ImageIcon,
@@ -363,36 +365,77 @@ export default function CustomerServiceDetails({ serviceId }) {
   )
 
   const completedWorksScrollRef = useRef(null)
+  const [completedWorksCanScrollLeft, setCompletedWorksCanScrollLeft] = useState(false)
+  const [completedWorksCanScrollRight, setCompletedWorksCanScrollRight] = useState(true)
+  const isInteractingWithWorksRef = useRef(false)
+  const interactionTimeoutRef = useRef(null)
 
-  // Smooth fluid auto-scroll animation for completed works showcase
+  const scrollCompletedWorks = (direction) => {
+    const el = completedWorksScrollRef.current
+    if (!el) return
+    // Pause auto-sliding when manually triggered
+    isInteractingWithWorksRef.current = true
+    if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current)
+    interactionTimeoutRef.current = setTimeout(() => {
+      isInteractingWithWorksRef.current = false
+    }, 6000)
+
+    const card = el.firstElementChild
+    const cardWidth = card ? card.getBoundingClientRect().width + 12 : 300
+    el.scrollBy({ left: direction === 'left' ? -cardWidth : cardWidth, behavior: 'smooth' })
+  }
+
+  // Smooth, jitter-free auto-slide with full touch & hover pause support
   useEffect(() => {
     const el = completedWorksScrollRef.current
     if (!el) return
-    let animationId
-    let isHovered = false
 
-    const handleMouseEnter = () => { isHovered = true }
-    const handleMouseLeave = () => { isHovered = false }
-
-    el.addEventListener('mouseenter', handleMouseEnter)
-    el.addEventListener('mouseleave', handleMouseLeave)
-
-    const step = () => {
-      if (!isHovered && el) {
-        el.scrollLeft += 0.75
-        if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
-          el.scrollLeft = 0
-        }
-      }
-      animationId = requestAnimationFrame(step)
+    const updateScrollButtons = () => {
+      if (!el) return
+      setCompletedWorksCanScrollLeft(el.scrollLeft > 8)
+      setCompletedWorksCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 8)
     }
-    animationId = requestAnimationFrame(step)
+
+    updateScrollButtons()
+    el.addEventListener('scroll', updateScrollButtons, { passive: true })
+
+    const pauseAutoScroll = () => {
+      isInteractingWithWorksRef.current = true
+      if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current)
+      interactionTimeoutRef.current = setTimeout(() => {
+        isInteractingWithWorksRef.current = false
+      }, 5000)
+    }
+
+    el.addEventListener('touchstart', pauseAutoScroll, { passive: true })
+    el.addEventListener('touchmove', pauseAutoScroll, { passive: true })
+    el.addEventListener('pointerdown', pauseAutoScroll, { passive: true })
+    el.addEventListener('wheel', pauseAutoScroll, { passive: true })
+    el.addEventListener('mouseenter', pauseAutoScroll, { passive: true })
+
+    // Gentle auto-slide interval every 4.5 seconds when not interacting
+    const interval = setInterval(() => {
+      if (isInteractingWithWorksRef.current || !el) return
+      const card = el.firstElementChild
+      const cardWidth = card ? card.getBoundingClientRect().width + 12 : 300
+
+      if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 16) {
+        el.scrollTo({ left: 0, behavior: 'smooth' })
+      } else {
+        el.scrollBy({ left: cardWidth, behavior: 'smooth' })
+      }
+    }, 4500)
 
     return () => {
-      cancelAnimationFrame(animationId)
+      clearInterval(interval)
+      if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current)
       if (el) {
-        el.removeEventListener('mouseenter', handleMouseEnter)
-        el.removeEventListener('mouseleave', handleMouseLeave)
+        el.removeEventListener('scroll', updateScrollButtons)
+        el.removeEventListener('touchstart', pauseAutoScroll)
+        el.removeEventListener('touchmove', pauseAutoScroll)
+        el.removeEventListener('pointerdown', pauseAutoScroll)
+        el.removeEventListener('wheel', pauseAutoScroll)
+        el.removeEventListener('mouseenter', pauseAutoScroll)
       }
     }
   }, [detail])
@@ -430,6 +473,19 @@ export default function CustomerServiceDetails({ serviceId }) {
     }
     return headerBookingLocationPin
   }, [mapUserLocation, headerBookingLocationPin])
+
+  const googleMapsSearchUrl = useMemo(() => {
+    if (!detail) return ''
+    const parts = [
+      detail.shopName?.trim(),
+      detail.shopDetailedAddress?.trim(),
+      mapAddressParts?.barangay?.trim() || (typeof detail.shopBarangay === 'string' ? detail.shopBarangay.trim() : ''),
+      mapAddressParts?.cityMunicipality?.trim() || (typeof detail.shopCityMunicipality === 'string' ? detail.shopCityMunicipality.trim() : ''),
+      mapAddressParts?.province?.trim() || (typeof detail.shopProvince === 'string' ? detail.shopProvince.trim() : ''),
+      'Philippines',
+    ].filter(Boolean)
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`
+  }, [detail, mapAddressParts])
 
   const serviceReviewsList = useMemo(
     () => serviceReviews.map((rv) => ({ ...rv, images: (rv.images || []).map(resolveReviewMediaSrc).filter(Boolean) })),
@@ -485,19 +541,19 @@ export default function CustomerServiceDetails({ serviceId }) {
       return
     }
     let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/catalog/shop-services/${encodeURIComponent(serviceId)}/reviews`, {
-          headers: authHeaders(),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(data?.message || 'Could not load reviews.')
-        const list = Array.isArray(data?.reviews) ? data.reviews : []
-        if (!cancelled) setServiceReviews(list)
-      } catch {
-        if (!cancelled) setServiceReviews([])
-      }
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/catalog/shop-services/${encodeURIComponent(serviceId)}/reviews`, {
+            headers: authHeaders(),
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) throw new Error(data?.message || 'Could not load reviews.')
+          const list = Array.isArray(data?.reviews) ? data.reviews : []
+          if (!cancelled) setServiceReviews(list)
+        } catch {
+          if (!cancelled) setServiceReviews([])
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -519,47 +575,47 @@ export default function CustomerServiceDetails({ serviceId }) {
     setDetail(null)
     setShopContext(null)
 
-    ;(async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/catalog/shop-services/context/${encodeURIComponent(serviceId)}`, {
-          headers: authHeaders(),
-        })
-        const errBody = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          throw new Error(errBody?.message || 'Could not load service details.')
+      ; (async () => {
+        try {
+          const res = await fetch(`${API_URL}/api/catalog/shop-services/context/${encodeURIComponent(serviceId)}`, {
+            headers: authHeaders(),
+          })
+          const errBody = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            throw new Error(errBody?.message || 'Could not load service details.')
+          }
+          const data = errBody
+          const list = Array.isArray(data?.services) ? data.services : []
+          const focusId = data?.focusServiceId ? String(data.focusServiceId) : serviceId
+          const focus = list.find((s) => s && String(s.id) === focusId) || list.find((s) => s && String(s.id) === String(serviceId))
+          if (!focus) {
+            throw new Error('Service not found or no longer available.')
+          }
+          const rated = list.filter((s) => Number(s?.shopRating) > 0)
+          const shopAverageRating =
+            rated.length > 0
+              ? Math.round((rated.reduce((a, s) => a + Number(s.shopRating), 0) / rated.length) * 10) / 10
+              : 0
+          const derived = {
+            activeServiceCount: list.length,
+            totalCompletedBookings: list.reduce((a, s) => a + Math.max(0, Number(s?.completedJobs) || 0), 0),
+            shopAverageRating,
+          }
+          const merged =
+            data?.shopContext && typeof data.shopContext === 'object' ? { ...derived, ...data.shopContext } : derived
+          if (!cancelled) {
+            setDetail(focus)
+            setShopContext(merged)
+          }
+        } catch (e) {
+          if (!cancelled) {
+            setDetailError(e?.message || 'Could not load service details.')
+            setShopContext(null)
+          }
+        } finally {
+          if (!cancelled) setDetailLoading(false)
         }
-        const data = errBody
-        const list = Array.isArray(data?.services) ? data.services : []
-        const focusId = data?.focusServiceId ? String(data.focusServiceId) : serviceId
-        const focus = list.find((s) => s && String(s.id) === focusId) || list.find((s) => s && String(s.id) === String(serviceId))
-        if (!focus) {
-          throw new Error('Service not found or no longer available.')
-        }
-        const rated = list.filter((s) => Number(s?.shopRating) > 0)
-        const shopAverageRating =
-          rated.length > 0
-            ? Math.round((rated.reduce((a, s) => a + Number(s.shopRating), 0) / rated.length) * 10) / 10
-            : 0
-        const derived = {
-          activeServiceCount: list.length,
-          totalCompletedBookings: list.reduce((a, s) => a + Math.max(0, Number(s?.completedJobs) || 0), 0),
-          shopAverageRating,
-        }
-        const merged =
-          data?.shopContext && typeof data.shopContext === 'object' ? { ...derived, ...data.shopContext } : derived
-        if (!cancelled) {
-          setDetail(focus)
-          setShopContext(merged)
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setDetailError(e?.message || 'Could not load service details.')
-          setShopContext(null)
-        }
-      } finally {
-        if (!cancelled) setDetailLoading(false)
-      }
-    })()
+      })()
 
     return () => {
       cancelled = true
@@ -574,37 +630,37 @@ export default function CustomerServiceDetails({ serviceId }) {
     }
     let cancelled = false
     setMapPartsResolving(true)
-    ;(async () => {
-      try {
-        const labels = await resolveProfilePsgcLabels({
-          shopRegion: detail.shopRegion,
-          shopProvince: detail.shopProvince,
-          shopCityMunicipality: detail.shopCityMunicipality,
-          shopBarangay: detail.shopBarangay,
-        })
-        if (cancelled) return
-        setMapAddressParts({
-          detailedAddress: detail.shopDetailedAddress?.trim() || '',
-          barangay: labels.shopBarangay || '',
-          cityMunicipality: labels.shopCityMunicipality || '',
-          province: labels.shopProvince || '',
-          region: labels.shopRegion || '',
-          landmark: detail.shopLandmark?.trim() || '',
-        })
-      } catch {
-        if (cancelled) return
-        setMapAddressParts({
-          detailedAddress: detail.shopDetailedAddress?.trim() || '',
-          barangay: String(detail.shopBarangay || '').trim(),
-          cityMunicipality: String(detail.shopCityMunicipality || '').trim(),
-          province: String(detail.shopProvince || '').trim(),
-          region: String(detail.shopRegion || '').trim(),
-          landmark: detail.shopLandmark?.trim() || '',
-        })
-      } finally {
-        if (!cancelled) setMapPartsResolving(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          const labels = await resolveProfilePsgcLabels({
+            shopRegion: detail.shopRegion,
+            shopProvince: detail.shopProvince,
+            shopCityMunicipality: detail.shopCityMunicipality,
+            shopBarangay: detail.shopBarangay,
+          })
+          if (cancelled) return
+          setMapAddressParts({
+            detailedAddress: detail.shopDetailedAddress?.trim() || '',
+            barangay: labels.shopBarangay || '',
+            cityMunicipality: labels.shopCityMunicipality || '',
+            province: labels.shopProvince || '',
+            region: labels.shopRegion || '',
+            landmark: detail.shopLandmark?.trim() || '',
+          })
+        } catch {
+          if (cancelled) return
+          setMapAddressParts({
+            detailedAddress: detail.shopDetailedAddress?.trim() || '',
+            barangay: String(detail.shopBarangay || '').trim(),
+            cityMunicipality: String(detail.shopCityMunicipality || '').trim(),
+            province: String(detail.shopProvince || '').trim(),
+            region: String(detail.shopRegion || '').trim(),
+            landmark: detail.shopLandmark?.trim() || '',
+          })
+        } finally {
+          if (!cancelled) setMapPartsResolving(false)
+        }
+      })()
     return () => {
       cancelled = true
     }
@@ -770,12 +826,12 @@ export default function CustomerServiceDetails({ serviceId }) {
   const CategoryIcon = detail ? categoryIcon(detail.category) : Wrench
 
   const dialogInputClass =
-    'h-9 w-full rounded-none border border-slate-200 bg-white px-3 py-1.5 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:border-slate-300 font-medium placeholder:font-normal placeholder:text-slate-400'
+    'h-10 sm:h-9 w-full rounded-none border border-slate-200 bg-white px-3 py-1.5 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:border-slate-300 font-medium placeholder:font-normal placeholder:text-slate-400'
 
   return (
     <CustomerLayout activePage="service-details">
-      {/* Main Page Container with Tighter Modern Spacing */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 sm:py-5 space-y-4 sm:space-y-5">
+      {/* Main Page Container with Dedicated Mobile Responsive Spacing */}
+      <main className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-5 space-y-4 sm:space-y-5 pb-24 sm:pb-6 overflow-x-hidden min-w-0">
         {detailLoading ? (
           <div className="flex min-h-[380px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white p-6 text-center shadow-[0_3px_8px_rgba(15,23,42,0.14)]">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-[#081F5C]" />
@@ -800,10 +856,72 @@ export default function CustomerServiceDetails({ serviceId }) {
         ) : detail ? (
           <div className="space-y-4 sm:space-y-5">
 
-            {/* 1. MAP HERO CONTAINER WITH UNIFIED OVERLAY AND MODERN HEADER STYLED BOTTOM BAR */}
-            <div className="relative overflow-hidden rounded-none border border-slate-800 bg-white shadow-lg w-full">
-              {/* Map Canvas */}
-              <div className="relative isolate z-0 h-[260px] sm:h-[285px] w-full bg-slate-100">
+            {/* 1. MAP HERO CONTAINER WITH FULLY RESPONSIVE MOBILE LAYOUT */}
+            <div className="relative overflow-hidden rounded-none border border-slate-800 bg-white shadow-lg w-full flex flex-col">
+              
+              {/* MOBILE ONLY: Dedicated Top Shop Location Info Card (Unblocks Map on Mobile Screens) */}
+              <div className="sm:hidden border-b border-slate-200 bg-white p-3 space-y-2.5">
+                {/* Shop Name & Owner Header */}
+                <div className="flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <OwnerThumb
+                      src={resolveOwnerThumbSrc(detail)}
+                      ownerName={detail.shopOwner?.trim() || detail.shopName?.trim() || ''}
+                      className="h-10 w-10 border border-slate-200 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-extrabold leading-tight text-slate-900 truncate flex items-center gap-1.5">
+                        <span className="truncate">{detail.shopName?.trim() || 'Shop Location'}</span>
+                        <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                      </h3>
+                      <p className="text-xs font-medium text-slate-500 truncate mt-0.5">
+                        Owner: <span className="font-bold text-slate-800">{detail.shopOwner?.trim() || '—'}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* View Shop Profile button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 rounded-none border-slate-300 text-xs font-bold text-[#081F5C] px-3 hover:bg-slate-50 uppercase tracking-wider"
+                    onClick={() => {
+                      window.location.hash = `#/customer/view-shop/${encodeURIComponent(serviceId)}`
+                    }}
+                  >
+                    View Shop
+                  </Button>
+                </div>
+
+                {/* Address & Landmark Info */}
+                <div className="border-t border-slate-100 pt-2 space-y-1.5 text-xs">
+                  <div className="flex items-start gap-2">
+                    <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#081F5C]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shop Address</p>
+                      <p className="font-medium text-slate-800 leading-snug text-xs mt-0.5 break-words">
+                        {detail.shopAddress?.trim() || '—'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {detail.shopLandmark?.trim() ? (
+                    <div className="flex items-start gap-2 pt-1.5 border-t border-slate-50">
+                      <Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Landmark</p>
+                        <p className="font-medium text-slate-800 leading-snug text-xs mt-0.5 truncate">
+                          {detail.shopLandmark.trim()}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Map Canvas: 100% Unobstructed on Mobile (< 640px) & Floating Card on Desktop (sm:) */}
+              <div className="relative isolate z-0 h-[260px] xs:h-[285px] sm:h-[300px] w-full bg-slate-100">
                 {mapPartsResolving ? (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-[#081F5C]" />
@@ -821,8 +939,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                       emptyAddressHint="This shop has not added enough address detail to show a map pin. Use the written address below."
                     />
 
-                    {/* Unified Floating Shop Details Container inside Map (Top Left) */}
-                    <div className="pointer-events-auto absolute top-3 left-3 z-20 max-w-[270px] sm:max-w-xs rounded-none border border-slate-200/90 bg-white/95 p-3 shadow-[0_4px_14px_rgba(15,23,42,0.18)] backdrop-blur-md transition-all space-y-2">
+                    {/* DESKTOP ONLY: Unified Floating Shop Details Container inside Map (sm: and up) */}
+                    <div className="hidden sm:block pointer-events-auto absolute top-3 left-3 z-20 max-w-xs rounded-none border border-slate-200/90 bg-white/95 p-3 shadow-[0_4px_14px_rgba(15,23,42,0.18)] backdrop-blur-md transition-all space-y-2">
                       {/* Shop Name & Owner Header */}
                       <div className="flex items-center gap-2.5 min-w-0">
                         <OwnerThumb
@@ -831,8 +949,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                           className="h-8.5 w-8.5 border border-slate-200 shrink-0"
                         />
                         <div className="min-w-0 flex-1">
-                          <h3 className="text-xs sm:text-sm font-extrabold leading-tight text-slate-900 truncate flex items-center gap-1">
-                            <span>{detail.shopName?.trim() || 'Shop Location'}</span>
+                          <h3 className="text-sm font-extrabold leading-tight text-slate-900 truncate flex items-center gap-1">
+                            <span className="truncate">{detail.shopName?.trim() || 'Shop Location'}</span>
                             <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                           </h3>
                           <p className="text-[10px] font-semibold text-slate-500 truncate">
@@ -870,27 +988,32 @@ export default function CustomerServiceDetails({ serviceId }) {
                 )}
               </div>
 
-              {/* Modern Header Styled Bottom Bar (myBookings header banner gradient match) */}
-              <div className="relative overflow-hidden border-t border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-3.5 py-2.5 text-white flex flex-wrap items-center justify-between gap-2 shadow-inner">
+              {/* Modern Header Styled Bottom Bar with Mobile Responsive GPS & Navigation Controls */}
+              <div className="relative overflow-hidden border-t border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-3 py-2.5 sm:px-3.5 sm:py-2.5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shadow-inner">
                 {/* Decorative subtle ambient background glow */}
                 <div className="pointer-events-none absolute -top-12 -right-12 size-36 rounded-full bg-indigo-600/20 blur-2xl" />
 
-                <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
+                <div className="relative z-10 flex items-center gap-2 min-w-0">
+                  <div className="flex h-7 w-7 sm:h-6.5 sm:w-6.5 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
                     <Navigation className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-[11px] font-bold tracking-wide text-slate-200 truncate">
-                    {headerMapSecondaryPin ? 'Route active from your current location' : 'Interactive Map & GPS Navigation'}
-                  </span>
+                  <div className="min-w-0">
+                    <span className="text-xs sm:text-[11px] font-bold tracking-wide text-slate-200 block truncate">
+                      {headerMapSecondaryPin ? 'GPS Route active from your current location' : 'Interactive Map & GPS Navigation'}
+                    </span>
+                    <span className="text-[10px] sm:text-[9.5px] text-slate-400 block truncate">
+                      {headerMapSecondaryPin ? 'Showing driving path to shop location' : 'Pan or pinch-to-zoom to explore nearby areas'}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="relative z-10 flex items-center gap-2 shrink-0">
+                <div className="relative z-10 flex items-center gap-2 w-full sm:w-auto shrink-0 flex-wrap xs:flex-nowrap">
                   {headerMapSecondaryPin ? (
                     <Button
                       type="button"
                       size="sm"
                       variant="ghost"
-                      className="h-7 rounded-none bg-white/10 hover:bg-white/20 px-2.5 text-[10px] font-bold text-white transition-all border border-white/10"
+                      className="h-9 sm:h-7.5 flex-1 sm:flex-none rounded-none bg-white/10 hover:bg-white/20 px-3 text-xs sm:text-[10px] font-bold text-white transition-all border border-white/15"
                       onClick={clearMapUserLocation}
                     >
                       Clear route
@@ -900,36 +1023,50 @@ export default function CustomerServiceDetails({ serviceId }) {
                   <Button
                     type="button"
                     size="sm"
-                    className="h-7.5 gap-1.5 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] text-white text-[10px] font-bold uppercase tracking-wider shadow-md transition-all border border-blue-400/30"
+                    className="h-9 sm:h-7.5 flex-1 sm:flex-none justify-center gap-1.5 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] text-white text-xs sm:text-[10px] font-bold uppercase tracking-wider shadow-md transition-all border border-blue-400/30"
                     disabled={mapLocationLoading}
                     onClick={captureMapUserLocation}
                   >
-                    <Navigation className={`h-3 w-3 shrink-0 ${mapLocationLoading ? 'animate-spin' : ''}`} aria-hidden />
-                    <span>{mapLocationLoading ? 'Getting location…' : headerMapSecondaryPin ? 'Update location' : 'Route from my location'}</span>
+                    <Navigation className={`h-3.5 w-3.5 shrink-0 ${mapLocationLoading ? 'animate-spin' : ''}`} aria-hidden />
+                    <span className="truncate">{mapLocationLoading ? 'Locating…' : headerMapSecondaryPin ? 'Update GPS' : 'Route from my location'}</span>
                   </Button>
+
+                  {/* External Google Maps App Link for Mobile */}
+                  {googleMapsSearchUrl ? (
+                    <a
+                      href={googleMapsSearchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-9 sm:h-7.5 inline-flex items-center justify-center gap-1.5 rounded-none bg-white/10 hover:bg-white/20 px-3 text-xs sm:text-[10px] font-bold text-white transition-all border border-white/15 shrink-0"
+                      title="Open in Google Maps application"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      <span>Google Maps</span>
+                    </a>
+                  ) : null}
                 </div>
               </div>
             </div>
 
             {/* 2. DUAL-COLUMN HERO SECTION BELOW MAP: Left Service Card + Right Key Stats Rows Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-stretch">
 
               {/* LEFT COLUMN: Service Details Primary Card */}
-              <div className="lg:col-span-8 flex flex-col justify-between rounded-none border border-slate-200 bg-white p-4 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-4">
-                <div className="space-y-4">
+              <div className="lg:col-span-8 flex flex-col justify-between rounded-none border border-slate-200 bg-white p-3.5 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3.5 sm:space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* Badges Bar */}
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-1.5">
                     <Badge className={categoryBadgeClass(detail.category)}>{detail.category || '—'}</Badge>
                     {serviceTypeBadge(detail.type)}
-                    <span className="inline-flex items-center gap-1 rounded-none border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-800">
+                    <span className="inline-flex items-center gap-1 rounded-none border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs sm:text-[9px] font-bold uppercase tracking-wider text-emerald-800">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
                       Active Listing
                     </span>
                     <Badge
                       variant="outline"
-                      className="rounded-none border border-slate-200 bg-slate-100/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#081F5C]"
+                      className="rounded-none border border-slate-200 bg-slate-100/90 px-2 py-0.5 text-xs sm:text-[9px] font-bold uppercase tracking-wider text-[#081F5C]"
                     >
-                      <CalendarCheck className="mr-1 h-3 w-3 text-[#081F5C]" aria-hidden />
+                      <CalendarCheck className="mr-1 h-3.5 w-3.5 text-[#081F5C]" aria-hidden />
                       {detail.completedJobs ?? 0} jobs done
                     </Badge>
                   </div>
@@ -937,14 +1074,14 @@ export default function CustomerServiceDetails({ serviceId }) {
                   {/* Title & Category Header */}
                   <div>
                     <div className="flex items-start gap-3">
-                      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
+                      <span className="inline-flex h-10 w-10 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
                         <CategoryIcon className="h-5 w-5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold uppercase tracking-wide text-slate-900 leading-tight">
+                        <h1 className="text-xl sm:text-xl lg:text-2xl font-black uppercase tracking-wide text-slate-900 leading-snug break-words">
                           {detail.serviceName}
                         </h1>
-                        <p className="text-[11px] font-bold text-[#081F5C] mt-0.5">
+                        <p className="text-xs sm:text-[11px] font-bold text-[#081F5C] mt-1 truncate">
                           Category: <span className="text-slate-800">{detail.category || '—'}</span>
                           {detail.subcategory?.trim() ? ` · ${detail.subcategory.trim()}` : ''}
                         </p>
@@ -953,25 +1090,27 @@ export default function CustomerServiceDetails({ serviceId }) {
                   </div>
 
                   {/* Quick specs grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 border-t border-b border-slate-100 py-2.5 text-xs">
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Rating</p>
-                      <p className="flex items-center gap-1 font-bold text-slate-900 mt-0.5 text-xs">
-                        <Star className="h-3 w-3 fill-amber-300 text-amber-400 shrink-0" />
-                        {typeof detail.shopRating === 'number' && detail.shopRating > 0
-                          ? `${detail.shopRating.toFixed(1)} / 5.0`
-                          : 'New listing'}
+                  <div className="grid grid-cols-3 gap-2 sm:gap-2.5 border-t border-b border-slate-100 py-2.5 sm:py-2.5 text-xs">
+                    <div className="min-w-0">
+                      <p className="text-[10px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Rating</p>
+                      <p className="flex items-center gap-1 font-bold text-slate-900 mt-1 text-xs sm:text-xs truncate">
+                        <Star className="h-3.5 w-3.5 sm:h-3 sm:w-3 fill-amber-300 text-amber-400 shrink-0" />
+                        <span className="truncate">
+                          {typeof detail.shopRating === 'number' && detail.shopRating > 0
+                            ? `${detail.shopRating.toFixed(1)} / 5.0`
+                            : 'New listing'}
+                        </span>
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Service Scope</p>
-                      <p className="font-bold text-slate-900 truncate mt-0.5 text-xs">
+                    <div className="min-w-0">
+                      <p className="text-[10px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Service Scope</p>
+                      <p className="font-bold text-slate-900 truncate mt-1 text-xs sm:text-xs">
                         {SERVICE_TYPES.find((x) => x.value === detail.type)?.label ?? 'Standard'}
                       </p>
                     </div>
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Staff Assigned</p>
-                      <p className="font-bold text-slate-900 mt-0.5 text-xs">
+                    <div className="min-w-0">
+                      <p className="text-[10px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Staff Assigned</p>
+                      <p className="font-bold text-slate-900 mt-1 text-xs sm:text-xs truncate">
                         {(detail.staff ?? []).length} {noOfTechnicianMechanicLabel(detail.category).toLowerCase().replace('no. of ', '')}
                       </p>
                     </div>
@@ -979,10 +1118,10 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                   {/* Assigned Staff Preview */}
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                    <p className="text-[10.5px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                       Assigned Personnel
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {(detail.staff ?? []).length ? (
                         <>
                           <div className="inline-flex items-center gap-1">
@@ -990,18 +1129,18 @@ export default function CustomerServiceDetails({ serviceId }) {
                               <span
                                 key={`${String(name)}-${idx}`}
                                 title={String(name)}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-none border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
+                                className="inline-flex h-7 w-7 sm:h-7 sm:w-7 items-center justify-center rounded-none border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
                               >
                                 {initialsFromName(name)}
                               </span>
                             ))}
                           </div>
-                          <span className="text-[11px] font-semibold text-slate-600">
+                          <span className="text-xs sm:text-[11px] font-semibold text-slate-600">
                             {staffAssignedLabel(detail.category, (detail.staff ?? []).length)}
                           </span>
                         </>
                       ) : (
-                        <span className="text-[11px] font-medium text-slate-500">
+                        <span className="text-xs sm:text-[11px] font-medium text-slate-500">
                           No dedicated staff specified; provided directly by shop owner.
                         </span>
                       )}
@@ -1010,12 +1149,12 @@ export default function CustomerServiceDetails({ serviceId }) {
                 </div>
 
                 {/* Primary CTA Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2.5 pt-3 border-t border-slate-100">
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-3 sm:pt-3 border-t border-slate-100">
                   <Button
                     type="button"
                     aria-label="Book this service now"
                     title={bookingFieldsTooltip(detail.type)}
-                    className="h-10 flex-1 gap-2 rounded-none bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-5 text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all"
+                    className="h-11 sm:h-10 w-full sm:flex-1 gap-2 rounded-none bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 sm:px-5 text-xs sm:text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all"
                     onClick={openBookDialog}
                   >
                     <CalendarCheck className="h-4 w-4 shrink-0" aria-hidden />
@@ -1025,7 +1164,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                     type="button"
                     variant="outline"
                     aria-label="Contact Shop"
-                    className="h-10 gap-2 rounded-none border border-slate-300 bg-white px-4 text-xs font-bold uppercase tracking-wider text-[#081F5C] hover:bg-slate-100 hover:border-[#081F5C] transition-all shadow-2xs"
+                    className="h-11 sm:h-10 w-full sm:w-auto gap-2 rounded-none border border-slate-300 bg-white px-4 text-xs sm:text-xs font-bold uppercase tracking-wider text-[#081F5C] hover:bg-slate-100 hover:border-[#081F5C] transition-all shadow-2xs"
                     onClick={() => {
                       storeShopRecipientForMessages(detail)
                       window.location.hash = '#/customer/messages'
@@ -1040,25 +1179,25 @@ export default function CustomerServiceDetails({ serviceId }) {
               {/* RIGHT COLUMN: Key Statistics Cards with findServices.jsx Card Shadow */}
               <div
                 id="customer-shop-summary-table"
-                className="lg:col-span-4 flex flex-col justify-between gap-2.5"
+                className="lg:col-span-4 grid grid-cols-2 lg:flex lg:flex-col justify-between gap-2.5 sm:gap-2.5"
                 role="region"
                 aria-label="Shop key statistics"
               >
                 {/* Card 1: Total Services (Blue / Navy Theme with findServices shadow) */}
                 <div className="relative flex-1 overflow-hidden rounded-none border border-blue-200/80 bg-linear-to-r from-blue-500/10 via-blue-50/50 to-white p-3 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)]">
-                  <div className="flex items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-[#081F5C] text-white shadow-2xs">
-                        <Layers className="h-4.5 w-4.5" />
+                  <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                      <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-none bg-[#081F5C] text-white shadow-2xs">
+                        <Layers className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
                       </span>
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Total Services</p>
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums">
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">Total Services</p>
+                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums truncate mt-0.5">
                           {shopContext?.activeServiceCount != null ? shopContext.activeServiceCount : '—'} Active
                         </p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-none bg-blue-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#081F5C] border border-blue-300">
+                    <span className="hidden sm:inline-flex shrink-0 rounded-none bg-blue-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#081F5C] border border-blue-300">
                       Catalog
                     </span>
                   </div>
@@ -1066,19 +1205,19 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                 {/* Card 2: Operating Hours (Emerald Green Theme with findServices shadow) */}
                 <div className="relative flex-1 overflow-hidden rounded-none border border-emerald-200/80 bg-linear-to-r from-emerald-500/10 via-emerald-50/50 to-white p-3 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)]">
-                  <div className="flex items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-emerald-600 text-white shadow-2xs">
-                        <Clock className="h-4.5 w-4.5" />
+                  <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                      <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-none bg-emerald-600 text-white shadow-2xs">
+                        <Clock className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
                       </span>
                       <div className="min-w-0">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Operating Hours</p>
-                        <p className="text-xs font-bold text-slate-900 truncate">
+                        <p className="text-[10px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">Operating Hours</p>
+                        <p className="text-xs sm:text-xs font-bold text-slate-900 truncate mt-0.5" title={detail.shopOperatingHours?.trim() || 'Mon - Sat'}>
                           {detail.shopOperatingHours?.trim() ? detail.shopOperatingHours.trim() : 'Mon - Sat'}
                         </p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-none bg-emerald-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-900 border border-emerald-300">
+                    <span className="hidden sm:inline-flex shrink-0 rounded-none bg-emerald-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-900 border border-emerald-300">
                       Schedule
                     </span>
                   </div>
@@ -1086,14 +1225,14 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                 {/* Card 3: Shop Rating (Amber Gold Theme with findServices shadow) */}
                 <div className="relative flex-1 overflow-hidden rounded-none border border-amber-200/80 bg-linear-to-r from-amber-500/10 via-amber-50/50 to-white p-3 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)]">
-                  <div className="flex items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-amber-500 text-white shadow-2xs">
-                        <Star className="h-4.5 w-4.5 fill-white text-white" />
+                  <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                      <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-none bg-amber-500 text-white shadow-2xs">
+                        <Star className="h-4 w-4 sm:h-4.5 sm:w-4.5 fill-white text-white" />
                       </span>
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Shop Rating</p>
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums">
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">Shop Rating</p>
+                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 tabular-nums truncate mt-0.5">
                           {(() => {
                             const shopAvg = Number(shopContext?.shopAverageRating) || 0
                             const svc = Number(detail.shopRating) || 0
@@ -1104,7 +1243,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                         </p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-none bg-amber-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-amber-900 border border-amber-300">
+                    <span className="hidden sm:inline-flex shrink-0 rounded-none bg-amber-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-amber-900 border border-amber-300">
                       Verified
                     </span>
                   </div>
@@ -1112,19 +1251,19 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                 {/* Card 4: Date Joined (Indigo Violet Theme with findServices shadow) */}
                 <div className="relative flex-1 overflow-hidden rounded-none border border-indigo-200/80 bg-linear-to-r from-indigo-500/10 via-indigo-50/50 to-white p-3 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)]">
-                  <div className="flex items-center justify-between gap-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-indigo-600 text-white shadow-2xs">
-                        <CalendarDays className="h-4.5 w-4.5" />
+                  <div className="flex items-center justify-between gap-2 sm:gap-2.5">
+                    <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                      <span className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-none bg-indigo-600 text-white shadow-2xs">
+                        <CalendarDays className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
                       </span>
-                      <div>
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Date Joined</p>
-                        <p className="text-xs font-bold text-slate-900">
+                      <div className="min-w-0">
+                        <p className="text-[10px] sm:text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate">Date Joined</p>
+                        <p className="text-xs sm:text-xs font-bold text-slate-900 truncate mt-0.5">
                           {formatShopOwnerJoinedAt(detail.shopOwnerJoinedAt)}
                         </p>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-none bg-indigo-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-indigo-900 border border-indigo-300">
+                    <span className="hidden sm:inline-flex shrink-0 rounded-none bg-indigo-100/80 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-indigo-900 border border-indigo-300">
                       Partner
                     </span>
                   </div>
@@ -1133,7 +1272,7 @@ export default function CustomerServiceDetails({ serviceId }) {
             </div>
 
             {/* 3. FULL WIDTH SERVICE DESCRIPTION CARD */}
-            <div className="w-full rounded-none border border-slate-200 bg-white p-4 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-2.5">
+            <div className="w-full rounded-none border border-slate-200 bg-white p-3.5 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-2.5 sm:space-y-2.5">
               <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
                 <FileText className="h-4 w-4 text-[#081F5C]" /> Service Description
               </h2>
@@ -1142,7 +1281,7 @@ export default function CustomerServiceDetails({ serviceId }) {
               </p>
 
               {detail && shouldShowProviderNote(detail.requirements) ? (
-                <div className="mt-2.5 rounded-none border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 font-medium">
+                <div className="mt-2.5 rounded-none border border-amber-300 bg-amber-50 p-3 sm:p-3 text-xs sm:text-xs text-amber-900 font-medium">
                   <span className="font-bold uppercase tracking-wider text-amber-950">Provider Note: </span>
                   {String(detail.requirements).trim()}
                 </div>
@@ -1150,80 +1289,110 @@ export default function CustomerServiceDetails({ serviceId }) {
             </div>
 
             {/* 4. TWO-COLUMN GRID: BOOKING PROCESS GUIDE (LEFT) + READY TO SCHEDULE REPAIR CTA (RIGHT) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 items-stretch">
               {/* How Booking Works Checklist Card */}
-              <div className="rounded-none border border-slate-200 bg-white p-4 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3 flex flex-col justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
+              <div className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3 sm:space-y-3 flex flex-col justify-between">
+                <h3 className="text-xs sm:text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Booking Guide &amp; Process
                 </h3>
-                <ol className="space-y-2.5 text-xs font-medium text-slate-700 flex-1">
-                  <li className="flex items-start gap-2">
-                    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[9px] font-bold text-white">1</span>
-                    <div>
-                      <p className="font-bold text-slate-900 text-xs">Choose Schedule &amp; Contact</p>
-                      <p className="text-[11px] text-slate-500 leading-snug">Provide preferred date, time, and active mobile number.</p>
+                <ol className="space-y-2.5 sm:space-y-2.5 text-xs font-medium text-slate-700 flex-1">
+                  <li className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 sm:h-4.5 sm:w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] sm:text-[9px] font-bold text-white">1</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-900 text-xs sm:text-xs">Choose Schedule &amp; Contact</p>
+                      <p className="text-xs sm:text-[11px] text-slate-500 leading-snug mt-0.5">Provide preferred date, time, and active mobile number.</p>
                     </div>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[9px] font-bold text-white">2</span>
-                    <div>
-                      <p className="font-bold text-slate-900 text-xs">Select Service Option</p>
-                      <p className="text-[11px] text-slate-500 leading-snug">In-shop visit or home service with optional GPS pin.</p>
+                  <li className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 sm:h-4.5 sm:w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] sm:text-[9px] font-bold text-white">2</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-900 text-xs sm:text-xs">Select Service Option</p>
+                      <p className="text-xs sm:text-[11px] text-slate-500 leading-snug mt-0.5">In-shop visit or home service with optional GPS pin.</p>
                     </div>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[9px] font-bold text-white">3</span>
-                    <div>
-                      <p className="font-bold text-slate-900 text-xs">Describe Issue &amp; Upload Photos</p>
-                      <p className="text-[11px] text-slate-500 leading-snug">Attach clear photos of symptoms for accurate assessment.</p>
+                  <li className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 sm:h-4.5 sm:w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] sm:text-[9px] font-bold text-white">3</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-900 text-xs sm:text-xs">Describe Issue &amp; Upload Photos</p>
+                      <p className="text-xs sm:text-[11px] text-slate-500 leading-snug mt-0.5">Attach clear photos of symptoms for accurate assessment.</p>
                     </div>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[9px] font-bold text-white">4</span>
-                    <div>
-                      <p className="font-bold text-slate-900 text-xs">Provider Confirmation</p>
-                      <p className="text-[11px] text-slate-500 leading-snug">Track booking status under "My Bookings" in real-time.</p>
+                  <li className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 sm:h-4.5 sm:w-4.5 shrink-0 items-center justify-center bg-[#081F5C] text-[10px] sm:text-[9px] font-bold text-white">4</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-slate-900 text-xs sm:text-xs">Provider Confirmation</p>
+                      <p className="text-xs sm:text-[11px] text-slate-500 leading-snug mt-0.5">Track booking status under "My Bookings" in real-time.</p>
                     </div>
                   </li>
                 </ol>
               </div>
 
               {/* Direct Action Card */}
-              <div className="rounded-none border border-slate-200 bg-white p-4 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3 text-center flex flex-col justify-center items-center">
-                <div className="flex h-10 w-10 items-center justify-center bg-[#081F5C]/10 text-[#081F5C]">
-                  <CalendarCheck className="h-5 w-5" />
+              <div className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3 sm:space-y-3 text-center flex flex-col justify-center items-center">
+                <div className="flex h-10 w-10 sm:h-10 sm:w-10 items-center justify-center bg-[#081F5C]/10 text-[#081F5C]">
+                  <CalendarCheck className="h-5 w-5 sm:h-5 sm:w-5" />
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">Ready to schedule repair?</p>
-                  <p className="text-[11px] font-medium text-slate-500 leading-relaxed max-w-sm mt-0.5">
+                  <p className="text-xs sm:text-[11px] font-medium text-slate-500 leading-relaxed max-w-sm mt-1">
                     Submit your booking request directly to <span className="font-bold text-slate-800">{detail.shopName?.trim() || 'the shop'}</span> for fast response.
                   </p>
                 </div>
                 <Button
                   type="button"
-                  className="w-full max-w-xs h-9.5 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] transition-all"
+                  className="w-full sm:max-w-xs h-11 sm:h-9.5 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] transition-all"
                   onClick={openBookDialog}
                 >
-                  <CalendarCheck className="mr-1.5 h-3.5 w-3.5" /> Book Service Now
+                  <CalendarCheck className="mr-1.5 h-4 w-4" /> Book Service Now
                 </Button>
               </div>
             </div>
 
-            {/* 5. FULL WIDTH COMPLETED WORKS SHOWCASE WITH AUTO-SCROLL ANIMATION */}
-            <section aria-labelledby="completed-works-heading" className="w-full space-y-2.5">
-              <div className="flex items-center justify-between">
-                <h2
-                  id="completed-works-heading"
-                  className="flex items-center gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900"
-                >
-                  <ClipboardList className="h-4 w-4 text-[#081F5C]" aria-hidden />
-                  Completed Works Showcase
-                </h2>
-                <span className="text-[11px] font-medium text-slate-500">Sample finished repair jobs · Auto-scrolling</span>
+            {/* 5. FULL WIDTH COMPLETED WORKS SHOWCASE WITH SMOOTH CONTROLS */}
+            <section aria-labelledby="completed-works-heading" className="w-full space-y-3">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                <div className="min-w-0 flex-1">
+                  <h2
+                    id="completed-works-heading"
+                    className="flex items-center gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900"
+                  >
+                    <ClipboardList className="h-4 w-4 text-[#081F5C] shrink-0" aria-hidden />
+                    <span className="truncate">Completed Works Showcase</span>
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5 truncate">
+                    Sample verified finished repair jobs
+                  </p>
+                </div>
+
+                {/* Left & Right Smooth Slide Buttons */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    aria-label="Previous work"
+                    title="Previous"
+                    disabled={!completedWorksCanScrollLeft}
+                    onClick={() => scrollCompletedWorks('left')}
+                    className="flex h-8 w-8 items-center justify-center rounded-none border border-slate-300 bg-white text-slate-700 hover:bg-[#081F5C] hover:text-white hover:border-[#081F5C] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer shadow-2xs"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Next work"
+                    title="Next"
+                    disabled={!completedWorksCanScrollRight}
+                    onClick={() => scrollCompletedWorks('right')}
+                    className="flex h-8 w-8 items-center justify-center rounded-none border border-slate-300 bg-white text-slate-700 hover:bg-[#081F5C] hover:text-white hover:border-[#081F5C] disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer shadow-2xs"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+
+              {/* Touch-pan and snap-smooth horizontal scroll area */}
               <div
                 ref={completedWorksScrollRef}
-                className="flex flex-nowrap gap-3 overflow-x-auto overscroll-x-contain pb-2.5 pt-0.5 scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex flex-nowrap gap-3 sm:gap-3.5 overflow-x-auto overscroll-x-contain pb-3 pt-1 scroll-smooth snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 role="list"
                 aria-label="Completed work entries"
               >
@@ -1233,29 +1402,33 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <article
                       key={job.id}
                       role="listitem"
-                      className="w-[min(340px,calc(100vw-3rem))] shrink-0 snap-start rounded-none border border-slate-200 bg-white p-4 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)]"
+                      className="w-[82vw] max-w-[290px] xs:w-[300px] sm:w-[340px] sm:max-w-none shrink-0 snap-start rounded-none border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[0_3px_8px_rgba(15,23,42,0.12)] transition-all duration-200 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.18)] flex flex-col justify-between"
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white shadow-2xs"
-                          aria-hidden
-                        >
-                          {initialsFromName(job.customerName)}
+                      <div>
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white shadow-2xs"
+                            aria-hidden
+                          >
+                            {initialsFromName(job.customerName)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-bold text-slate-900">{job.customerName}</p>
+                            <p className="text-[10.5px] sm:text-xs font-medium text-slate-500">Verified Customer</p>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-bold text-slate-900">{job.customerName}</p>
-                          <p className="text-[10px] font-medium text-slate-500">Verified Customer</p>
+
+                        <div className="mt-2.5 border-t border-slate-100 pt-2">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                            Work completed
+                          </p>
+                          <p className="mt-1 text-xs font-medium leading-relaxed text-slate-800 line-clamp-3 sm:line-clamp-none">
+                            {job.whatWasFixed}
+                          </p>
                         </div>
                       </div>
-                      <div className="mt-2.5 border-t border-slate-100 pt-2.5">
-                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-                          Work completed
-                        </p>
-                        <p className="mt-0.5 text-xs font-medium leading-relaxed text-slate-800">
-                          {job.whatWasFixed}
-                        </p>
-                      </div>
-                      <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-[11px] tabular-nums">
+
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs tabular-nums">
                         <span className="shrink-0 font-bold text-[#081F5C]">{time}</span>
                         <span className="min-w-0 text-right font-semibold text-slate-500">{date}</span>
                       </div>
@@ -1266,9 +1439,9 @@ export default function CustomerServiceDetails({ serviceId }) {
             </section>
 
             {/* 6. BOTTOM FULL WIDTH: CUSTOMER REVIEWS & RATINGS SECTION */}
-            <section aria-labelledby="service-reviews-heading" className="w-full space-y-2.5">
-              <div className="w-full rounded-none border border-slate-200 bg-white p-4 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+            <section aria-labelledby="service-reviews-heading" className="w-full space-y-2.5 sm:space-y-2.5">
+              <div className="w-full rounded-none border border-slate-200 bg-white p-3.5 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] space-y-3 sm:space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5 sm:pb-3">
                   <h2
                     id="service-reviews-heading"
                     className="flex items-center gap-2 text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900"
@@ -1281,15 +1454,15 @@ export default function CustomerServiceDetails({ serviceId }) {
                     onClick={() => {
                       window.location.hash = '#/customer/reviews-ratings'
                     }}
-                    className="text-[11px] font-bold uppercase tracking-wider text-[#081F5C] hover:underline"
+                    className="text-xs sm:text-[11px] font-bold uppercase tracking-wider text-[#081F5C] hover:underline"
                   >
                     View all ›
                   </button>
                 </div>
 
                 {/* Overall Rating Score Header */}
-                <div className="flex flex-wrap items-center gap-3.5 bg-slate-50 p-3.5 border border-slate-200">
-                  <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tabular-nums">
+                <div className="flex flex-wrap items-center gap-3 bg-slate-50 p-3 sm:p-3.5 border border-slate-200">
+                  <div className="text-3xl sm:text-3xl font-black text-slate-900 tabular-nums">
                     {hasServiceRatings ? serviceRatingAverage.toFixed(1) : '0.0'}
                   </div>
                   <div>
@@ -1297,15 +1470,14 @@ export default function CustomerServiceDetails({ serviceId }) {
                       {[0, 1, 2, 3, 4].map((i) => (
                         <Star
                           key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(hasServiceRatings ? serviceRatingAverage : 0)
+                          className={`h-4 w-4 sm:h-4 sm:w-4 ${i < Math.floor(hasServiceRatings ? serviceRatingAverage : 0)
                               ? 'fill-amber-400 text-amber-400'
                               : 'text-slate-300'
-                          }`}
+                            }`}
                         />
                       ))}
                     </div>
-                    <p className="mt-0.5 text-[11px] font-semibold text-slate-600">
+                    <p className="mt-1 text-xs sm:text-[11px] font-semibold text-slate-600">
                       Based on {serviceRatingCount} customer review{serviceRatingCount === 1 ? '' : 's'}
                     </p>
                   </div>
@@ -1313,15 +1485,14 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                 {/* Filters Bar */}
                 {serviceReviewsList.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  <div className="flex flex-nowrap overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap gap-1.5 sm:gap-1.5 pt-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <button
                       type="button"
                       onClick={() => setServiceReviewFilter('all')}
-                      className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${
-                        serviceReviewFilter === 'all'
+                      className={`shrink-0 whitespace-nowrap px-3 sm:px-2.5 py-1.5 sm:py-1 text-xs sm:text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${serviceReviewFilter === 'all'
                           ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
                           : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       All ({serviceRatingCount})
                     </button>
@@ -1330,11 +1501,10 @@ export default function CustomerServiceDetails({ serviceId }) {
                         key={star}
                         type="button"
                         onClick={() => setServiceReviewFilter(String(star))}
-                        className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${
-                          serviceReviewFilter === String(star)
+                        className={`shrink-0 whitespace-nowrap px-3 sm:px-2.5 py-1.5 sm:py-1 text-xs sm:text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${serviceReviewFilter === String(star)
                             ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
                             : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
-                        }`}
+                          }`}
                       >
                         {star} ★ ({serviceReviewStats.stars[star] || 0})
                       </button>
@@ -1342,22 +1512,20 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <button
                       type="button"
                       onClick={() => setServiceReviewFilter('comments')}
-                      className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${
-                        serviceReviewFilter === 'comments'
+                      className={`shrink-0 whitespace-nowrap px-3 sm:px-2.5 py-1.5 sm:py-1 text-xs sm:text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${serviceReviewFilter === 'comments'
                           ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
                           : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       With comments ({serviceReviewStats.withComments})
                     </button>
                     <button
                       type="button"
                       onClick={() => setServiceReviewFilter('media')}
-                      className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${
-                        serviceReviewFilter === 'media'
+                      className={`shrink-0 whitespace-nowrap px-3 sm:px-2.5 py-1.5 sm:py-1 text-xs sm:text-[11px] font-bold uppercase tracking-wider rounded-none transition-all ${serviceReviewFilter === 'media'
                           ? 'border border-[#081F5C] bg-[#081F5C] text-white shadow-2xs'
                           : 'border border-slate-200 bg-white text-slate-700 hover:border-[#081F5C] hover:bg-slate-50'
-                      }`}
+                        }`}
                     >
                       With photos ({serviceReviewStats.withMedia})
                     </button>
@@ -1365,7 +1533,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                 ) : null}
 
                 {/* Review Cards List */}
-                <div className="border-t border-slate-100 pt-2.5">
+                <div className="border-t border-slate-100 pt-3">
                   {filteredServiceReviews.length > 0 ? (
                     <ul className="divide-y divide-slate-100">
                       {filteredServiceReviews.map((review) => {
@@ -1377,39 +1545,38 @@ export default function CustomerServiceDetails({ serviceId }) {
                         const dateStr =
                           when && !Number.isNaN(when.getTime())
                             ? `${when.toLocaleDateString('en-CA')} ${when.toLocaleTimeString('en-GB', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}`
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}`
                             : '—'
                         const displayName =
                           typeof review.customerName === 'string' && review.customerName.trim()
                             ? review.customerName.trim()
                             : 'Customer'
                         return (
-                          <li key={review.id} className="flex gap-3 py-3.5 first:pt-0">
+                          <li key={review.id} className="flex gap-3 sm:gap-3 py-3.5 sm:py-3.5 first:pt-0">
                             <div
-                              className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white shadow-2xs"
+                              className="flex h-8 w-8 sm:h-8.5 sm:w-8.5 shrink-0 items-center justify-center rounded-none bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white shadow-2xs"
                               aria-hidden
                             >
                               {initialsFromName(displayName)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-xs font-bold text-slate-900">{displayName}</p>
-                                <span className="text-[11px] font-medium text-slate-400">{dateStr}</span>
+                              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1 xs:gap-2">
+                                <p className="text-xs sm:text-xs font-bold text-slate-900 truncate">{displayName}</p>
+                                <span className="text-[10px] sm:text-[11px] font-medium text-slate-400 shrink-0">{dateStr}</span>
                               </div>
-                              <div className="mt-0.5 flex items-center gap-0.5" aria-label={`${normalizedRating} out of 5 stars`}>
+                              <div className="mt-1 flex items-center gap-0.5" aria-label={`${normalizedRating} out of 5 stars`}>
                                 {[0, 1, 2, 3, 4].map((i) => (
                                   <Star
                                     key={i}
-                                    className={`h-3 w-3 ${
-                                      i < normalizedRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
-                                    }`}
+                                    className={`h-3.5 w-3.5 ${i < normalizedRating ? 'fill-amber-400 text-amber-400' : 'text-slate-300'
+                                      }`}
                                   />
                                 ))}
                               </div>
                               {typeof review.comment === 'string' && review.comment.trim().length > 0 ? (
-                                <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-700">
+                                <p className="mt-1.5 text-xs sm:text-xs font-medium leading-relaxed text-slate-700">
                                   {review.comment}
                                 </p>
                               ) : null}
@@ -1418,7 +1585,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                                   {review.images.map((imgUrl, imgIdx) => (
                                     <div
                                       key={imgIdx}
-                                      className="h-14 w-14 overflow-hidden rounded-none border border-[#081F5C] bg-slate-100 shadow-2xs"
+                                      className="h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-none border border-[#081F5C] bg-slate-100 shadow-2xs"
                                     >
                                       <img src={imgUrl} alt="" className="h-full w-full object-cover" />
                                     </div>
@@ -1426,11 +1593,11 @@ export default function CustomerServiceDetails({ serviceId }) {
                                 </div>
                               ) : null}
                               {review.shopResponse ? (
-                                <div className="mt-2.5 border-l-2 border-[#081F5C] bg-slate-50 p-2.5 text-xs rounded-none">
-                                  <p className="font-bold uppercase tracking-wider text-[#081F5C] text-[9px]">
+                                <div className="mt-2.5 border-l-2 border-[#081F5C] bg-slate-50 p-2.5 sm:p-2.5 text-xs rounded-none">
+                                  <p className="font-bold uppercase tracking-wider text-[#081F5C] text-[10px]">
                                     Shop Response
                                   </p>
-                                  <p className="mt-0.5 font-medium text-slate-700 leading-snug text-[11px]">{review.shopResponse}</p>
+                                  <p className="mt-0.5 font-medium text-slate-700 leading-snug text-xs sm:text-[11px]">{review.shopResponse}</p>
                                 </div>
                               ) : null}
                             </div>
@@ -1457,26 +1624,26 @@ export default function CustomerServiceDetails({ serviceId }) {
           <div className="pointer-events-none absolute -top-32 -left-32 size-96 rounded-full bg-indigo-600/10 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-32 -right-32 size-96 rounded-full bg-purple-600/10 blur-3xl" />
 
-          <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-7 sm:py-9 lg:py-10 space-y-7">
+          <div className="relative z-10 mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-6 sm:py-9 lg:py-10 space-y-5 sm:space-y-7">
             {/* Upper Section: Shop Branding + Direct Action CTAs */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
-              <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5 sm:pb-6">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0">
                 <OwnerThumb
                   src={resolveOwnerThumbSrc(detail)}
                   ownerName={detail.shopOwner?.trim() || detail.shopName?.trim() || ''}
-                  className="h-12 w-12 border-2 border-blue-400/40 shadow-lg shadow-blue-900/30 shrink-0"
+                  className="h-11 w-11 sm:h-12 sm:w-12 border-2 border-blue-400/40 shadow-lg shadow-blue-900/30 shrink-0"
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-base sm:text-lg lg:text-xl font-black text-white leading-tight truncate">
                       {detail.shopName?.trim() || 'Verified Repair Shop'}
                     </h3>
-                    <span className="inline-flex items-center gap-1 rounded-none border border-emerald-400/30 bg-emerald-500/15 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300 backdrop-blur-xs">
-                      <ShieldCheck className="h-3 w-3 text-emerald-400" />
+                    <span className="inline-flex items-center gap-1 rounded-none border border-emerald-400/30 bg-emerald-500/15 px-2 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-300 backdrop-blur-xs">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
                       Verified Partner
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 font-medium mt-1 flex items-center gap-2 flex-wrap">
+                  <p className="text-xs sm:text-xs text-slate-300 font-medium mt-1 flex items-center gap-2 flex-wrap">
                     <span>Owner: <strong className="text-white">{detail.shopOwner?.trim() || '—'}</strong></span>
                     <span className="text-slate-600">•</span>
                     <span>Joined <strong className="text-white">{formatShopOwnerJoinedAt(detail.shopOwnerJoinedAt)}</strong></span>
@@ -1484,11 +1651,11 @@ export default function CustomerServiceDetails({ serviceId }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
                 <Button
                   type="button"
                   size="sm"
-                  className="h-9.5 gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] text-white text-xs font-bold uppercase tracking-wider shadow-md transition-all border border-blue-400/30 px-4"
+                  className="h-10 sm:h-9.5 w-full sm:w-auto justify-center gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] text-white text-xs font-bold uppercase tracking-wider shadow-md transition-all border border-blue-400/30 px-4 cursor-pointer"
                   onClick={() => {
                     storeShopRecipientForMessages(detail)
                     window.location.hash = '#/customer/messages'
@@ -1501,32 +1668,32 @@ export default function CustomerServiceDetails({ serviceId }) {
             </div>
 
             {/* Middle Section: 3 Columns Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 text-xs text-slate-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 text-xs sm:text-sm text-slate-300">
               {/* Column 1: Shop Location & Operating Hours */}
-              <div className="space-y-3 p-4 rounded-none border border-white/5 bg-white/[0.02] backdrop-blur-xs">
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2 border-b border-white/10 pb-2">
+              <div className="space-y-3 p-3.5 sm:p-4 rounded-none border border-white/10 bg-white/[0.03] backdrop-blur-xs">
+                <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white flex items-center gap-2 border-b border-white/10 pb-2">
                   <MapPin className="h-4 w-4 text-sky-400" /> Location &amp; Hours
                 </h4>
                 <div className="space-y-2.5">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Address</p>
-                    <p className="text-xs font-medium text-white leading-relaxed mt-0.5">
+                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Address</p>
+                    <p className="text-xs sm:text-sm font-medium text-white leading-relaxed mt-0.5">
                       {detail.shopAddress?.trim() || '—'}
                     </p>
                   </div>
                   {detail.shopLandmark?.trim() ? (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Landmark</p>
-                      <p className="text-xs font-medium text-slate-200 mt-0.5 flex items-center gap-1">
-                        <Landmark className="h-3 w-3 text-amber-400 shrink-0" />
+                      <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Landmark</p>
+                      <p className="text-xs sm:text-sm font-medium text-slate-200 mt-0.5 flex items-center gap-1.5">
+                        <Landmark className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                         {detail.shopLandmark.trim()}
                       </p>
                     </div>
                   ) : null}
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Operating Hours</p>
-                    <p className="text-xs font-bold text-emerald-300 mt-0.5 flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Operating Hours</p>
+                    <p className="text-xs sm:text-sm font-bold text-emerald-300 mt-0.5 flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-emerald-400 shrink-0" />
                       {detail.shopOperatingHours?.trim() || 'Mon - Sat (Operating hours available)'}
                     </p>
                   </div>
@@ -1534,15 +1701,15 @@ export default function CustomerServiceDetails({ serviceId }) {
               </div>
 
               {/* Column 2: Performance Highlights */}
-              <div className="space-y-3 p-4 rounded-none border border-white/5 bg-white/[0.02] backdrop-blur-xs">
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2 border-b border-white/10 pb-2">
+              <div className="space-y-3 p-3.5 sm:p-4 rounded-none border border-white/10 bg-white/[0.03] backdrop-blur-xs">
+                <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white flex items-center gap-2 border-b border-white/10 pb-2">
                   <Sparkles className="h-4 w-4 text-amber-400" /> Shop Performance
                 </h4>
                 <ul className="space-y-2">
                   <li className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <span className="text-slate-400 font-medium">Shop Rating:</span>
-                    <span className="font-bold text-white flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    <span className="text-slate-400 font-medium text-xs">Shop Rating:</span>
+                    <span className="font-bold text-white flex items-center gap-1 text-xs">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                       {(() => {
                         const shopAvg = Number(shopContext?.shopAverageRating) || 0
                         const svc = Number(detail.shopRating) || 0
@@ -1553,20 +1720,20 @@ export default function CustomerServiceDetails({ serviceId }) {
                     </span>
                   </li>
                   <li className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <span className="text-slate-400 font-medium">Active Services:</span>
-                    <span className="font-bold text-white tabular-nums">
+                    <span className="text-slate-400 font-medium text-xs">Active Services:</span>
+                    <span className="font-bold text-white tabular-nums text-xs">
                       {shopContext?.activeServiceCount != null ? `${shopContext.activeServiceCount} Listed` : '1 Listing'}
                     </span>
                   </li>
                   <li className="flex items-center justify-between border-b border-white/5 pb-1.5">
-                    <span className="text-slate-400 font-medium">Completed Jobs:</span>
-                    <span className="font-bold text-emerald-300 tabular-nums">
+                    <span className="text-slate-400 font-medium text-xs">Completed Jobs:</span>
+                    <span className="font-bold text-emerald-300 tabular-nums text-xs">
                       {detail.completedJobs ?? 0} finished job{detail.completedJobs === 1 ? '' : 's'}
                     </span>
                   </li>
                   <li className="flex items-center justify-between">
-                    <span className="text-slate-400 font-medium">Assigned Staff:</span>
-                    <span className="font-bold text-white">
+                    <span className="text-slate-400 font-medium text-xs">Assigned Staff:</span>
+                    <span className="font-bold text-white text-xs">
                       {staffAssignedLabel(detail.category, (detail.staff ?? []).length)}
                     </span>
                   </li>
@@ -1574,21 +1741,21 @@ export default function CustomerServiceDetails({ serviceId }) {
               </div>
 
               {/* Column 3: E-Paayos Guarantee */}
-              <div className="space-y-3 p-4 rounded-none border border-white/5 bg-white/[0.02] backdrop-blur-xs">
-                <h4 className="text-xs font-extrabold uppercase tracking-wider text-white flex items-center gap-2 border-b border-white/10 pb-2">
+              <div className="space-y-3 p-3.5 sm:p-4 rounded-none border border-white/10 bg-white/[0.03] backdrop-blur-xs">
+                <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white flex items-center gap-2 border-b border-white/10 pb-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-400" /> Service Guarantee
                 </h4>
-                <p className="text-[11px] leading-relaxed text-slate-300 font-medium">
+                <p className="text-xs leading-relaxed text-slate-300 font-medium">
                   All bookings placed through <strong className="text-white">E-Paayos</strong> are tracked in real-time. Direct message the owner, share GPS pins for home service, and monitor repair status online.
                 </p>
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  <span className="rounded-none border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-300">
+                  <span className="rounded-none border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-300">
                     Real-Time Tracking
                   </span>
-                  <span className="rounded-none border border-purple-400/20 bg-purple-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-purple-300">
+                  <span className="rounded-none border border-purple-400/20 bg-purple-500/10 px-2 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-purple-300">
                     Direct Messaging
                   </span>
-                  <span className="rounded-none border border-emerald-400/20 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+                  <span className="rounded-none border border-emerald-400/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-emerald-300">
                     Verified Shop
                   </span>
                 </div>
@@ -1596,15 +1763,48 @@ export default function CustomerServiceDetails({ serviceId }) {
             </div>
 
             {/* Bottom Copyright & Status Bar */}
-            <div className="border-t border-white/10 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] text-slate-400 font-medium">
+            <div className="border-t border-white/10 pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400 font-medium text-center sm:text-left">
               <p>© {new Date().getFullYear()} E-Paayos Services Platform. All rights reserved.</p>
               <p className="flex items-center gap-1.5 text-slate-300">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                 Official Shop Info · <strong className="text-white">{detail.shopName?.trim() || 'Registered Provider'}</strong>
               </p>
             </div>
           </div>
         </footer>
+      ) : null}
+
+      {/* 8. MOBILE-ONLY STICKY BOTTOM ACTION BAR */}
+      {detail ? (
+        <aside
+          aria-label="Mobile booking action bar"
+          className="fixed bottom-0 inset-x-0 z-30 sm:hidden border-t border-slate-200/90 bg-white/95 px-3.5 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] backdrop-blur-md"
+        >
+          <div className="flex items-center gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Message Shop"
+              title="Message Shop"
+              className="h-11 w-11 shrink-0 rounded-none border border-slate-300 text-[#081F5C] hover:bg-slate-50 cursor-pointer"
+              onClick={() => {
+                storeShopRecipientForMessages(detail)
+                window.location.hash = '#/customer/messages'
+              }}
+            >
+              <MessageCircle className="h-5 w-5" />
+            </Button>
+            <Button
+              type="button"
+              className="h-11 flex-1 justify-center gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all active:scale-[0.99] cursor-pointer"
+              onClick={openBookDialog}
+            >
+              <CalendarCheck className="h-4.5 w-4.5 shrink-0" />
+              <span>Book Service Now</span>
+            </Button>
+          </div>
+        </aside>
       ) : null}
 
       {/* Booking Dialog Modal */}
@@ -1615,14 +1815,14 @@ export default function CustomerServiceDetails({ serviceId }) {
           setBookDialogOpen(open)
         }}
       >
-        <DialogContent className="flex max-h-[min(92dvh,46rem)] w-full max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)] sm:max-w-2xl">
+        <DialogContent className="flex max-h-[92dvh] sm:max-h-[min(94dvh,46rem)] w-[calc(100%-1rem)] sm:max-w-2xl flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)]">
           {/* Header Banner */}
-          <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-5 py-4 text-white shadow-md">
+          <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-4 sm:px-5 py-3 sm:py-4 text-white shadow-md">
             <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-indigo-500/20 blur-2xl" />
             <div className="relative z-10 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-md border border-blue-400/30">
-                  <CalendarCheck className="h-5 w-5" />
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-md border border-blue-400/30">
+                  <CalendarCheck className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1630,7 +1830,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                       {bookSuccess ? 'Booking Completed' : 'Service Booking Form'}
                     </h2>
                     {detail ? (
-                      <span className="rounded-none border border-blue-400/30 bg-blue-500/20 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-blue-200 backdrop-blur-xs">
+                      <span className="rounded-none border border-blue-400/30 bg-blue-500/20 px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-blue-200 backdrop-blur-xs">
                         {detail.category || 'Service'}
                       </span>
                     ) : null}
@@ -1646,12 +1846,12 @@ export default function CustomerServiceDetails({ serviceId }) {
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-4 sm:p-6 bg-slate-50/50">
+          <div className="flex min-h-0 flex-1 flex-col gap-3.5 sm:gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-3.5 sm:p-6 bg-slate-50/50">
             {detail && shouldShowProviderNote(detail.requirements) && !bookSuccess ? (
-              <div className="flex items-start gap-2.5 rounded-none border border-amber-300 bg-amber-50/90 p-3 text-xs text-amber-950 font-medium shadow-2xs">
+              <div className="flex items-start gap-2.5 rounded-none border border-amber-300 bg-amber-50/90 p-3 text-xs sm:text-sm text-amber-950 font-medium shadow-2xs">
                 <Info className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
                 <div className="min-w-0 flex-1 leading-relaxed">
-                  <strong className="font-bold uppercase tracking-wider text-amber-900 block text-[10px]">Provider Requirement Note:</strong>
+                  <strong className="font-bold uppercase tracking-wider text-amber-900 block text-xs">Provider Requirement Note:</strong>
                   {String(detail.requirements).trim()}
                 </div>
               </div>
@@ -1659,13 +1859,13 @@ export default function CustomerServiceDetails({ serviceId }) {
 
             {bookSuccess ? (
               <div className="space-y-4 py-2">
-                <div className="rounded-none border border-emerald-300 bg-emerald-50/90 p-5 text-center shadow-xs space-y-3">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-none bg-emerald-600 text-white shadow-md">
-                    <CheckCircle2 className="h-7 w-7" />
+                <div className="rounded-none border border-emerald-300 bg-emerald-50/90 p-4 sm:p-5 text-center shadow-xs space-y-3">
+                  <div className="mx-auto flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-none bg-emerald-600 text-white shadow-md">
+                    <CheckCircle2 className="h-6 w-6 sm:h-7 sm:w-7" />
                   </div>
                   <div>
-                    <h3 className="text-base font-extrabold text-emerald-950 uppercase tracking-wide">Request Successfully Sent!</h3>
-                    <p className="mt-1 text-xs text-emerald-800 font-medium leading-relaxed max-w-md mx-auto">
+                    <h3 className="text-base sm:text-lg font-extrabold text-emerald-950 uppercase tracking-wide">Request Successfully Sent!</h3>
+                    <p className="mt-1.5 text-xs sm:text-sm text-emerald-800 font-medium leading-relaxed max-w-md mx-auto">
                       {detail ? (
                         <>
                           <span className="font-bold text-emerald-950">{detail.shopName?.trim() || 'The shop'}</span> has received your booking request for{' '}
@@ -1676,28 +1876,28 @@ export default function CustomerServiceDetails({ serviceId }) {
                       )}
                     </p>
                   </div>
-                  <div className="rounded-none border border-emerald-200 bg-white p-3 text-left text-xs space-y-1 text-slate-700 font-medium">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Submission Details</p>
+                  <div className="rounded-none border border-emerald-200 bg-white p-3 text-left text-xs sm:text-sm space-y-1.5 text-slate-700 font-medium">
+                    <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">Submission Details</p>
                     <div className="flex items-center justify-between">
-                      <span>Status:</span>
-                      <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-none border border-emerald-300 text-[10px] uppercase">Pending Provider Confirmation</span>
+                      <span className="text-xs sm:text-sm">Status:</span>
+                      <span className="font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-none border border-emerald-300 text-[10px] sm:text-xs uppercase">Pending Confirmation</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Preferred Date:</span>
-                      <span className="font-bold text-slate-900">{formatDateForConfirm(bookForm.preferredDate)}</span>
+                      <span className="text-xs sm:text-sm">Preferred Date:</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">{formatDateForConfirm(bookForm.preferredDate)}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span>Contact Person:</span>
-                      <span className="font-bold text-slate-900">{bookForm.contactName} ({bookForm.contactPhone})</span>
+                      <span className="text-xs sm:text-sm">Contact Person:</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm truncate max-w-[200px] sm:max-w-none">{bookForm.contactName} ({bookForm.contactPhone})</span>
                     </div>
                   </div>
                 </div>
 
-                <DialogFooter className="flex flex-row flex-wrap items-center justify-end gap-2 border-t border-slate-200 pt-3">
+                <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 border-t border-slate-200 pt-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="shrink-0 rounded-none border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 shadow-2xs"
+                    className="w-full sm:w-auto justify-center shrink-0 rounded-none border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 shadow-2xs h-10 cursor-pointer"
                     onClick={() => {
                       setBookDialogOpen(false)
                       window.location.hash = '#/customer/my-bookings'
@@ -1707,14 +1907,14 @@ export default function CustomerServiceDetails({ serviceId }) {
                   </Button>
                   <Button
                     type="button"
-                    className="shrink-0 gap-1.5 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30"
+                    className="w-full sm:w-auto justify-center shrink-0 gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30 h-10 cursor-pointer"
                     onClick={() => {
                       if (detail?.shopOwnerId) storeShopRecipientForMessages(detail)
                       setBookDialogOpen(false)
                       window.location.hash = '#/customer/messages'
                     }}
                   >
-                    <MessageCircle className="h-3.5 w-3.5" />
+                    <MessageCircle className="h-4 w-4" />
                     <span>Message Shop</span>
                   </Button>
                 </DialogFooter>
@@ -1722,25 +1922,25 @@ export default function CustomerServiceDetails({ serviceId }) {
             ) : (
               <form onSubmit={handleBookingFormSubmit} className="space-y-4">
                 {bookError ? (
-                  <div className="flex items-center gap-2 rounded-none border border-rose-300 bg-rose-50 p-3 text-xs font-bold text-rose-800 shadow-2xs" role="alert">
+                  <div className="flex items-center gap-2 rounded-none border border-rose-300 bg-rose-50 p-3 text-xs sm:text-sm font-bold text-rose-800 shadow-2xs" role="alert">
                     <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
                     <span>{bookError}</span>
                   </div>
                 ) : null}
 
                 {/* Section 1: Contact Information */}
-                <div className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
+                <div className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                      <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-[10px] font-bold text-white">1</span>
+                    <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-xs font-bold text-white">1</span>
                       Contact Information
                     </h3>
-                    <span className="text-[10px] font-semibold text-slate-400">Required</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-slate-400">Required</span>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="book-contact-name" className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="book-contact-name" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <User className="h-3.5 w-3.5 text-[#081F5C]" />
                         Contact Full Name
                       </Label>
@@ -1756,8 +1956,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="book-contact-phone" className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="book-contact-phone" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Phone className="h-3.5 w-3.5 text-[#081F5C]" />
                         Mobile / Phone Number
                       </Label>
@@ -1777,18 +1977,18 @@ export default function CustomerServiceDetails({ serviceId }) {
                 </div>
 
                 {/* Section 2: Preferred Schedule & Service Option */}
-                <div className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
+                <div className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                      <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-[10px] font-bold text-white">2</span>
+                    <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-xs font-bold text-white">2</span>
                       Preferred Schedule &amp; Option
                     </h3>
-                    <span className="text-[10px] font-semibold text-slate-400">Required</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-slate-400">Required</span>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="book-pref-date" className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="book-pref-date" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5 text-[#081F5C]" />
                         Preferred Date
                       </Label>
@@ -1804,8 +2004,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="book-pref-time" className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="book-pref-time" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-[#081F5C]" />
                         Preferred Time
                       </Label>
@@ -1822,8 +2022,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                   </div>
 
                   {/* Service Mode Selector Cards */}
-                  <div className="space-y-1.5 pt-1">
-                    <Label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 block">
+                  <div className="space-y-2 pt-1">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
                       Service Fulfillment Option
                     </Label>
                     {detail?.type === 'both' ? (
@@ -1840,26 +2040,24 @@ export default function CustomerServiceDetails({ serviceId }) {
                             setLocationCaptureError('')
                             setLocationCaptureLoading(false)
                           }}
-                          className={`flex items-start gap-3 p-3 rounded-none text-left transition-all border ${
-                            bookForm.serviceMode === 'in-shop'
-                              ? 'border-[#081F5C] bg-blue-50/70 shadow-xs'
+                          className={`flex items-start gap-3 p-3 rounded-none text-left transition-all border cursor-pointer ${bookForm.serviceMode === 'in-shop'
+                              ? 'border-[#081F5C] bg-blue-50/80 shadow-xs'
                               : 'border-slate-200 bg-white hover:border-slate-300'
-                          }`}
+                            }`}
                         >
-                          <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-none text-white ${
-                            bookForm.serviceMode === 'in-shop' ? 'bg-[#081F5C]' : 'bg-slate-300'
-                          }`}>
-                            <Store className="h-3.5 w-3.5" />
+                          <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-none text-white ${bookForm.serviceMode === 'in-shop' ? 'bg-[#081F5C]' : 'bg-slate-400'
+                            }`}>
+                            <Store className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between">
-                              <p className="text-xs font-extrabold text-slate-900 uppercase">In-Shop Visit</p>
+                              <p className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase">In-Shop Visit</p>
                               {bookForm.serviceMode === 'in-shop' && (
-                                <span className="h-2 w-2 rounded-full bg-[#081F5C]" />
+                                <span className="h-2.5 w-2.5 rounded-full bg-[#081F5C]" />
                               )}
                             </div>
-                            <p className="text-[10px] text-slate-500 leading-snug mt-0.5 font-medium">
-                              Bring your item to the shop address.
+                            <p className="text-xs text-slate-500 leading-snug mt-0.5 font-medium">
+                              Bring your item directly to the shop.
                             </p>
                           </div>
                         </button>
@@ -1869,33 +2067,31 @@ export default function CustomerServiceDetails({ serviceId }) {
                           onClick={() => {
                             setBookForm((f) => ({ ...f, serviceMode: 'home' }))
                           }}
-                          className={`flex items-start gap-3 p-3 rounded-none text-left transition-all border ${
-                            bookForm.serviceMode === 'home'
-                              ? 'border-[#081F5C] bg-blue-50/70 shadow-xs'
+                          className={`flex items-start gap-3 p-3 rounded-none text-left transition-all border cursor-pointer ${bookForm.serviceMode === 'home'
+                              ? 'border-[#081F5C] bg-blue-50/80 shadow-xs'
                               : 'border-slate-200 bg-white hover:border-slate-300'
-                          }`}
+                            }`}
                         >
-                          <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-none text-white ${
-                            bookForm.serviceMode === 'home' ? 'bg-[#081F5C]' : 'bg-slate-300'
-                          }`}>
-                            <Home className="h-3.5 w-3.5" />
+                          <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-none text-white ${bookForm.serviceMode === 'home' ? 'bg-[#081F5C]' : 'bg-slate-400'
+                            }`}>
+                            <Home className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between">
-                              <p className="text-xs font-extrabold text-slate-900 uppercase">Home Service</p>
+                              <p className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase">Home Service</p>
                               {bookForm.serviceMode === 'home' && (
-                                <span className="h-2 w-2 rounded-full bg-[#081F5C]" />
+                                <span className="h-2.5 w-2.5 rounded-full bg-[#081F5C]" />
                               )}
                             </div>
-                            <p className="text-[10px] text-slate-500 leading-snug mt-0.5 font-medium">
+                            <p className="text-xs text-slate-500 leading-snug mt-0.5 font-medium">
                               Technician visits your service address.
                             </p>
                           </div>
                         </button>
                       </div>
                     ) : (
-                      <div className="rounded-none border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-700 font-medium flex items-center gap-2">
-                        <Info className="h-3.5 w-3.5 text-[#081F5C] shrink-0" />
+                      <div className="rounded-none border border-slate-200 bg-slate-50 p-2.5 sm:p-3 text-xs sm:text-sm text-slate-700 font-medium flex items-center gap-2">
+                        <Info className="h-4 w-4 text-[#081F5C] shrink-0" />
                         <span>
                           {detail?.type === 'home'
                             ? 'Fixed Option: This service is available as Home Service only.'
@@ -1910,19 +2106,19 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                 {/* Section 3: Service Address & GPS Pin (If Home Service) */}
                 {bookForm.serviceMode === 'home' ? (
-                  <div className="rounded-none border border-blue-200 bg-blue-50/40 p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
+                  <div className="rounded-none border border-blue-200 bg-blue-50/50 p-3.5 sm:p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
                     <div className="flex items-center justify-between border-b border-blue-200/80 pb-2">
-                      <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-[#081F5C]" />
                         Home Service Location
                       </h3>
-                      <span className="text-[10px] font-bold text-blue-900 uppercase bg-blue-100 px-2 py-0.5 border border-blue-300">
+                      <span className="text-[10px] sm:text-xs font-bold text-blue-900 uppercase bg-blue-100 px-2 py-0.5 border border-blue-300">
                         Address Required
                       </span>
                     </div>
 
-                    <div className="space-y-1">
-                      <Label htmlFor="book-service-address" className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="book-service-address" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                         Full Service Address
                       </Label>
                       <Textarea
@@ -1939,12 +2135,12 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                     {/* GPS Pin Capture Box */}
                     <div className="pt-1">
-                      <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 border border-blue-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white p-2.5 sm:p-3 border border-blue-200">
                         <div className="min-w-0">
-                          <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1">
-                            <Navigation className="h-3 w-3 text-[#081F5C]" /> Precise GPS Location (Optional)
+                          <p className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                            <Navigation className="h-3.5 w-3.5 text-[#081F5C]" /> Precise GPS Location (Optional)
                           </p>
-                          <p className="text-[10px] text-slate-500 font-medium">Helps technician navigate quickly to your door.</p>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">Helps technician navigate directly to your pin.</p>
                         </div>
                         <Button
                           type="button"
@@ -1952,9 +2148,9 @@ export default function CustomerServiceDetails({ serviceId }) {
                           size="sm"
                           disabled={locationCaptureLoading}
                           onClick={captureCustomerLocation}
-                          className="h-7.5 gap-1.5 rounded-none border border-[#081F5C] bg-white text-[10px] font-bold uppercase tracking-wider text-[#081F5C] hover:bg-[#081F5C] hover:text-white transition-all shrink-0"
+                          className="h-9 sm:h-8.5 w-full sm:w-auto justify-center gap-1.5 rounded-none border border-[#081F5C] bg-white text-xs font-bold uppercase tracking-wider text-[#081F5C] hover:bg-[#081F5C] hover:text-white transition-all shrink-0 cursor-pointer"
                         >
-                          <Navigation className={`h-3 w-3 shrink-0 ${locationCaptureLoading ? 'animate-spin' : ''}`} aria-hidden />
+                          <Navigation className={`h-3.5 w-3.5 shrink-0 ${locationCaptureLoading ? 'animate-spin' : ''}`} aria-hidden />
                           {locationCaptureLoading ? 'Reading GPS…' : 'Use Current Location'}
                         </Button>
                       </div>
@@ -1966,15 +2162,15 @@ export default function CustomerServiceDetails({ serviceId }) {
                       ) : null}
 
                       {typeof bookForm.serviceLatitude === 'number' &&
-                      Number.isFinite(bookForm.serviceLatitude) &&
-                      typeof bookForm.serviceLongitude === 'number' &&
-                      Number.isFinite(bookForm.serviceLongitude) ? (
-                        <div className="mt-2 flex items-center justify-between gap-2 rounded-none border border-emerald-300 bg-emerald-50 p-2.5 text-xs">
+                        Number.isFinite(bookForm.serviceLatitude) &&
+                        typeof bookForm.serviceLongitude === 'number' &&
+                        Number.isFinite(bookForm.serviceLongitude) ? (
+                        <div className="mt-2.5 flex items-center justify-between gap-2 rounded-none border border-emerald-300 bg-emerald-50 p-2.5 text-xs sm:text-sm">
                           <div className="flex items-center gap-2 min-w-0">
                             <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                             <div className="min-w-0">
-                              <p className="font-extrabold text-emerald-950 uppercase tracking-wider text-[10px]">GPS Coordinates Attached</p>
-                              <p className="font-mono text-[11px] text-slate-700 truncate">
+                              <p className="font-extrabold text-emerald-950 uppercase tracking-wider text-[10px] sm:text-xs">GPS Coordinates Attached</p>
+                              <p className="font-mono text-xs text-slate-700 truncate">
                                 {bookForm.serviceLatitude.toFixed(6)}, {bookForm.serviceLongitude.toFixed(6)}
                               </p>
                             </div>
@@ -1982,7 +2178,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                           <button
                             type="button"
                             onClick={() => setBookForm((f) => ({ ...f, serviceLatitude: null, serviceLongitude: null }))}
-                            className="text-[10px] font-bold uppercase text-slate-500 hover:text-rose-600 underline shrink-0"
+                            className="text-xs font-bold uppercase text-slate-500 hover:text-rose-600 underline shrink-0 cursor-pointer"
                           >
                             Remove GPS
                           </button>
@@ -1993,17 +2189,17 @@ export default function CustomerServiceDetails({ serviceId }) {
                 ) : null}
 
                 {/* Section 4: Issue Details & Photos */}
-                <div className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
+                <div className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-4 shadow-[0_2px_6px_rgba(15,23,42,0.06)] space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
-                      <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-[10px] font-bold text-white">3</span>
+                    <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-xs font-bold text-white">3</span>
                       Issue Details &amp; Attachments
                     </h3>
-                    <span className="text-[10px] font-semibold text-slate-400">Required</span>
+                    <span className="text-[10px] sm:text-xs font-semibold text-slate-400">Required</span>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="book-problem" className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="book-problem" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5 text-[#081F5C]" />
                       Issue / Service Description
                     </Label>
@@ -2022,22 +2218,22 @@ export default function CustomerServiceDetails({ serviceId }) {
                   {/* Photo Upload Box */}
                   <div className="space-y-2 pt-1">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="book-issue-photos" className="text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Label htmlFor="book-issue-photos" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Camera className="h-3.5 w-3.5 text-[#081F5C]" />
                         Upload Item Photos (Optional)
                       </Label>
-                      <span className="text-[10px] font-semibold text-slate-400">Max 6 photos</span>
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-400">Max 6 photos</span>
                     </div>
 
                     <label
                       htmlFor="book-issue-photos"
-                      className="group flex flex-col items-center justify-center p-3 rounded-none border border-dashed border-slate-300 bg-slate-50/50 hover:bg-blue-50/50 hover:border-[#081F5C] transition-all cursor-pointer text-center"
+                      className="group flex flex-col items-center justify-center p-3 sm:p-4 rounded-none border border-dashed border-slate-300 bg-slate-50/60 hover:bg-blue-50/50 hover:border-[#081F5C] transition-all cursor-pointer text-center"
                     >
-                      <Upload className="h-5 w-5 text-slate-400 group-hover:text-[#081F5C] transition-colors" />
-                      <span className="mt-1 text-xs font-bold text-slate-700 group-hover:text-[#081F5C]">
+                      <Upload className="h-5 w-5 sm:h-6 sm:w-6 text-slate-400 group-hover:text-[#081F5C] transition-colors" />
+                      <span className="mt-1.5 text-xs sm:text-sm font-bold text-slate-700 group-hover:text-[#081F5C]">
                         Click to select photo files
                       </span>
-                      <span className="text-[10px] text-slate-500 font-medium">PNG, JPG, or WEBP images</span>
+                      <span className="text-xs text-slate-500 font-medium">PNG, JPG, or WEBP images</span>
                       <input
                         id="book-issue-photos"
                         name="issuePhotos"
@@ -2055,14 +2251,14 @@ export default function CustomerServiceDetails({ serviceId }) {
                     {issuePhotoPreviews.length > 0 ? (
                       <div className="space-y-2 pt-1">
                         <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                          <span className="flex items-center gap-1">
-                            <ImageIcon className="h-3.5 w-3.5 text-[#081F5C]" />
+                          <span className="flex items-center gap-1.5">
+                            <ImageIcon className="h-4 w-4 text-[#081F5C]" />
                             {issuePhotoPreviews.length} photo{issuePhotoPreviews.length === 1 ? '' : 's'} attached
                           </span>
                           <button
                             type="button"
                             onClick={() => setIssuePhotos([])}
-                            className="text-[10px] uppercase font-bold text-rose-600 hover:underline"
+                            className="text-xs uppercase font-bold text-rose-600 hover:underline cursor-pointer"
                           >
                             Clear all photos
                           </button>
@@ -2079,9 +2275,9 @@ export default function CustomerServiceDetails({ serviceId }) {
                                 onClick={() => {
                                   setIssuePhotos((prev) => prev.filter((_, idx) => idx !== photoIndex))
                                 }}
-                                className="absolute right-1 top-1 z-10 inline-flex h-5 w-5 items-center justify-center rounded-none bg-slate-900/80 text-white hover:bg-rose-600 text-xs font-bold leading-none shadow-xs transition-colors"
+                                className="absolute right-1 top-1 z-10 inline-flex h-6 w-6 items-center justify-center rounded-none bg-slate-900/80 text-white hover:bg-rose-600 text-xs font-bold leading-none shadow-xs transition-colors cursor-pointer"
                               >
-                                <X className="h-3 w-3" />
+                                <X className="h-3.5 w-3.5" />
                               </button>
                               <img src={photo.url} alt={photo.name} className="h-full w-full object-cover" />
                             </div>
@@ -2091,8 +2287,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                     ) : null}
                   </div>
 
-                  <div className="space-y-1 pt-1">
-                    <Label htmlFor="book-notes" className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                  <div className="space-y-1.5 pt-1">
+                    <Label htmlFor="book-notes" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                       Additional Notes (Optional)
                     </Label>
                     <Textarea
@@ -2108,15 +2304,15 @@ export default function CustomerServiceDetails({ serviceId }) {
                 </div>
 
                 {/* Dialog Footer Actions */}
-                <DialogFooter className="flex flex-row flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3 bg-white p-2">
-                  <span className="text-[10px] font-semibold text-slate-400 hidden sm:inline-block">
+                <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t border-slate-200 pt-3 bg-white p-3">
+                  <span className="text-xs font-semibold text-slate-400 hidden sm:inline-block">
                     Verify all info before proceeding to confirmation.
                   </span>
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto justify-end">
                     <Button
                       type="button"
                       variant="outline"
-                      className="shrink-0 rounded-none border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100"
+                      className="w-full sm:w-auto justify-center shrink-0 rounded-none border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 h-10 sm:h-9 cursor-pointer"
                       disabled={bookSubmitting}
                       onClick={() => setBookDialogOpen(false)}
                     >
@@ -2125,17 +2321,17 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <Button
                       type="submit"
                       disabled={bookSubmitting}
-                      className="shrink-0 gap-1.5 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-6 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30"
+                      className="w-full sm:w-auto justify-center shrink-0 gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30 h-11 sm:h-9 cursor-pointer"
                     >
                       {bookSubmitting ? (
                         <>
-                          <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                           <span>Submitting…</span>
                         </>
                       ) : (
                         <>
                           <span>Submit Booking Request</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
+                          <ArrowRight className="h-4 w-4" />
                         </>
                       )}
                     </Button>
@@ -2155,65 +2351,65 @@ export default function CustomerServiceDetails({ serviceId }) {
           setBookingConfirmOpen(open)
         }}
       >
-        <AlertDialogContent size="full" className="flex max-h-[min(90dvh,38rem)] w-[92vw] sm:w-[440px] max-w-md flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)]">
+        <AlertDialogContent size="full" className="flex max-h-[min(92dvh,40rem)] w-[calc(100%-1rem)] sm:w-[460px] max-w-md flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)]">
           {/* Header Banner */}
-          <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-4 sm:px-5 py-3 text-white shadow-md">
-            <div className="relative z-10 flex items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-none bg-emerald-600 text-white shadow-2xs">
+          <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-4 sm:px-5 py-3 sm:py-3.5 text-white shadow-md">
+            <div className="relative z-10 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="flex h-8 w-8 sm:h-8.5 sm:w-8.5 shrink-0 items-center justify-center rounded-none bg-emerald-600 text-white shadow-2xs">
                   <ShieldCheck className="h-4.5 w-4.5" />
                 </div>
                 <div className="min-w-0">
                   <AlertDialogTitle className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white truncate">
                     Confirm Booking Request
                   </AlertDialogTitle>
-                  <p className="text-[10px] text-slate-300 font-medium truncate">Review summary details before sending to provider.</p>
+                  <p className="text-[10px] sm:text-xs text-slate-300 font-medium truncate">Review summary details before sending to provider.</p>
                 </div>
               </div>
               {detail ? (
-                <span className="hidden sm:inline-flex rounded-none border border-emerald-400/30 bg-emerald-500/20 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-300">
+                <span className="hidden sm:inline-flex rounded-none border border-emerald-400/30 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-300">
                   Final Review
                 </span>
               ) : null}
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-x-hidden overflow-y-auto p-4 sm:p-5 bg-slate-50/50">
-            <AlertDialogDescription className="text-xs leading-relaxed font-medium text-slate-600">
+          <div className="flex min-h-0 flex-1 flex-col gap-3.5 sm:gap-4 overflow-x-hidden overflow-y-auto p-3.5 sm:p-5 bg-slate-50/50">
+            <AlertDialogDescription className="text-xs sm:text-sm leading-relaxed font-medium text-slate-600">
               By confirming, your request will be sent directly to{' '}
-              <strong className="text-slate-900">{detail?.shopName?.trim() || 'the service provider'}</strong> for scheduling and review.
+              <strong className="text-slate-900 break-words">{detail?.shopName?.trim() || 'the service provider'}</strong> for scheduling and review.
             </AlertDialogDescription>
 
             {detail ? (
               <div
-                className="rounded-none border border-slate-200 bg-white p-4 shadow-2xs space-y-3.5 text-slate-900"
+                className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs space-y-3.5 text-slate-900"
                 role="region"
                 aria-label="Request summary"
               >
-                <div className="grid grid-cols-1 gap-3 text-xs">
+                <div className="grid grid-cols-1 gap-3 text-xs sm:text-sm">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Service</span>
-                    <span className="font-extrabold text-slate-900 leading-tight text-sm block">{detail.serviceName}</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Service</span>
+                    <span className="font-extrabold text-slate-900 leading-tight text-sm sm:text-base block break-words">{detail.serviceName}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Provider Shop</span>
-                    <span className="font-bold text-slate-800 text-sm truncate block">{detail.shopName?.trim() || '—'}</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Provider Shop</span>
+                    <span className="font-bold text-slate-800 text-xs sm:text-sm truncate block">{detail.shopName?.trim() || '—'}</span>
                   </div>
-                  <div className="border-t border-slate-100 pt-2.5 grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Contact Person</span>
-                      <span className="font-bold text-slate-800 text-xs block truncate">{bookForm.contactName.trim() || '—'}</span>
+                  <div className="border-t border-slate-100 pt-2.5 grid grid-cols-2 gap-2.5">
+                    <div className="min-w-0">
+                      <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Contact Person</span>
+                      <span className="font-bold text-slate-800 text-xs sm:text-sm block truncate">{bookForm.contactName.trim() || '—'}</span>
                       <span className="text-xs font-medium text-slate-500 block truncate">{bookForm.contactPhone.trim() || '—'}</span>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Preferred Schedule</span>
-                      <span className="font-bold text-slate-900 text-xs block">{formatDateForConfirm(bookForm.preferredDate)}</span>
-                      <span className="text-xs font-bold text-[#081F5C] block">{bookForm.preferredTime || '—'}</span>
+                    <div className="min-w-0">
+                      <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Preferred Schedule</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm block truncate">{formatDateForConfirm(bookForm.preferredDate)}</span>
+                      <span className="text-xs sm:text-sm font-bold text-[#081F5C] block truncate">{bookForm.preferredTime || '—'}</span>
                     </div>
                   </div>
-                  <div className="border-t border-slate-100 pt-2.5 flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Service Option</span>
-                    <span className="inline-flex items-center gap-1 font-bold text-slate-900 bg-slate-100 px-2 py-0.5 border border-slate-200 text-xs">
+                  <div className="border-t border-slate-100 pt-2.5 flex items-center justify-between gap-2">
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block shrink-0">Service Option</span>
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-900 bg-slate-100 px-2.5 py-1 border border-slate-200 text-xs shrink-0">
                       {bookForm.serviceMode === 'home' ? 'Home Service' : 'In-Shop Visit'}
                     </span>
                   </div>
@@ -2221,15 +2417,15 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                 {/* Additional info rows */}
                 {(bookForm.serviceMode === 'home' || bookForm.problemDescription || issuePhotos.length > 0) ? (
-                  <div className="space-y-2.5 border-t border-slate-100 pt-3 text-xs">
+                  <div className="space-y-2.5 border-t border-slate-100 pt-3 text-xs sm:text-sm">
                     {bookForm.serviceMode === 'home' ? (
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Service Address</span>
-                        <span className="whitespace-pre-wrap font-semibold text-slate-800 text-xs block leading-relaxed">
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Service Address</span>
+                        <span className="break-words font-semibold text-slate-800 text-xs sm:text-sm block leading-relaxed">
                           {truncateForSummary(bookForm.serviceAddress, 180)}
                         </span>
                         {typeof bookForm.serviceLatitude === 'number' && (
-                          <span className="text-[10px] font-mono text-emerald-700 font-bold block mt-0.5">
+                          <span className="text-xs font-mono text-emerald-700 font-bold block mt-1 break-all">
                             ✓ GPS: {bookForm.serviceLatitude.toFixed(5)}, {bookForm.serviceLongitude?.toFixed(5)}
                           </span>
                         )}
@@ -2238,12 +2434,12 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                     {bookForm.problemDescription ? (
                       <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Issue Description</span>
-                        <span className="whitespace-pre-wrap font-medium text-slate-700 text-xs block leading-relaxed">
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Issue Description</span>
+                        <span className="break-words font-medium text-slate-700 text-xs sm:text-sm block leading-relaxed">
                           {truncateForSummary(bookForm.problemDescription, 220)}
                         </span>
                         {issuePhotos.length > 0 ? (
-                          <span className="text-xs font-bold text-slate-800 block mt-1">
+                          <span className="text-xs font-bold text-slate-800 block mt-1.5">
                             📸 {issuePhotos.length} photo{issuePhotos.length === 1 ? '' : 's'} attached
                           </span>
                         ) : null}
@@ -2253,37 +2449,37 @@ export default function CustomerServiceDetails({ serviceId }) {
                 ) : null}
               </div>
             ) : null}
-
-            <AlertDialogFooter className="shrink-0 border-t border-slate-200 bg-white p-3 flex flex-row flex-wrap items-center justify-end gap-2">
-              <AlertDialogCancel
-                type="button"
-                disabled={bookSubmitting}
-                className="mt-0 border border-slate-300 bg-white px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 rounded-none h-8.5"
-              >
-                Go Back &amp; Edit
-              </AlertDialogCancel>
-              <Button
-                type="button"
-                disabled={bookSubmitting}
-                className="h-8.5 gap-1.5 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30"
-                onClick={() => {
-                  void performBookingSubmit()
-                }}
-              >
-                {bookSubmitting ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    <span>Submitting…</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="h-3.5 w-3.5" />
-                    <span>Confirm &amp; Submit Request</span>
-                  </>
-                )}
-              </Button>
-            </AlertDialogFooter>
           </div>
+
+          <AlertDialogFooter className="shrink-0 border-t border-slate-200 bg-white p-3 sm:p-3.5 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+            <AlertDialogCancel
+              type="button"
+              disabled={bookSubmitting}
+              className="mt-0 w-full sm:w-auto justify-center border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 rounded-none h-10 sm:h-9 cursor-pointer"
+            >
+              Go Back &amp; Edit
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              disabled={bookSubmitting}
+              className="h-11 sm:h-9 w-full sm:w-auto justify-center gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30 cursor-pointer"
+              onClick={() => {
+                void performBookingSubmit()
+              }}
+            >
+              {bookSubmitting ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>Submitting…</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span>Confirm &amp; Submit Request</span>
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </CustomerLayout>

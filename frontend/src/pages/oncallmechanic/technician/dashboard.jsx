@@ -11,7 +11,9 @@ export default function OnCallMechanicDashboard() {
         description: 'Overview of your On-call Mechanic/Technician workspace—bookings and listings at a glance.',
       }}
     >
-      <ShopOwnerDashboardHome variant="independent" />
+      <div className="w-full max-w-full min-w-0 overflow-x-hidden">
+        <ShopOwnerDashboardHome variant="independent" />
+      </div>
     </OnCallMechanicLayout>
   )
 }

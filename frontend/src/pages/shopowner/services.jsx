@@ -280,16 +280,16 @@ const STAT_CARD_GRADIENT = {
 function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services
   return (
-    <div className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}>
+    <div className={`relative min-h-[84px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}>
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
+      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80">{helper}</p> : null}
+          <p className="text-[11px] font-medium tracking-wide text-white/85 sm:text-xs truncate">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
+          {helper ? <p className="mt-0.5 sm:mt-1 line-clamp-1 text-[10px] sm:text-[11px] text-white/80">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
         </div>
       </div>
     </div>
@@ -297,7 +297,7 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
 
 const emptyForm = {
   name: '',
@@ -320,7 +320,7 @@ function ServicesSearchBar({ value, onChange }) {
     <div className={`flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none ${lgWidthClass}`}>
       <div className="relative h-9 w-full min-w-0 shrink-0">
         <Input
-          className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+          className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-3 sm:pl-4 text-xs sm:text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
           placeholder="Search services…"
           value={value}
           onChange={onChange}
@@ -632,7 +632,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
           <StatGradientCard
             variant="services"
             label="Total services"
@@ -663,8 +663,8 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
           />
         </div>
 
-        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap lg:flex-nowrap min-w-0 w-full max-w-full flex-1">
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
               <select
                 className={`${selectShell} ${categoryFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
@@ -732,7 +732,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
         </div>
 
         <div className="mt-3 min-w-0 max-w-full space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
             <div className="min-w-0">
               <p className="truncate text-base font-semibold text-[#081F5C] dark:text-slate-50">Service catalog</p>
               <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
@@ -744,7 +744,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             <Button
               type="button"
               onClick={openCreate}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-none bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 text-xs font-bold text-white shadow-md cursor-pointer transition-colors"
+              className="inline-flex w-full sm:w-auto shrink-0 items-center justify-center gap-1.5 rounded-none bg-indigo-600 hover:bg-indigo-700 px-3.5 py-2 text-xs font-bold text-white shadow-md cursor-pointer transition-colors"
             >
               <Plus className="size-4" />
               <span>Add Service</span>
@@ -776,22 +776,22 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
               {filtered.map((service) => (
                 <article
                   key={service.id}
-                  className="rounded-none border border-slate-200 bg-white p-4 shadow-[0_3px_8px_rgba(15,23,42,0.12)] transition-all duration-200 hover:border-indigo-500 hover:shadow-[0_6px_16px_rgba(8,31,92,0.18)] hover:-translate-y-0.5 space-y-4"
+                  className="rounded-none border border-slate-200 bg-white p-3 sm:p-4 shadow-[0_3px_8px_rgba(15,23,42,0.12)] transition-all duration-200 hover:border-indigo-500 hover:shadow-[0_6px_16px_rgba(8,31,92,0.18)] hover:-translate-y-0.5 space-y-3 sm:space-y-4"
                 >
                   {/* Card Header Row */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate text-base font-black tracking-tight text-slate-900 sm:text-lg">
+                  <div className="flex items-start justify-between gap-2 sm:gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <h3 className="truncate text-sm font-black tracking-tight text-slate-900 sm:text-lg">
                           {service.name}
                         </h3>
                         {service.subcategory ? (
-                          <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-none">
+                          <span className="text-[10px] sm:text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 sm:px-2 py-0.5 rounded-none">
                             {service.subcategory}
                           </span>
                         ) : null}
                       </div>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
                         {categoryBadge(service.category)}
                         {locationBadge(service.location, serviceLocations)}
                         {statusBadge(service.status)}
@@ -834,9 +834,9 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                   </div>
 
                   {/* 3-Column Body Grid in Individual Container Boxes */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3.5 text-xs">
                     {/* Column 1: Description Container */}
-                    <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                    <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                       <div>
                         <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5 pb-1">
                           <FileText className="size-4 text-indigo-600" />
@@ -849,7 +849,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                     </div>
 
                     {/* Column 2: Labor Price Container */}
-                    <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                    <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                       <div>
                         <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5 pb-1">
                           <DollarSign className="size-4 text-indigo-600" />
@@ -868,7 +868,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                     </div>
 
                     {/* Column 3: Qualified Staff Container */}
-                    <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                    <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                       <div>
                         <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5 pb-1">
                           <Users className="size-4 text-indigo-600" />
@@ -918,13 +918,13 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                   </div>
 
                   {/* Action Controls Footer */}
-                  <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
+                  <div className="pt-2 flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => setViewing(service)}
-                      className="rounded-none border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      className="flex-1 sm:flex-none justify-center rounded-none border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
                     >
                       <Wrench className="size-3.5 mr-1" />
                       <span>View Details</span>
@@ -934,7 +934,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                       variant="outline"
                       size="sm"
                       onClick={() => openEdit(service)}
-                      className="rounded-none border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      className="flex-1 sm:flex-none justify-center rounded-none border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
                     >
                       <Pencil className="size-3.5 mr-1" />
                       <span>Edit</span>
@@ -944,7 +944,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                       size="sm"
                       onClick={() => toggleServiceStatus(service)}
                       className={cn(
-                        "rounded-none text-xs font-bold text-white cursor-pointer shadow-2xs",
+                        "flex-1 sm:flex-none justify-center rounded-none text-xs font-bold text-white cursor-pointer shadow-2xs",
                         service.status === 'active'
                           ? "bg-slate-700 hover:bg-slate-800"
                           : "bg-indigo-600 hover:bg-indigo-700"
@@ -963,7 +963,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
 
       {/* Create / Edit Service Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl rounded-none border border-slate-200 bg-white p-6 shadow-2xl" showCloseButton>
+        <DialogContent className="flex max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl" showCloseButton>
           <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
             <DialogTitle className="text-xl font-black tracking-tight text-slate-900">
               {editingId ? 'Edit Service Listing' : 'Add New Service Listing'}
@@ -1232,12 +1232,12 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
+          <DialogFooter className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
             <Button
               type="button"
               variant="outline"
               onClick={() => setFormOpen(false)}
-              className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer"
+              className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer"
             >
               Cancel
             </Button>
@@ -1255,7 +1255,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                 (form.category === 'Others' && !form.otherCategory.trim()) ||
                 !laborPriceInputsValid(form.laborRatingMin, form.laborRatingMax)
               }
-              className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md shadow-indigo-900/20 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md shadow-indigo-900/20 cursor-pointer disabled:opacity-50"
             >
               {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Service'}
             </Button>
@@ -1265,7 +1265,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
 
       {/* View Service Details Dialog */}
       <Dialog open={!!viewing} onOpenChange={(open) => !open && setViewing(null)}>
-        <DialogContent className="flex max-h-[calc(100vh-3.5rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl rounded-none border border-slate-200 bg-white p-6 shadow-2xl" showCloseButton>
+        <DialogContent className="flex max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-4 overflow-hidden sm:max-w-2xl rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl" showCloseButton>
           {viewing ? (
             <>
               <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
@@ -1373,14 +1373,14 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                 </div>
               </div>
 
-              <DialogFooter className="shrink-0 gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
-                <Button type="button" variant="outline" onClick={() => setViewing(null)} className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer">
+              <DialogFooter className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
+                <Button type="button" variant="outline" onClick={() => setViewing(null)} className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer">
                   Close
                 </Button>
-                <Button type="button" variant="outline" onClick={() => viewing && toggleServiceStatus(viewing)} className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer">
+                <Button type="button" variant="outline" onClick={() => viewing && toggleServiceStatus(viewing)} className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer">
                   {viewing.status === 'active' ? 'Disable Service' : 'Enable Service'}
                 </Button>
-                <Button type="button" onClick={() => viewing && openEdit(viewing)} className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md cursor-pointer">
+                <Button type="button" onClick={() => viewing && openEdit(viewing)} className="w-full sm:w-auto rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md cursor-pointer">
                   Edit Service
                 </Button>
               </DialogFooter>
@@ -1391,16 +1391,16 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
 
       {/* Delete Confirmation AlertDialog */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-md">
+        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl max-w-[calc(100vw-1rem)] sm:max-w-md">
           <AlertDialogHeader className="border-b border-slate-100 pb-3">
             <AlertDialogTitle className="text-lg font-black text-slate-900">Delete Service Listing?</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-slate-600 mt-1">
               {deleteTarget ? `Are you sure you want to delete "${deleteTarget.name}"? It will be permanently removed from your catalog.` : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="pt-3 gap-2">
-            <AlertDialogCancel className="rounded-none border-slate-300 text-xs font-bold cursor-pointer">Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDelete} className="rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 cursor-pointer">
+          <AlertDialogFooter className="pt-3 flex flex-col-reverse sm:flex-row gap-2">
+            <AlertDialogCancel className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDelete} className="w-full sm:w-auto rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 cursor-pointer">
               Yes, Delete Service
             </AlertDialogAction>
           </AlertDialogFooter>

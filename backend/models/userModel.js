@@ -264,6 +264,8 @@ const userSchema = new mongoose.Schema(
       },
     },
     shopDescription: { type: String },
+    /** When enabled, the virtual shop assistant auto-replies to customer inquiries when provider is away */
+    aiAutoReplyEnabled: { type: Boolean, default: true },
 
     // Shop Owner shop location & facilities
     shopRegion: {

@@ -16,13 +16,14 @@ import {
 } from '../../../components/ui/sidebar'
 import { TooltipProvider } from '../../../components/ui/tooltip'
 import {
-  BarChart3,
   Bell,
   Building2,
+  ChevronDown,
   ClipboardList,
   History,
   LayoutDashboard,
   LogOut,
+  Menu,
   MessageSquare,
   Settings,
   Star,
@@ -64,7 +65,6 @@ const ROUTES = {
   serviceHistory: '#/independent/technician/service-history',
   messages: '#/independent/technician/messages',
   ratingsReviews: '#/independent/technician/ratings-reviews',
-  reportsAnalytics: '#/independent/technician/reports-analytics',
   notification: '#/independent/technician/notification',
   accountSettings: '#/independent/technician/account-settings',
 }
@@ -75,10 +75,11 @@ function IndependentMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm text-foreground hover:bg-accent md:hidden transition-colors cursor-pointer"
       onClick={() => setOpenMobile(true)}
+      aria-label="Open navigation menu"
     >
-      Menu
+      <Menu className="size-5 text-foreground" />
     </button>
   )
 }
@@ -182,7 +183,6 @@ export default function OnCallMechanicLayout({
   const isServiceHistoryActive = activeSection === 'service-history'
   const isMessagesActive = activeSection === 'messages'
   const isRatingsReviewsActive = activeSection === 'ratings-reviews'
-  const isReportsAnalyticsActive = activeSection === 'reports-analytics'
   const isNotificationActive = activeSection === 'notification'
   const isAccountSettingsActive = activeSection === 'account-settings'
 
@@ -301,17 +301,6 @@ export default function OnCallMechanicLayout({
                         <span className="whitespace-nowrap">Ratings & Reviews</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        isActive={isReportsAnalyticsActive}
-                        tooltip="Report & Analytics"
-                        onClick={() => go(ROUTES.reportsAnalytics)}
-                        className={sidebarMenuButtonClass}
-                      >
-                        <BarChart3 className="size-[18px] opacity-90" />
-                        <span className="whitespace-nowrap">Report & Analytics</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -335,27 +324,29 @@ export default function OnCallMechanicLayout({
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <IndependentMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                  {pageMeta.title}
-                </h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{pageMeta.description}</p>
+            <header className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 flex-none items-center justify-between gap-2 sm:gap-4 border-b border-border/60 bg-white/95 px-3 sm:px-4 md:px-6 shadow-xs backdrop-blur-md dark:bg-background/95">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
+                <IndependentMobileNav />
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate text-sm sm:text-base md:text-lg font-black tracking-tight text-foreground leading-tight">
+                    {pageMeta.title}
+                  </h1>
+                  <p className="hidden truncate text-xs text-muted-foreground md:block font-medium">{pageMeta.description}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="relative flex shrink-0 items-center gap-1 sm:gap-2.5">
                 <button
                   type="button"
-                  aria-label="Notification"
+                  aria-label="Notification center"
                   onClick={() => go(ROUTES.notification)}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-sm transition-colors ${
+                  className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${
                     isNotificationActive
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-300'
                       : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <NotificationBellIndicator unreadCount={independentHeaderUnread}>
-                    <Bell className="h-5 w-5" />
+                    <Bell className="size-4.5 sm:size-5" />
                   </NotificationBellIndicator>
                 </button>
 
@@ -364,41 +355,59 @@ export default function OnCallMechanicLayout({
                     type="button"
                     aria-label="Profile menu"
                     onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      isAccountSettingsActive || profileOpen
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
-                    }`}
+                    className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 text-foreground hover:bg-accent rounded-sm transition-colors cursor-pointer"
                   >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
+                    <span className="flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold leading-none text-white shadow-xs">
                       {(user.fullName || user.email || 'I').charAt(0).toUpperCase()}
                     </span>
+                    <span className="hidden lg:inline-block max-w-[110px] truncate text-xs font-bold uppercase tracking-wider">
+                      {user.fullName ? user.fullName.split(' ')[0] : 'Tech'}
+                    </span>
+                    <ChevronDown className={`size-3.5 text-muted-foreground transition-transform duration-200 ${profileOpen ? 'rotate-180 text-foreground' : ''}`} />
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          go(ROUTES.accountSettings)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
+                    <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-md border border-slate-200 dark:border-border/80 bg-white dark:bg-slate-900 shadow-2xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-sm font-extrabold text-white shadow-xs">
+                          {(user.fullName || user.email || 'I').charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-bold text-foreground">
+                            {user.fullName || 'On-Call Technician'}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">{user.email || ''}</p>
+                          <span className="inline-flex items-center gap-1 mt-1 rounded-sm border border-[#081F5C]/20 bg-[#081F5C]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#081F5C] dark:text-blue-300">
+                            On-Call Technician
+                          </span>
+                        </div>
+                      </div>
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false)
+                            go(ROUTES.accountSettings)
+                          }}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground hover:bg-accent transition-colors cursor-pointer"
+                        >
+                          <Settings className="size-4 text-muted-foreground" />
+                          <span>Account Settings</span>
+                        </button>
+                      </div>
+                      <div className="p-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false)
+                            requestLogout()
+                          }}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                        >
+                          <LogOut className="size-4" />
+                          <span>Log out</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -409,8 +418,8 @@ export default function OnCallMechanicLayout({
               id="independent-mechanic-main-scroll"
               className={
                 fullHeightMain
-                  ? 'scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden px-4 pb-4 pt-2 md:px-6 md:pb-6 md:pt-3'
-                  : 'scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2'
+                  ? 'scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2 md:px-6 md:pb-6 md:pt-3'
+                  : 'scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:py-4 sm:pl-4 sm:pr-1 md:py-6 md:pl-6 md:pr-2'
               }
             >
               {wrapContent ? (

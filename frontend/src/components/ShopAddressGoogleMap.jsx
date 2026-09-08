@@ -399,6 +399,16 @@ export default function ShopAddressGoogleMap({
   }, [candidateKey, mapTitle])
 
   useEffect(() => {
+    const el = containerRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => {
+      mapRef.current?.invalidateSize()
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
     if (!mapRef.current) {
       setGoogleDirectionsUrl('')
       setRouteLoading(false)
@@ -567,8 +577,8 @@ export default function ShopAddressGoogleMap({
       : 'w-full space-y-2'
 
   const mapFrameClass = flush
-    ? 'relative min-h-[280px] w-full flex-1 basis-0 overflow-hidden [&_.leaflet-bottom.leaflet-right]:mb-2 [&_.leaflet-bottom.leaflet-right]:mr-2 [&_.leaflet-container]:h-full [&_.leaflet-container]:w-full [&_.leaflet-container]:font-sans'
-    : 'relative h-[min(420px,55vh)] min-h-[280px] w-full overflow-hidden rounded-md border border-border bg-muted [&_.leaflet-bottom.leaflet-right]:mb-2 [&_.leaflet-bottom.leaflet-right]:mr-2 [&_.leaflet-container]:h-full [&_.leaflet-container]:w-full [&_.leaflet-container]:font-sans'
+    ? 'relative h-full min-h-[240px] sm:min-h-[280px] w-full flex-1 basis-0 overflow-hidden [&_.leaflet-bottom.leaflet-right]:mb-2 [&_.leaflet-bottom.leaflet-right]:mr-2 [&_.leaflet-container]:h-full [&_.leaflet-container]:w-full [&_.leaflet-container]:font-sans'
+    : 'relative h-[min(420px,55vh)] min-h-[240px] sm:min-h-[280px] w-full overflow-hidden rounded-md border border-border bg-muted [&_.leaflet-bottom.leaflet-right]:mb-2 [&_.leaflet-bottom.leaflet-right]:mr-2 [&_.leaflet-container]:h-full [&_.leaflet-container]:w-full [&_.leaflet-container]:font-sans'
 
   return (
     <div className={rootClass}>

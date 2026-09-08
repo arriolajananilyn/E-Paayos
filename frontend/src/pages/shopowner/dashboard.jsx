@@ -22,7 +22,6 @@ import {
 import { TooltipProvider } from "../../components/ui/tooltip"
 import {
   AlertTriangle,
-  BarChart3,
   Bell,
   Building2,
   CheckCircle,
@@ -34,6 +33,7 @@ import {
   DollarSign,
   LayoutDashboard,
   LogOut,
+  Menu,
   MessageSquare,
   Package,
   PlayCircle,
@@ -118,38 +118,39 @@ const STAT_CARD_GRADIENT = {
   completed: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick }) {
+function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick, className }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-sm border cursor-pointer",
-        gradient
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-sm border cursor-pointer",
+        gradient,
+        className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-2 -top-2 size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
 
-      <div className="relative z-10 space-y-2.5">
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs">
-            <Icon className="size-3 text-white/90" />
-            {label}
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
-          <div className="size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs">
-            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
 
         <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
               {value}
             </span>
           </div>
           {helper ? (
-            <p className="text-[11px] text-white/85 font-medium mt-1 leading-snug truncate">
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
               {helper}
             </p>
           ) : null}
@@ -471,7 +472,9 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <Spinner className="size-8 text-[#081F5C]" />
-        <p className="mt-3 text-sm font-medium text-slate-600">Loading Shop Dashboard...</p>
+        <p className="mt-3 text-sm font-medium text-slate-600">
+          Loading {variant === "independent" ? "Technician" : "Shop"} Dashboard...
+        </p>
       </div>
     )
   }
@@ -487,7 +490,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
 
       {/* Inactive Listings Warning Banner */}
       {inactiveListings > 0 ? (
-        <div className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900 flex items-center justify-between gap-3">
+        <div className="rounded-sm border border-amber-300 bg-amber-50 p-3 sm:px-4 sm:py-3 text-xs font-medium text-amber-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="size-4 text-amber-600 shrink-0" />
             <span>
@@ -496,7 +499,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
           </div>
           <a
             href={variant === "independent" ? "#/independent/technician/services" : "#/provider/services"}
-            className="shrink-0 font-bold underline hover:text-amber-950"
+            className="shrink-0 font-bold underline hover:text-amber-950 self-start sm:self-auto"
           >
             Manage Services
           </a>
@@ -504,7 +507,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
       ) : null}
 
       {/* 4 Compact Modern Stat Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
         {kpis.map(({ label, value, icon, variant: cardVar, helper, onClick }) => (
           <StatGradientCard
             key={label}
@@ -529,7 +532,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
               </p>
               <p className="text-xs text-slate-500">Volume trend of incoming customer service requests</p>
             </div>
-            <div className="relative w-[148px] shrink-0 sm:w-[160px]">
+            <div className="relative w-full shrink-0 sm:w-[160px]">
               <select
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
@@ -549,9 +552,9 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
 
           <div className="flex-1 rounded-none bg-slate-50/60 p-2.5 ring-1 ring-slate-200/40 flex flex-col justify-center">
             <ChartContainer
-              id="shop-owner-bookings-chart"
+              id={`bookings-chart-${variant}`}
               config={{ series: { label: "Bookings", color: "#1447a6" } }}
-              className="aspect-auto h-[250px] w-full [&_.recharts-responsive-container]:!h-full"
+              className="aspect-auto h-[190px] sm:h-[250px] w-full [&_.recharts-responsive-container]:!h-full"
             >
               <AreaChart data={chartSeries} margin={{ top: 12, right: 12, left: -20, bottom: 4 }}>
                 <defs>
@@ -589,23 +592,23 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
             </ChartContainer>
           </div>
 
-          {/* Summary Metric Bar to match Column 2 height */}
-          <div className="mt-3 grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-100">
-            <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+          {/* Summary Metric Bar */}
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2 text-[11px] sm:text-xs pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 sm:gap-2 rounded-none bg-slate-50 px-2 sm:px-2.5 py-1.5 ring-1 ring-slate-200/50 min-w-0">
               <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
               <span className="text-slate-500 truncate">Total in Period:</span>
               <span className="font-bold text-slate-900 tabular-nums ml-auto">
                 {chartSeries.reduce((acc, curr) => acc + curr.value, 0)}
               </span>
             </div>
-            <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+            <div className="flex items-center gap-1.5 sm:gap-2 rounded-none bg-slate-50 px-2 sm:px-2.5 py-1.5 ring-1 ring-slate-200/50 min-w-0">
               <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
               <span className="text-slate-500 truncate">Peak Volume:</span>
               <span className="font-bold text-slate-900 tabular-nums ml-auto">
                 {Math.max(0, ...chartSeries.map((s) => s.value))}
               </span>
             </div>
-            <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+            <div className="flex items-center gap-1.5 sm:gap-2 rounded-none bg-slate-50 px-2 sm:px-2.5 py-1.5 ring-1 ring-slate-200/50 min-w-0">
               <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
               <span className="text-slate-500 truncate">Avg / Slot:</span>
               <span className="font-bold text-slate-900 tabular-nums ml-auto">
@@ -677,7 +680,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
             </div>
           </div>
 
-          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+          <div className="mt-2 grid grid-cols-2 gap-1.5 sm:gap-2 text-[10px] sm:text-xs">
             {statusPieRows.map((row) => (
               <div key={row.key} className="flex min-w-0 items-center gap-1.5 rounded-none bg-slate-50 px-2 py-1 border border-slate-200/50">
                 <span
@@ -741,11 +744,11 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
               return (
                 <div
                   key={o.rowKey}
-                  className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-2.5 sm:p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-slate-900 text-sm">
+                      <span className="font-semibold text-slate-900 text-xs sm:text-sm line-clamp-1">
                         {o.id} • {o.buyer}
                       </span>
                       <span className={cn("inline-flex items-center rounded-none border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", badgeClass)}>
@@ -756,7 +759,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
                       {o.serviceName}
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-row items-center justify-between gap-3 sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5">
+                  <div className="mt-2 flex flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5 sm:pt-0 sm:border-0">
                     <div className="text-sm sm:text-base font-bold text-slate-900 tabular-nums">
                       {o.amount}
                     </div>
@@ -801,7 +804,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
       </section>
 
       {/* Modern E-Paayos Navy Blue Footer Banner */}
-      <footer className="mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-6 sm:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
+      <footer className="mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-5 sm:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
         {/* Ambient Lighting Mesh Glow */}
         <div className="pointer-events-none absolute -top-16 -right-16 size-64 bg-[#1447a6]/25 blur-3xl rounded-full" />
         <div className="pointer-events-none absolute -bottom-16 -left-16 size-64 bg-[#081F5C]/40 blur-3xl rounded-full" />
@@ -816,13 +819,15 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
               </div>
               <div>
                 <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                  E-Paayos Shop Management
+                  {variant === "independent" ? "E-Paayos Technician Operations" : "E-Paayos Shop Management"}
                   <span className="text-[10px] font-extrabold uppercase tracking-wider bg-[#1447a6]/30 text-blue-200 border border-blue-400/30 px-2 py-0.5 rounded-none">
                     v2.4 Pro
                   </span>
                 </h3>
                 <p className="text-xs text-blue-200/80">
-                  Official Service Provider Portal & Operations Center
+                  {variant === "independent"
+                    ? "Official On-call Technician Operations Portal"
+                    : "Official Service Provider Portal & Operations Center"}
                 </p>
               </div>
             </div>
@@ -872,10 +877,11 @@ function ShopOwnerMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm text-foreground hover:bg-accent md:hidden transition-colors cursor-pointer"
       onClick={() => setOpenMobile(true)}
+      aria-label="Toggle navigation menu"
     >
-      Menu
+      <Menu className="size-5 text-foreground" />
     </button>
   )
 }
@@ -921,7 +927,6 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
   const isNotificationActive = activeSection === "notification"
   const isAccountSettingsActive = activeSection === "account-settings"
   const isReviewsRatingsActive = activeSection === "reviews-ratings"
-  const isReportsAnalyticsActive = activeSection === "reports-analytics"
   const isManageEmployeeActive = activeSection === "manage-employee"
   const isTrackEmployeeActive = activeSection === "track-employee"
   const isEmployeesGroupActive = isManageEmployeeActive || isTrackEmployeeActive
@@ -1173,17 +1178,6 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
                         <span className="whitespace-nowrap">Reviews & Ratings</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        isActive={isReportsAnalyticsActive}
-                        tooltip="Reports & Analytics"
-                        onClick={() => { window.location.hash = "#/provider/reports-analytics" }}
-                        className="h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
-                      >
-                        <BarChart3 className="size-[18px] opacity-90" />
-                        <span className="whitespace-nowrap">Reports & Analytics</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -1205,27 +1199,29 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <ShopOwnerMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                  {pageMeta.title}
-                </h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{pageMeta.description}</p>
+            <header className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 flex-none items-center justify-between gap-2 sm:gap-4 border-b border-border/60 bg-white/95 px-3 sm:px-4 md:px-6 shadow-xs backdrop-blur-md dark:bg-background/95">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
+                <ShopOwnerMobileNav />
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate text-sm sm:text-base md:text-lg font-black tracking-tight text-foreground leading-tight">
+                    {pageMeta.title}
+                  </h1>
+                  <p className="hidden truncate text-xs text-muted-foreground md:block font-medium">{pageMeta.description}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="relative flex shrink-0 items-center gap-1 sm:gap-2.5">
                 <button
                   type="button"
-                  aria-label="Notification"
+                  aria-label="Notification center"
                   onClick={() => { window.location.hash = "#/provider/notification" }}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-sm transition-colors ${
+                  className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${
                     isNotificationActive
-                      ? "bg-blue-50 text-blue-700"
+                      ? "bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-300"
                       : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
                   <NotificationBellIndicator unreadCount={shopHeaderUnread}>
-                    <Bell className="h-5 w-5" />
+                    <Bell className="size-4.5 sm:size-5" />
                   </NotificationBellIndicator>
                 </button>
 
@@ -1234,41 +1230,59 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
                     type="button"
                     aria-label="Profile menu"
                     onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      isAccountSettingsActive || profileOpen
-                        ? "bg-blue-50 text-blue-700"
-                        : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
+                    className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 text-foreground hover:bg-accent rounded-sm transition-colors cursor-pointer"
                   >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
+                    <span className="flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold leading-none text-white shadow-xs">
                       {(user.fullName || user.email || "S").charAt(0).toUpperCase()}
                     </span>
+                    <span className="hidden lg:inline-block max-w-[110px] truncate text-xs font-bold uppercase tracking-wider">
+                      {user.fullName ? user.fullName.split(' ')[0] : 'Shop'}
+                    </span>
+                    <ChevronDown className={`size-3.5 text-muted-foreground transition-transform duration-200 ${profileOpen ? 'rotate-180 text-foreground' : ''}`} />
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          window.location.hash = "#/provider/account-settings"
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
+                    <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-md border border-slate-200 dark:border-border/80 bg-white dark:bg-slate-900 shadow-2xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-sm font-extrabold text-white shadow-xs">
+                          {(user.fullName || user.email || "S").charAt(0).toUpperCase()}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-bold text-foreground">
+                            {user.fullName || 'Shop Owner'}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">{user.email || ''}</p>
+                          <span className="inline-flex items-center gap-1 mt-1 rounded-sm border border-[#081F5C]/20 bg-[#081F5C]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#081F5C] dark:text-blue-300">
+                            Shop Owner
+                          </span>
+                        </div>
+                      </div>
+                      <div className="py-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false)
+                            window.location.hash = "#/provider/account-settings"
+                          }}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground hover:bg-accent transition-colors cursor-pointer"
+                        >
+                          <Settings className="size-4 text-muted-foreground" />
+                          <span>Account Settings</span>
+                        </button>
+                      </div>
+                      <div className="p-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileOpen(false)
+                            requestLogout()
+                          }}
+                          className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                        >
+                          <LogOut className="size-4" />
+                          <span>Log out</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1279,8 +1293,8 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
               id="shopowner-main-scroll"
               className={
                 isMessagesActive
-                  ? "scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden px-4 pb-4 pt-2 md:px-6 md:pb-6 md:pt-3"
-                  : "scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+                  ? "scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2 md:px-6 md:pb-6 md:pt-3"
+                  : "scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:py-4 sm:pl-4 sm:pr-1 md:py-6 md:pl-6 md:pr-2"
               }
             >
               {children != null ? children : activeSection === "dashboard" ? <ShopOwnerDashboardHome variant="shop" /> : null}

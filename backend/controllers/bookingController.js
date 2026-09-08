@@ -350,12 +350,14 @@ function mapBookingForCustomer(b) {
   const owner = b.shopOwner && typeof b.shopOwner === "object" ? b.shopOwner : null
   const id = String(b._id)
   const shopName = (owner?.shopName && String(owner.shopName).trim()) || owner?.fullName || "Shop"
+  const shopImage = owner?.shopPlacePhoto || ""
   return {
     id,
     ref: `BK-${id.slice(-8).toUpperCase()}`,
     shopServiceId: svc?._id != null ? String(svc._id) : "",
     serviceName: svc?.name || "Service",
     shopName,
+    shopImage,
     acceptedPaymentMethods: Array.isArray(owner?.acceptedPaymentMethods) ? owner.acceptedPaymentMethods : [],
     category: svc?.category || "",
     subcategory: svc?.subcategory || "",
@@ -420,7 +422,7 @@ export const listCustomerBookings = asyncHandler(async (req, res) => {
   const rows = await Booking.find(query)
     .sort({ createdAt: -1 })
     .populate("shopService", "name category subcategory location status startingPrice")
-    .populate("shopOwner", "fullName shopName acceptedPaymentMethods")
+    .populate("shopOwner", "fullName shopName acceptedPaymentMethods shopPlacePhoto")
     .lean()
 
   return res.json({

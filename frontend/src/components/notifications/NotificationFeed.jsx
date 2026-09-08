@@ -112,6 +112,16 @@ function shopOwnerStatusTitle(status) {
   return 'Booking update'
 }
 
+function adminStatusTitle(status) {
+  const s = String(status || '').toLowerCase()
+  if (s === 'pending') return 'New booking — pending shop confirmation'
+  if (s === 'confirmed') return 'Booking confirmed by shop'
+  if (s === 'working') return 'Service in progress'
+  if (s === 'completed') return 'Service completed'
+  if (s === 'cancelled' || s === 'canceled') return 'Booking cancelled'
+  return 'Booking update'
+}
+
 function userReadKey(readScope, user) {
   const id = user?.id || user?._id || user?.email || 'user'
   return `epaayos_${readScope}_notification_reads_${id}`
@@ -157,7 +167,11 @@ export function useNotificationUnreadCount({ user, readScope, bookingsUrl, route
       const res = await fetch(url, { headers: notificationAuthHeaders() })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) return
-      const bookings = Array.isArray(data?.bookings) ? data.bookings : []
+      const bookings = Array.isArray(data?.bookings)
+        ? data.bookings
+        : Array.isArray(data?.data)
+          ? data.data
+          : []
       const readMap = loadReadMap(readScope, user)
       const items = flatMapBookings(bookings, readMap, routes, variant)
       const n = items.filter((i) => i.unread).length
@@ -205,6 +219,47 @@ export function useCustomerNotificationUnreadCount(user, options = {}) {
     document.addEventListener('visibilitychange', onVis)
     const onUnreadEvt = (e) => {
       if (e.detail?.readScope === 'customer') bump()
+    }
+    window.addEventListener(EPAAYOS_UNREAD_EVENT, onUnreadEvt)
+    return () => {
+      window.removeEventListener('hashchange', bump)
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener(EPAAYOS_UNREAD_EVENT, onUnreadEvt)
+    }
+  }, [refresh])
+  return out
+}
+
+/** Shared route map for admin notification feed + bell badge. */
+export const ADMIN_NOTIFICATION_ROUTES = {
+  bookings: '#/admin/dashboard',
+  messages: '#/admin/dashboard',
+  dashboard: '#/admin/dashboard',
+}
+
+/**
+ * Unread count for admin role headers.
+ */
+export function useAdminNotificationUnreadCount(user, options = {}) {
+  const { enabled = true } = options
+  const out = useNotificationUnreadCount({
+    user,
+    readScope: 'admin',
+    bookingsUrl: `${API_URL}/api/admin/service-bookings`,
+    routes: ADMIN_NOTIFICATION_ROUTES,
+    variant: 'admin',
+    enabled: Boolean(user) && enabled,
+  })
+  const { refresh } = out
+  useEffect(() => {
+    const bump = () => void refresh()
+    window.addEventListener('hashchange', bump)
+    const onVis = () => {
+      if (document.visibilityState === 'visible') bump()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    const onUnreadEvt = (e) => {
+      if (e.detail?.readScope === 'admin') bump()
     }
     window.addEventListener(EPAAYOS_UNREAD_EVENT, onUnreadEvt)
     return () => {
@@ -357,13 +412,63 @@ function mapShopOwnerBooking(booking, readMap, routes) {
   return list
 }
 
+function mapAdminBooking(booking, readMap, routes) {
+  const id = String(booking?.id || booking?._id || '')
+  if (!id) return []
+
+  const serviceName = booking?.shopService?.name || booking?.serviceName || 'Service'
+  const customerName = booking?.customer?.fullName || booking?.contactName || 'Customer'
+  const shopName = booking?.shopOwner?.shopName || booking?.shopName || 'Shop'
+  const ref = booking?.ref || `BK-${id.slice(-8).toUpperCase()}`
+  const createdAt = booking?.createdAt || ''
+  const updatedAt = booking?.updatedAt || createdAt
+  const status = String(booking?.status || 'pending').toLowerCase()
+  const list = []
+
+  list.push({
+    id: `booking-created-${id}`,
+    type: 'booking',
+    title: 'New platform booking',
+    desc: `${serviceName} by ${customerName} at ${shopName} (${ref})`,
+    timestamp: createdAt || updatedAt,
+    route: routes.bookings,
+    unread: !readMap[`booking-created-${id}`],
+  })
+
+  list.push({
+    id: `booking-status-${id}-${status}`,
+    type: 'status',
+    title: adminStatusTitle(status),
+    desc: `${serviceName} (${ref}) for ${customerName} at ${shopName} is now ${status}.`,
+    timestamp: updatedAt || createdAt,
+    route: routes.bookings,
+    unread: !readMap[`booking-status-${id}-${status}`],
+  })
+
+  if ((status === 'cancelled' || status === 'canceled') && booking?.rejectionReason) {
+    list.push({
+      id: `booking-cancel-note-${id}`,
+      type: 'system',
+      title: 'Booking cancelled reason',
+      desc: `${ref}: ${booking.rejectionReason}`,
+      timestamp: updatedAt || createdAt,
+      route: routes.bookings,
+      unread: !readMap[`booking-cancel-note-${id}`],
+    })
+  }
+
+  return list
+}
+
 function flatMapBookings(bookings, readMap, routes, variant) {
   const map =
     variant === 'customer'
       ? mapCustomerBooking
       : variant === 'technician'
         ? mapTechnicianBooking
-        : mapShopOwnerBooking
+        : variant === 'admin'
+          ? mapAdminBooking
+          : mapShopOwnerBooking
   return (Array.isArray(bookings) ? bookings : []).flatMap((b) => map(b, readMap, routes)).filter(Boolean)
 }
 
@@ -436,7 +541,11 @@ export function NotificationFeedContent({
       const res = await fetch(url, { headers: notificationAuthHeaders() })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || 'Could not load notifications.')
-      const bookings = Array.isArray(data?.bookings) ? data.bookings : []
+      const bookings = Array.isArray(data?.bookings)
+        ? data.bookings
+        : Array.isArray(data?.data)
+          ? data.data
+          : []
       const readMap = loadReadMap(readScope, user)
       setItems(flatMapBookings(bookings, readMap, routes, variant))
     } catch (e) {
@@ -479,18 +588,25 @@ export function NotificationFeedContent({
   }, [items, activeTab])
 
   return (
-    <div className="space-y-4 w-full min-w-0">
+    <div className="space-y-3.5 sm:space-y-4 w-full min-w-0">
       {error ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-medium text-rose-800 shadow-2xs">
-          <span>{error}</span>
-          <Button type="button" variant="outline" size="sm" onClick={() => void loadNotifications()} disabled={loading}>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-rose-300 bg-rose-50 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs font-medium text-rose-800 shadow-2xs">
+          <span className="min-w-0 break-words">{error}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void loadNotifications()}
+            disabled={loading}
+            className="rounded-none border-rose-300 text-rose-800 hover:bg-rose-100 text-xs px-2.5 py-1 shrink-0"
+          >
             Retry
           </Button>
         </div>
       ) : null}
 
       <div
-        className="mb-4 flex w-full items-stretch overflow-x-auto rounded-none border border-slate-200 bg-white p-1 shadow-[0_2px_5px_rgba(15,23,42,0.08)] sm:overflow-visible"
+        className="mb-3 sm:mb-4 flex w-full items-stretch overflow-x-auto rounded-none border border-slate-200 bg-white p-1 shadow-[0_2px_5px_rgba(15,23,42,0.08)] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:overflow-visible"
         role="tablist"
         aria-label="Notification activity type"
       >
@@ -501,7 +617,7 @@ export function NotificationFeedContent({
             role="tab"
             aria-selected={activeTab === t.id}
             onClick={() => setActiveTab(t.id)}
-            className={`flex-none whitespace-nowrap rounded-none px-3 py-2 text-center text-[11px] font-semibold uppercase tracking-wider transition-all sm:flex-1 sm:px-4 sm:text-xs ${
+            className={`flex-1 min-w-[85px] sm:min-w-0 whitespace-nowrap rounded-none px-2 sm:px-4 py-1.5 sm:py-2 text-center text-[10px] sm:text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === t.id
                 ? 'bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white shadow-sm ring-1 ring-[#081F5C]/25'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-[#081F5C]'
@@ -513,10 +629,10 @@ export function NotificationFeedContent({
       </div>
 
       <div className="min-w-0 max-w-full space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-[#081F5C]">Notifications &amp; Activity Log</p>
-            <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
+        <div className="flex items-center justify-between gap-2 sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs sm:text-base font-bold text-[#081F5C]">Notifications &amp; Activity Log</p>
+            <p className="mt-0.5 truncate text-[10px] sm:text-xs text-muted-foreground font-medium">
               {loading
                 ? 'Loading your notification feed from server…'
                 : items.length === 0
@@ -526,47 +642,47 @@ export function NotificationFeedContent({
                     : `Showing ${list.length} of ${items.length} notifications.`}
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center">
             <Button
               type="button"
               onClick={markAllRead}
               disabled={loading || unread === 0}
-              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none bg-[#081F5C] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] transition-all hover:bg-[#0a2770] hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] focus-visible:ring-1 focus-visible:ring-[#081F5C] sm:text-sm"
+              className="inline-flex h-8 sm:h-9 shrink-0 items-center justify-center gap-1 sm:gap-1.5 rounded-none bg-[#081F5C] px-2.5 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] transition-all hover:bg-[#0a2770] hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] focus-visible:ring-1 focus-visible:ring-[#081F5C] cursor-pointer disabled:opacity-50 whitespace-nowrap"
             >
-              <CheckCheck className="h-4 w-4" />
-              Mark all read
+              <CheckCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span>Mark all read</span>
             </Button>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex min-h-[200px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#081F5C]" aria-hidden />
-            <p className="mt-3 text-sm font-medium text-foreground">Loading notifications…</p>
-            <p className="mt-1 max-w-sm text-xs text-muted-foreground">Syncing real-time repair and booking updates.</p>
+          <div className="flex min-h-[180px] sm:min-h-[200px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 p-4 sm:p-6 text-center">
+            <Loader2 className="h-7 w-7 sm:h-8 sm:w-8 animate-spin text-[#081F5C]" aria-hidden />
+            <p className="mt-2 sm:mt-3 text-xs sm:text-sm font-bold text-foreground">Loading notifications…</p>
+            <p className="mt-1 max-w-sm text-[11px] sm:text-xs text-muted-foreground">Syncing real-time repair and booking updates.</p>
           </div>
         ) : items.length === 0 ? (
-          <div className="flex min-h-[180px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm">
-            <Bell className="h-8 w-8 text-slate-300" />
-            <p className="mt-2 text-sm font-medium text-foreground">No notifications yet</p>
-            <p className="mt-1 max-w-md text-xs text-muted-foreground">
+          <div className="flex min-h-[160px] sm:min-h-[180px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 p-4 sm:p-6 text-center shadow-sm">
+            <Bell className="h-7 w-7 sm:h-8 sm:w-8 text-slate-300" />
+            <p className="mt-2 text-xs sm:text-sm font-bold text-foreground">No notifications yet</p>
+            <p className="mt-1 max-w-md text-[11px] sm:text-xs text-muted-foreground">
               Bookings, status updates, and messages from repair specialists will appear here.
             </p>
           </div>
         ) : list.length === 0 ? (
-          <div className="flex min-h-[160px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm">
-            <p className="text-sm font-medium text-foreground">No notifications match your filter</p>
-            <p className="mt-1 max-w-md text-xs text-muted-foreground">Try selecting a different tab filter.</p>
+          <div className="flex min-h-[140px] sm:min-h-[160px] flex-col items-center justify-center rounded-none border border-dashed border-[#081F5C]/20 bg-slate-50/60 p-4 sm:p-6 text-center shadow-sm">
+            <p className="text-xs sm:text-sm font-bold text-foreground">No notifications match your filter</p>
+            <p className="mt-1 max-w-md text-[11px] sm:text-xs text-muted-foreground">Try selecting a different tab filter.</p>
             <Button
               type="button"
               onClick={() => setActiveTab('All')}
-              className="mt-4 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-none bg-[#081F5C] px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:bg-[#0a2770]"
+              className="mt-3 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-none bg-[#081F5C] px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-white shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:bg-[#0a2770]"
             >
               Reset tab
             </Button>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-2 sm:space-y-2.5">
             {list.map((n) => {
               const Icon = n.Icon || Bell
               return (
@@ -581,33 +697,36 @@ export function NotificationFeedContent({
                     }
                   }}
                   onClick={() => handleNotificationClick(n)}
-                  className={`group relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5 p-4 rounded-none border transition-all duration-300 cursor-pointer shadow-[0_3px_8px_rgba(15,23,42,0.14)] hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 ${
+                  className={`group relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3.5 p-3 sm:p-4 rounded-none border transition-all duration-200 cursor-pointer shadow-[0_2px_5px_rgba(15,23,42,0.1)] hover:border-[#081F5C] hover:shadow-[0_4px_12px_rgba(8,31,92,0.18)] active:bg-slate-50 ${
                     n.unread
                       ? 'border-l-4 border-l-[#081F5C] border-slate-200 bg-sky-50/70'
                       : 'border-slate-200 bg-white'
                   }`}
                 >
-                  <div className="flex min-w-0 flex-1 items-start gap-3.5">
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[#081F5C]/10 text-[#081F5C] group-hover:bg-[#081F5C] group-hover:text-white transition-colors">
-                      <Icon className="h-5 w-5" aria-hidden />
+                  <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:gap-3.5 w-full sm:w-auto">
+                    <span className="inline-flex size-9 sm:size-10 shrink-0 items-center justify-center rounded-none bg-[#081F5C]/10 text-[#081F5C] group-hover:bg-[#081F5C] group-hover:text-white transition-colors mt-0.5 sm:mt-0">
+                      <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5" aria-hidden />
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm sm:text-base font-bold text-slate-900">{n.title}</p>
+                    <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <p className="text-xs sm:text-base font-bold text-slate-900 break-words leading-snug">{n.title}</p>
                         {n.unread ? (
-                          <span className="inline-flex items-center rounded-none border border-sky-400 bg-sky-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-900">
+                          <span className="inline-flex items-center rounded-none border border-sky-400 bg-sky-100 px-1.5 sm:px-2 py-0.2 sm:py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-sky-900">
                             Unread
                           </span>
                         ) : null}
-                        <span className="inline-flex items-center rounded-none border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                        <span className="inline-flex items-center rounded-none border border-slate-200 bg-slate-100 px-1.5 sm:px-2 py-0.2 sm:py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-600">
                           {n.type}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs sm:text-sm font-medium text-slate-600 line-clamp-2">{n.desc}</p>
+                      <p className="mt-1 text-xs sm:text-sm font-medium text-slate-600 line-clamp-2 leading-relaxed">{n.desc}</p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2 self-end sm:self-center text-right">
-                    <span className="text-xs font-semibold text-slate-500">{n.timeLabel || '—'}</span>
+                  <div className="flex shrink-0 items-center justify-between sm:justify-end gap-2 w-full sm:w-auto self-end sm:self-center text-right pt-1 sm:pt-0 border-t border-slate-100 sm:border-0">
+                    <span className="text-[11px] sm:text-xs font-semibold text-slate-500">{n.timeLabel || formatRelativeTime(n.timestamp)}</span>
+                    <span className="text-[11px] sm:text-xs font-bold text-[#081F5C] sm:hidden flex items-center gap-1">
+                      View &rarr;
+                    </span>
                   </div>
                 </div>
               )

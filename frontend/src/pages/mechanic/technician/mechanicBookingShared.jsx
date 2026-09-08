@@ -1,18 +1,24 @@
 import { Badge } from '../../../components/ui/badge'
 import { useSidebar } from '../../../components/ui/sidebar'
 import {
+  Bell,
   Bike,
   CalendarClock,
+  ChevronDown,
   Home,
+  LogOut,
   MapPin,
+  Menu,
   MessageSquare,
   Phone,
+  Settings,
   Smartphone,
   Store,
   User,
   WashingMachine,
   Wrench,
 } from 'lucide-react'
+import { NotificationBellIndicator } from '../../../components/notifications/NotificationFeed.jsx'
 
 export const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -27,21 +33,22 @@ export const REQUEST_STAT_GRADIENT = {
   total: 'bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600',
 }
 
-export function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
+export function StatGradientCard({ label, value, icon: Icon, variant, helper, className = '' }) {
   const gradient = REQUEST_STAT_GRADIENT[variant] ?? REQUEST_STAT_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
+      className={`group relative min-w-0 overflow-hidden rounded-none border border-white/20 p-2.5 sm:p-5 shadow-md transition-all duration-300 hover:shadow-lg sm:min-h-[120px] ${gradient} ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80">{helper}</p> : null}
+      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/15 to-transparent" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-12 sm:size-16 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110" />
+      <div className="relative z-10 flex items-start justify-between gap-1.5 sm:gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white/90 truncate">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl font-black tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
+          {helper ? <p className="mt-0.5 sm:mt-1 line-clamp-1 text-[10px] sm:text-[11px] text-white/80 font-medium truncate">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+        <div className="shrink-0 rounded-none border border-white/25 bg-white/15 p-1.5 sm:p-2.5 shadow-inner backdrop-blur-xs">
+          <Icon className="size-3.5 sm:size-4 text-white" aria-hidden />
         </div>
       </div>
     </div>
@@ -94,11 +101,11 @@ export function mapBookingFromApi(row) {
       typeof row.serviceFeeMaterialsDescription === 'string' ? row.serviceFeeMaterialsDescription : '',
     serviceFeeReplacementParts: Array.isArray(row.serviceFeeReplacementParts)
       ? row.serviceFeeReplacementParts
-          .map((x) => ({
-            name: typeof x?.name === 'string' ? x.name : '',
-            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
-          }))
-          .filter((x) => x.name)
+        .map((x) => ({
+          name: typeof x?.name === 'string' ? x.name : '',
+          price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+        }))
+        .filter((x) => x.name)
       : [],
     serviceFeeConfirmedAt: row.serviceFeeConfirmedAt || null,
   }
@@ -255,11 +262,133 @@ export function MechanicMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-sm text-foreground hover:bg-accent md:hidden transition-colors cursor-pointer"
       onClick={() => setOpenMobile(true)}
+      aria-label="Toggle navigation menu"
     >
-      Menu
+      <Menu className="size-5 text-foreground" />
     </button>
+  )
+}
+
+export function MechanicTopBar({
+  title,
+  description,
+  user,
+  profileOpen,
+  setProfileOpen,
+  profileMenuRef,
+  requestLogout,
+  unreadCount = 0,
+  isNotificationActive = false,
+}) {
+  const userInitial = (user?.fullName || user?.email || 'M').charAt(0).toUpperCase()
+
+  return (
+    <header className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 flex-none items-center justify-between gap-2 sm:gap-4 border-b border-border/60 bg-white/95 px-3 sm:px-4 md:px-6 shadow-xs backdrop-blur-md dark:bg-background/95">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
+        <MechanicMobileNav />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-sm sm:text-base md:text-lg font-black tracking-tight text-foreground leading-tight">
+            {title}
+          </h1>
+          {description ? (
+            <p className="hidden truncate text-xs text-muted-foreground md:block font-medium">
+              {description}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="relative flex shrink-0 items-center gap-1 sm:gap-2.5">
+        {/* Notification Bell Button */}
+        <button
+          type="button"
+          aria-label="Notification center"
+          onClick={() => {
+            window.location.hash = '#/mechanic/technician/notification'
+          }}
+          className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${
+            isNotificationActive
+              ? 'bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-300'
+              : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
+          }`}
+        >
+          <NotificationBellIndicator unreadCount={unreadCount}>
+            <Bell className="size-4.5 sm:size-5" />
+          </NotificationBellIndicator>
+        </button>
+
+        {/* Profile Dropdown Trigger */}
+        <div ref={profileMenuRef} className="relative">
+          <button
+            type="button"
+            aria-label="Profile menu"
+            onClick={() => setProfileOpen?.((prev) => !prev)}
+            className="flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 text-foreground hover:bg-accent rounded-sm transition-colors cursor-pointer"
+          >
+            <span className="flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold leading-none text-white shadow-xs">
+              {userInitial}
+            </span>
+            <span className="hidden lg:inline-block max-w-[110px] truncate text-xs font-bold uppercase tracking-wider">
+              {user?.fullName ? user.fullName.split(' ')[0] : 'Tech'}
+            </span>
+            <ChevronDown
+              className={`size-3.5 text-muted-foreground transition-transform duration-200 ${
+                profileOpen ? 'rotate-180 text-foreground' : ''
+              }`}
+            />
+          </button>
+
+          {profileOpen && (
+            <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-md border border-slate-200 dark:border-border/80 bg-white dark:bg-slate-900 shadow-2xl z-50 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in zoom-in-95 duration-100">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-sm font-extrabold text-white shadow-xs">
+                  {userInitial}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold text-foreground">
+                    {user?.fullName || 'Mechanic / Technician'}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">{user?.email || ''}</p>
+                  <span className="inline-flex items-center gap-1 mt-1 rounded-sm border border-[#081F5C]/20 bg-[#081F5C]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#081F5C] dark:text-blue-300">
+                    Mechanic / Technician
+                  </span>
+                </div>
+              </div>
+
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen?.(false)
+                    window.location.hash = '#/mechanic/technician/work-info'
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-xs font-semibold uppercase tracking-wider text-foreground hover:bg-accent transition-colors cursor-pointer"
+                >
+                  <Settings className="size-4 text-muted-foreground" />
+                  <span>Work Info</span>
+                </button>
+              </div>
+
+              <div className="p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileOpen?.(false)
+                    requestLogout?.()
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-xs font-bold uppercase tracking-wider text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                >
+                  <LogOut className="size-4" />
+                  <span>Log out</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
   )
 }
 

@@ -200,16 +200,16 @@ function StatGradientCard({ label, value, icon: Icon, variant }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
+      className={`relative min-h-[84px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
+      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
+          <p className="text-[10px] sm:text-xs font-medium tracking-wide text-white/85">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">{value}</p>
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
         </div>
       </div>
     </div>
@@ -217,7 +217,7 @@ function StatGradientCard({ label, value, icon: Icon, variant }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
 
 const emptyForm = {
   fullName: '',
@@ -443,7 +443,7 @@ function ManageEmployeePage() {
       }}
     >
       <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
           <StatGradientCard variant="total" label="Total staff" value={stats.total} icon={Users} />
           <StatGradientCard variant="active" label="Active" value={stats.active} icon={CheckCircle} />
           <StatGradientCard variant="on-leave" label="On leave" value={stats.onLeave} icon={Clock} />
@@ -451,13 +451,13 @@ function ManageEmployeePage() {
         </div>
 
         {listError ? (
-          <div className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+          <div className="rounded-sm border border-red-200 bg-red-50 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
             {listError}
           </div>
         ) : null}
 
-        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:flex-nowrap min-w-0 w-full max-w-full flex-1">
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
               <select
                 className={`${selectShell} ${roleFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
@@ -474,7 +474,7 @@ function ManageEmployeePage() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
             </div>
 
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
@@ -491,10 +491,10 @@ function ManageEmployeePage() {
                 <option value="on-leave">On leave</option>
                 <option value="inactive">Inactive</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
             </div>
 
-            <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[220px]">
+            <div className="relative min-w-0 w-full col-span-2 sm:col-span-1 sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[220px]">
               <select
                 className={`${selectShell} ${dateRange !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
                 value={dateRange}
@@ -511,14 +511,14 @@ function ManageEmployeePage() {
                 <option value="this-year">This year</option>
                 <option value="last-year">Last year</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
             </div>
           </div>
 
           <div className="relative min-w-0 w-full max-w-full lg:max-w-lg lg:flex-1">
             <div className="relative w-full min-w-0 max-w-full">
               <Input
-                className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+                className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-10 pl-3.5 sm:pr-12 sm:pl-4 text-xs sm:text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
                 placeholder="Search by name, email, or role…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -527,10 +527,10 @@ function ManageEmployeePage() {
               <Button
                 type="button"
                 size="icon-sm"
-                className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95"
+                className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95 cursor-pointer"
                 aria-label="Search"
               >
-                <Search className="h-4 w-4 text-white" />
+                <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </Button>
             </div>
           </div>
@@ -538,9 +538,10 @@ function ManageEmployeePage() {
 
         <Card className="mt-3 min-w-0 max-w-full overflow-hidden rounded-sm border border-[#081F5C]/12 bg-white shadow-lg ring-1 ring-black/3 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90 dark:ring-white/6">
           <CardContent className="min-w-0 p-0">
+            {/* Desktop Table View */}
             <div
               id="me-table-x-scroll"
-              className="scrollbar-hidden max-w-full overflow-x-auto overflow-y-hidden scroll-smooth"
+              className="scrollbar-hidden hidden max-w-full overflow-x-auto overflow-y-hidden scroll-smooth md:block"
             >
               <table className="w-full min-w-[600px] border-collapse text-sm">
                 <thead className="[&_tr]:border-0">
@@ -620,24 +621,24 @@ function ManageEmployeePage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="mx-auto h-9 w-9 rounded-sm p-0 text-[#081F5C]/70 opacity-80 hover:bg-[#081F5C]/10 hover:text-[#081F5C] hover:opacity-100 dark:text-blue-200/80 dark:hover:bg-white/10"
+                                className="mx-auto h-9 w-9 rounded-sm p-0 text-[#081F5C]/70 opacity-80 hover:bg-[#081F5C]/10 hover:text-[#081F5C] hover:opacity-100 dark:text-blue-200/80 dark:hover:bg-white/10 cursor-pointer"
                               >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44 text-xs">
-                              <DropdownMenuItem className="gap-2 text-xs" onClick={() => openEdit(emp)}>
+                              <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => openEdit(emp)}>
                                 <Pencil className="h-4 w-4" />
                                 Edit details
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 text-xs" onClick={() => cycleLeave(emp)}>
+                              <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => cycleLeave(emp)}>
                                 <CalendarDays className="h-4 w-4" />
                                 {emp.status === 'on-leave' ? 'Mark as active' : 'Mark on leave'}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 variant="destructive"
-                                className="gap-2 text-xs"
+                                className="gap-2 text-xs cursor-pointer"
                                 onClick={() => setRemoveTarget(emp)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -652,24 +653,108 @@ function ManageEmployeePage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile Employee Cards View */}
+            <div className="block divide-y divide-[#081F5C]/8 dark:divide-white/5 md:hidden">
+              {listLoading ? (
+                <div className="px-4 py-12 text-center text-xs sm:text-sm text-muted-foreground">
+                  Loading mechanics registered under your shop…
+                </div>
+              ) : pageSlice.length === 0 ? (
+                <div className="px-4 py-12 text-center text-xs sm:text-sm text-muted-foreground">
+                  {employees.length === 0
+                    ? 'No mechanics have registered under your shop yet. They must choose your shop when they sign up as Mechanic / Technician.'
+                    : 'No results match your filters. Try a different keyword or filter.'}
+                </div>
+              ) : (
+                pageSlice.map((emp) => (
+                  <div key={emp.id} className="p-3 sm:p-4 space-y-2.5 transition-colors hover:bg-[#081F5C]/3 dark:hover:bg-white/3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Avatar className="size-10 shrink-0 ring-2 ring-white shadow-sm ring-offset-1 ring-offset-background dark:ring-[#04133d]" size="sm">
+                          <AvatarFallback className="bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-semibold text-white">
+                            {initials(emp.fullName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold text-sm text-foreground">{emp.fullName}</div>
+                          <div className="truncate text-xs text-muted-foreground">{emp.specialization}</div>
+                        </div>
+                      </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 rounded-sm p-0 text-[#081F5C]/70 hover:bg-[#081F5C]/10 dark:text-blue-200/80 shrink-0 cursor-pointer"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44 text-xs z-50">
+                          <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => openEdit(emp)}>
+                            <Pencil className="h-4 w-4" />
+                            Edit details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => cycleLeave(emp)}>
+                            <CalendarDays className="h-4 w-4" />
+                            {emp.status === 'on-leave' ? 'Mark as active' : 'Mark on leave'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            variant="destructive"
+                            className="gap-2 text-xs cursor-pointer"
+                            onClick={() => setRemoveTarget(emp)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Mark inactive
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      {roleBadge(emp.role)}
+                      {statusBadge(emp.status)}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground pt-1 border-t border-slate-100 dark:border-white/5">
+                      <div className="truncate">
+                        <span className="font-medium text-foreground">Email: </span>
+                        {emp.email}
+                      </div>
+                      <div className="truncate">
+                        <span className="font-medium text-foreground">Phone: </span>
+                        {emp.phone}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        <span className="font-medium text-foreground">Joined: </span>
+                        {formatJoined(emp.joinedAt)}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </CardContent>
         </Card>
 
         {filtered.length > 0 && (
-          <div className="mt-4 flex min-w-0 max-w-full flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="text-sm text-neutral-600 dark:text-neutral-400">
+          <div className="mt-4 flex min-w-0 max-w-full flex-col items-center justify-between gap-3 sm:gap-4 sm:flex-row">
+            <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 text-center sm:text-left">
               Showing <span className="font-medium text-neutral-900 dark:text-neutral-100">{fromIdx}</span> to{' '}
               <span className="font-medium text-neutral-900 dark:text-neutral-100">{toIdx}</span> of{' '}
               <span className="font-medium text-neutral-900 dark:text-neutral-100">{filtered.length}</span>{' '}
               employees
             </div>
-            <Pagination>
+            <Pagination className="w-auto">
               <PaginationContent className="flex-wrap justify-center gap-1">
                 <PaginationItem>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1"
+                    className="gap-1 text-xs sm:text-sm cursor-pointer"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={safePage <= 1}
                   >
@@ -693,7 +778,7 @@ function ManageEmployeePage() {
                           <Button
                             variant={safePage === p ? 'outline' : 'ghost'}
                             size="sm"
-                            className="h-9 w-9 p-0"
+                            className="h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm cursor-pointer"
                             onClick={() => setPage(p)}
                           >
                             {p}
@@ -707,7 +792,7 @@ function ManageEmployeePage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="gap-1"
+                    className="gap-1 text-xs sm:text-sm cursor-pointer"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={safePage >= totalPages}
                   >
@@ -731,30 +816,30 @@ function ManageEmployeePage() {
           }
         }}
       >
-        <DialogContent className="gap-4 sm:max-w-md" showCloseButton>
+        <DialogContent className="gap-4 max-w-[calc(100vw-1rem)] sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6" showCloseButton>
           <DialogHeader>
-            <DialogTitle>Edit roster entry</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Edit roster entry</DialogTitle>
+            <DialogDescription className="text-xs leading-relaxed">
               Profile details come from the technician&apos;s registration. You can set their shop role label and roster
               status here.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 py-1">
-            <div className="grid gap-1.5">
-              <Label htmlFor="emp-name">Full name</Label>
-              <Input id="emp-name" value={form.fullName} readOnly className="bg-muted/50" />
+          <div className="grid gap-3 py-1 text-xs">
+            <div className="grid gap-1">
+              <Label htmlFor="emp-name" className="text-xs">Full name</Label>
+              <Input id="emp-name" value={form.fullName} readOnly className="bg-muted/50 text-xs h-9" />
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="emp-email">Email</Label>
-              <Input id="emp-email" type="email" value={form.email} readOnly className="bg-muted/50" />
+            <div className="grid gap-1">
+              <Label htmlFor="emp-email" className="text-xs">Email</Label>
+              <Input id="emp-email" type="email" value={form.email} readOnly className="bg-muted/50 text-xs h-9" />
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="emp-phone">Phone</Label>
-              <Input id="emp-phone" value={form.phone} readOnly className="bg-muted/50" />
+            <div className="grid gap-1">
+              <Label htmlFor="emp-phone" className="text-xs">Phone</Label>
+              <Input id="emp-phone" value={form.phone} readOnly className="bg-muted/50 text-xs h-9" />
             </div>
-            <div className="grid gap-1.5 sm:grid-cols-2 sm:gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="emp-role">Role</Label>
+            <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+              <div className="grid gap-1">
+                <Label htmlFor="emp-role" className="text-xs">Role</Label>
                 <div className="relative">
                   <select
                     id="emp-role"
@@ -768,11 +853,11 @@ function ManageEmployeePage() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
                 </div>
               </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="emp-status">Status</Label>
+              <div className="grid gap-1">
+                <Label htmlFor="emp-status" className="text-xs">Status</Label>
                 <div className="relative">
                   <select
                     id="emp-status"
@@ -784,24 +869,24 @@ function ManageEmployeePage() {
                     <option value="on-leave">On leave</option>
                     <option value="inactive">Inactive</option>
                   </select>
-                  <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
                 </div>
               </div>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="emp-spec">Course / skills (from registration)</Label>
-              <Input id="emp-spec" value={form.specialization} readOnly className="bg-muted/50" />
+            <div className="grid gap-1">
+              <Label htmlFor="emp-spec" className="text-xs">Course / skills (from registration)</Label>
+              <Input id="emp-spec" value={form.specialization} readOnly className="bg-muted/50 text-xs h-9" />
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 w-full">
+            <Button type="button" variant="outline" onClick={() => setFormOpen(false)} className="w-full sm:w-auto text-xs h-9 cursor-pointer">
               Cancel
             </Button>
             <Button
               type="button"
               onClick={() => void submitForm()}
               disabled={formSaving || !editingId}
-              className="bg-linear-to-r from-[#081F5C] to-[#1447a6] hover:from-[#081F5C]/90 hover:to-[#1447a6]/90"
+              className="w-full sm:w-auto text-xs h-9 bg-linear-to-r from-[#081F5C] to-[#1447a6] hover:from-[#081F5C]/90 hover:to-[#1447a6]/90 cursor-pointer"
             >
               {formSaving ? 'Saving…' : 'Save changes'}
             </Button>
@@ -810,18 +895,18 @@ function ManageEmployeePage() {
       </Dialog>
 
       <AlertDialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-md p-4 sm:p-6">
           <AlertDialogHeader>
-            <AlertDialogTitle>Mark as inactive?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-base sm:text-lg">Mark as inactive?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs leading-relaxed">
               {removeTarget
                 ? `${removeTarget.fullName} will be marked inactive on your roster. Their account is unchanged; you can set them active again from Edit.`
                 : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => void confirmRemove()}>
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2 w-full">
+            <AlertDialogCancel className="w-full sm:w-auto text-xs h-9 cursor-pointer">Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => void confirmRemove()} className="w-full sm:w-auto text-xs h-9 cursor-pointer">
               Mark inactive
             </AlertDialogAction>
           </AlertDialogFooter>

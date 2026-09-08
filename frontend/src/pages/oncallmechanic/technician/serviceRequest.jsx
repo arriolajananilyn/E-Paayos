@@ -76,19 +76,19 @@ const REQUEST_STAT_GRADIENT = {
   total: 'bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600',
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
+function StatGradientCard({ label, value, icon: Icon, variant, helper, className }) {
   const gradient = REQUEST_STAT_GRADIENT[variant] ?? REQUEST_STAT_GRADIENT.total
   return (
-    <div className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}>
+    <div className={`relative min-h-[88px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3.5 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg ${gradient} ${className || ''}`}>
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
+      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80">{helper}</p> : null}
+          <p className="text-[10px] sm:text-xs font-medium tracking-wide text-white/85">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
+          {helper ? <p className="mt-0.5 line-clamp-1 text-[10px] sm:text-[11px] text-white/80">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
         </div>
       </div>
     </div>
@@ -536,7 +536,7 @@ function OnCallMechanicServiceRequestPage() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-5">
           <StatGradientCard
             variant="pending"
             label="Pending"
@@ -566,6 +566,7 @@ function OnCallMechanicServiceRequestPage() {
             icon={CheckCircle}
           />
           <StatGradientCard
+            className="col-span-2 sm:col-span-1 lg:col-span-1"
             variant="total"
             label="Total requests"
             value={counts.all}
@@ -574,8 +575,8 @@ function OnCallMechanicServiceRequestPage() {
           />
         </div>
 
-        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="grid w-full min-w-0 max-w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:flex-1 lg:flex-nowrap">
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
               <select
                 className={`${selectShell} ${statusFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
@@ -907,7 +908,7 @@ function OnCallMechanicServiceRequestPage() {
                             } catch {}
                             window.location.hash = '#/independent/technician/service-history'
                           }}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-none shadow-2xs transition-colors cursor-pointer shrink-0"
+                          className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-3.5 py-2 sm:py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-none shadow-2xs transition-colors cursor-pointer shrink-0 text-xs"
                         >
                           <History className="size-3.5" />
                           <span>Service History</span>
@@ -917,17 +918,17 @@ function OnCallMechanicServiceRequestPage() {
 
                     {/* Action Controls Footer */}
                     {(b.status === 'pending' || b.status === 'confirmed' || b.status === 'working') && (
-                      <div className="pt-1 flex flex-wrap items-center justify-end gap-2">
+                      <div className="pt-1 flex flex-wrap items-center justify-end gap-2 w-full">
                         {b.status === 'pending' && (
-                          <>
+                          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto sm:justify-end">
                             <button
                               type="button"
                               disabled={busy}
                               onClick={() => openRejectDialog(b)}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                              className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                             >
-                              <XCircle className="size-3.5 text-rose-600" />
-                              <span>Reject Request</span>
+                              <XCircle className="size-3.5 text-rose-600 shrink-0" />
+                              <span>Reject</span>
                             </button>
                             <button
                               type="button"
@@ -939,12 +940,12 @@ function OnCallMechanicServiceRequestPage() {
                                   serviceName: b.shopService?.name || 'Service',
                                 })
                               }
-                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                              className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-4 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                             >
-                              {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-                              <span>Confirm Request</span>
+                              {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5 shrink-0" />}
+                              <span>Confirm</span>
                             </button>
-                          </>
+                          </div>
                         )}
 
                         {b.status === 'confirmed' && (
@@ -958,17 +959,17 @@ function OnCallMechanicServiceRequestPage() {
                                 serviceName: b.shopService?.name || 'Service',
                               })
                             }
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                            className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-4 py-2.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                           >
-                            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Wrench className="size-3.5" />}
+                            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Wrench className="size-3.5 shrink-0" />}
                             <span>Start Job (Working)</span>
                           </button>
                         )}
 
                         {b.status === 'working' && (
-                          <>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold rounded-none">
-                              <Wrench className="size-3.5 opacity-70" />
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 w-full sm:w-auto">
+                            <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold rounded-none">
+                              <Wrench className="size-3.5 opacity-70 shrink-0" />
                               <span>Working</span>
                             </span>
                             {!b.serviceFeeConfirmedAt ? (
@@ -979,9 +980,9 @@ function OnCallMechanicServiceRequestPage() {
                                   setFeeDialogError('')
                                   setFeeBooking(b)
                                 }}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                                className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-4 py-2.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                               >
-                                <DollarSign className="size-3.5" />
+                                <DollarSign className="size-3.5 shrink-0" />
                                 <span>Calculate Service Fee</span>
                               </button>
                             ) : (
@@ -989,13 +990,13 @@ function OnCallMechanicServiceRequestPage() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void patchBooking(b.id, 'completed')}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                                className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-4 py-2.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                               >
-                                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle className="size-3.5" />}
+                                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle className="size-3.5 shrink-0" />}
                                 <span>Mark Completed</span>
                               </button>
                             )}
-                          </>
+                          </div>
                         )}
                       </div>
                     )}
@@ -1014,7 +1015,7 @@ function OnCallMechanicServiceRequestPage() {
           if (!open) setConfirmBooking(null)
         }}
       >
-        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-md">
+        <AlertDialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl">
           <AlertDialogHeader className="border-b border-slate-100 pb-3">
             <AlertDialogTitle className="text-lg font-black text-slate-900">Confirm This Booking Request?</AlertDialogTitle>
             <AlertDialogDescription className="text-left text-xs font-medium text-slate-600 mt-1 leading-relaxed">
@@ -1033,13 +1034,13 @@ function OnCallMechanicServiceRequestPage() {
               ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="pt-3.5 gap-2">
-            <AlertDialogCancel type="button" className="rounded-none border-slate-300 text-xs font-bold cursor-pointer">
+          <AlertDialogFooter className="pt-3.5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end w-full">
+            <AlertDialogCancel type="button" className="w-full sm:w-auto justify-center rounded-none border-slate-300 text-xs font-bold cursor-pointer">
               Cancel
             </AlertDialogCancel>
             <Button
               type="button"
-              className="rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-emerald-900/20 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto justify-center rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-emerald-900/20 cursor-pointer disabled:opacity-50"
               disabled={!confirmBooking || updatingId === confirmBooking?.id}
               onClick={() => void confirmAcceptBooking()}
             >
@@ -1063,7 +1064,7 @@ function OnCallMechanicServiceRequestPage() {
           if (!open) setConfirmWorkingBooking(null)
         }}
       >
-        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-md">
+        <AlertDialogContent className="w-[calc(100vw-1.5rem)] max-w-md rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl">
           <AlertDialogHeader className="border-b border-slate-100 pb-3">
             <AlertDialogTitle className="text-lg font-black text-slate-900">Start Service Job Now?</AlertDialogTitle>
             <AlertDialogDescription className="text-left text-xs font-medium text-slate-600 mt-1 leading-relaxed">
@@ -1082,13 +1083,13 @@ function OnCallMechanicServiceRequestPage() {
               ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="pt-3.5 gap-2">
-            <AlertDialogCancel type="button" className="rounded-none border-slate-300 text-xs font-bold cursor-pointer">
+          <AlertDialogFooter className="pt-3.5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end w-full">
+            <AlertDialogCancel type="button" className="w-full sm:w-auto justify-center rounded-none border-slate-300 text-xs font-bold cursor-pointer">
               Cancel
             </AlertDialogCancel>
             <Button
               type="button"
-              className="rounded-none bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-purple-900/20 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto justify-center rounded-none bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-purple-900/20 cursor-pointer disabled:opacity-50"
               disabled={!confirmWorkingBooking || updatingId === confirmWorkingBooking?.id}
               onClick={() => void confirmStartWorking()}
             >
@@ -1136,7 +1137,7 @@ function OnCallMechanicServiceRequestPage() {
           }
         }}
       >
-        <DialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-lg" showCloseButton>
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[90vh] overflow-y-auto rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl" showCloseButton>
           <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
             <DialogTitle className="text-xl font-black text-slate-900">Decline Service Request</DialogTitle>
             <DialogDescription className="text-xs font-medium text-slate-500 mt-0.5">
@@ -1164,7 +1165,7 @@ function OnCallMechanicServiceRequestPage() {
             </p>
             {rejectReasonError ? <p className="text-xs font-bold text-rose-600 bg-rose-50 p-2 border border-rose-200 rounded-none">{rejectReasonError}</p> : null}
           </div>
-          <DialogFooter className="shrink-0 gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
+          <DialogFooter className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 border-t border-slate-100 pt-3.5 w-full">
             <Button
               type="button"
               variant="outline"
@@ -1173,16 +1174,16 @@ function OnCallMechanicServiceRequestPage() {
                 setRejectReason('')
                 setRejectReasonError('')
               }}
-              className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer"
+              className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               type="button"
               variant="destructive"
-              disabled={!rejectBooking || updatingId === rejectBooking?.id}
+              className="w-full sm:w-auto rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-rose-900/20 cursor-pointer disabled:opacity-50"
+              disabled={rejectReason.trim().length < MIN_REJECTION_REASON_LEN || (rejectBooking && updatingId === rejectBooking.id)}
               onClick={() => void submitReject()}
-              className="rounded-none bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-rose-900/20 cursor-pointer disabled:opacity-50"
             >
               {rejectBooking && updatingId === rejectBooking.id ? (
                 <>

@@ -21,6 +21,7 @@ const messageSchema = new mongoose.Schema(
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     content: { type: String, default: "" },
     attachments: { type: [attachmentSchema], default: [] },
+    isAiGenerated: { type: Boolean, default: false },
   },
   { timestamps: true }
 )

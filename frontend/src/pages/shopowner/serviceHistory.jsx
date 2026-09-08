@@ -51,21 +51,21 @@ const HISTORY_STAT_GRADIENT = {
   total: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
+function StatGradientCard({ label, value, icon: Icon, variant, helper, className }) {
   const gradient = HISTORY_STAT_GRADIENT[variant] ?? HISTORY_STAT_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-none border border-white/15 p-4 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:shadow-lg ${gradient}`}
+      className={`relative min-h-[88px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-none border border-white/15 p-3 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:shadow-lg ${gradient} ${className || ''}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
+      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold tracking-wide text-white/85 uppercase">{label}</p>
-          <p className="mt-1 text-2xl font-black tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80 font-medium">{helper}</p> : null}
+          <p className="text-[10px] sm:text-xs font-bold tracking-wide text-white/85 uppercase">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-black tracking-tight text-white tabular-nums">{value}</p>
+          {helper ? <p className="mt-0.5 sm:mt-1 line-clamp-1 text-[10px] sm:text-[11px] text-white/80 font-medium">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-none border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+        <div className="shrink-0 rounded-none border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
+          <Icon className="size-4 sm:size-5 text-white" aria-hidden />
         </div>
       </div>
     </div>
@@ -325,7 +325,7 @@ export function ServiceHistoryPage() {
         ) : null}
 
         {/* Top KPI Cards */}
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3.5">
           <StatGradientCard
             variant="completed"
             label="Completed Jobs"
@@ -406,49 +406,49 @@ export function ServiceHistoryPage() {
                   key={b.id}
                   data-booking-history-id={b.id}
                   className={cn(
-                    'rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-200 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] p-3.5 sm:p-4 hover:-translate-y-0.5 space-y-3',
+                    'rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-200 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] p-3 sm:p-4 hover:-translate-y-0.5 space-y-3',
                     isHi && 'border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-50/20'
                   )}
                 >
                   {/* Top Bar Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold text-white shadow-2xs">
+                  <div className="flex flex-wrap items-start sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5">
+                    <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
+                      <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold text-white shadow-2xs mt-0.5 sm:mt-0">
                         {initialsFromName(b.contactName)}
                       </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-black tracking-tight text-slate-900">{b.contactName || '—'}</h3>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <h3 className="text-sm font-black tracking-tight text-slate-900 leading-snug">{b.contactName || '—'}</h3>
                           {b.ref ? (
-                            <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
+                            <span className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
                               Ref: #{b.ref}
                             </span>
                           ) : null}
                         </div>
                         <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
-                          <Phone className="size-3 text-[#081F5C]" />
-                          <a href={`tel:${b.contactPhone}`} className="text-[#081F5C] hover:underline font-bold">
+                          <Phone className="size-3 text-[#081F5C] shrink-0" />
+                          <a href={`tel:${b.contactPhone}`} className="text-[#081F5C] hover:underline font-bold truncate">
                             {b.contactPhone || '—'}
                           </a>
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                    <div className="flex flex-row sm:flex-col sm:items-end items-center gap-1.5 shrink-0 self-start sm:self-center">
                       {bookingStatusBadge()}
-                      <span className="text-[11px] font-semibold text-slate-500">
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 whitespace-nowrap">
                         Finished: {formatSubmittedLine(b.updatedAt || b.createdAt)}
                       </span>
                     </div>
                   </div>
 
                   {/* 3 Container Box Body Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
                     {/* Container 1: Service Description */}
-                    <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                    <div className="bg-slate-50/80 border border-slate-200/90 p-2.5 sm:p-3 rounded-none flex flex-col justify-between space-y-1.5">
                       <div>
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                          <FileText className="size-3.5 text-[#081F5C]" />
+                          <FileText className="size-3.5 text-[#081F5C] shrink-0" />
                           <span>Service Requested</span>
                         </span>
                         <p className="text-xs font-black text-slate-900 mt-1 flex items-center gap-1.5">
@@ -467,10 +467,10 @@ export function ServiceHistoryPage() {
                     </div>
 
                     {/* Container 2: Outcome & Schedule */}
-                    <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                    <div className="bg-slate-50/80 border border-slate-200/90 p-2.5 sm:p-3 rounded-none flex flex-col justify-between space-y-1.5">
                       <div>
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5 text-emerald-600" />
+                          <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
                           <span>Recorded Outcome</span>
                         </span>
                         <p className="text-[11px] font-bold text-emerald-900 bg-emerald-50 p-2 border border-emerald-200 mt-1">
@@ -480,22 +480,22 @@ export function ServiceHistoryPage() {
                       <div className="bg-white p-2 border border-slate-200 space-y-0.5 text-[11px]">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
                         <div className="flex items-center gap-1 font-bold text-slate-800">
-                          <CalendarClock className="size-3 text-indigo-600" />
+                          <CalendarClock className="size-3 text-indigo-600 shrink-0" />
                           <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Container 3: Service Mode & Location */}
-                    <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                    <div className="bg-slate-50/80 border border-slate-200/90 p-2.5 sm:p-3 rounded-none flex flex-col justify-between space-y-1.5">
                       <div>
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                          <MapPin className="size-3 text-rose-500" />
+                          <MapPin className="size-3 text-rose-500 shrink-0" />
                           <span>Service Location</span>
                         </span>
                         <div className="mt-1 flex items-center gap-1">
                           <Badge className="rounded-none border border-slate-300 bg-white text-slate-800 text-[10px] font-bold uppercase py-0">
-                            {b.serviceMode === 'home' ? <Home className="size-3 mr-1 text-indigo-600" /> : <Store className="size-3 mr-1 text-indigo-600" />}
+                            {b.serviceMode === 'home' ? <Home className="size-3 mr-1 text-indigo-600 shrink-0" /> : <Store className="size-3 mr-1 text-indigo-600 shrink-0" />}
                             {b.serviceMode === 'home' ? 'Home Service' : 'In-Shop Visit'}
                           </Badge>
                         </div>
@@ -514,9 +514,9 @@ export function ServiceHistoryPage() {
                           href={`https://www.google.com/maps?q=${b.serviceLatitude},${b.serviceLongitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors"
+                          className="inline-flex w-full sm:w-auto items-center justify-center gap-1 px-2.5 py-1.5 sm:py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors mt-2"
                         >
-                          <MapPin className="size-3 text-rose-600" />
+                          <MapPin className="size-3 text-rose-600 shrink-0" />
                           <span>Open Location Map</span>
                         </a>
                       ) : null}

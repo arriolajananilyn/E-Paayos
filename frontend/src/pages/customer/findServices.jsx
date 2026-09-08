@@ -22,7 +22,7 @@ import gadgetsTopBanner from '../../assets/gadgets.png'
 import { formatMunicipalityBarangayLabel, formatReadableShopAddress } from '../../lib/psgcResolve'
 import CustomerLayout, { readCustomerUserSession } from '../../layout/customerlayout.jsx'
 
-export const CATEGORIES = ['Appliance', 'Gadget', 'Vehicle', 'Others']
+export const CATEGORIES = ['Appliance', 'Gadget', 'Vehicle']
 export const SERVICE_TYPES = [
   { value: 'home', label: 'Home service' },
   { value: 'in-shop', label: 'In-shop' },
@@ -49,12 +49,12 @@ function catalogAuthHeaders() {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-slate-200 bg-white px-3 py-2 pr-8 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300'
+  'h-8 sm:h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-[11px] sm:text-xs md:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300 truncate'
 
 function serviceTypeBadge(type) {
   const label = SERVICE_TYPES.find((x) => x.value === type)?.label ?? 'N/A'
   return (
-    <Badge variant="outline" className="rounded-sm border border-slate-200 bg-slate-100/90 text-[10px] font-bold uppercase tracking-wider text-[#081F5C]">
+    <Badge variant="outline" className="rounded-none border border-slate-200 bg-slate-100/90 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#081F5C] px-1.5 sm:px-2 py-0.5">
       {label}
     </Badge>
   )
@@ -100,7 +100,7 @@ function ServiceOwnerThumb({ src, ownerName, IconComponent }) {
   const [imageFailed, setImageFailed] = useState(false)
   const canShowImage = Boolean(src) && !imageFailed
   return (
-    <span className="inline-flex h-9 w-9 shrink-0 overflow-hidden rounded-sm border border-white/40 bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
+    <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 overflow-hidden rounded-none border border-white/40 bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
       {canShowImage ? (
         <img
           src={src}
@@ -109,8 +109,8 @@ function ServiceOwnerThumb({ src, ownerName, IconComponent }) {
           onError={() => setImageFailed(true)}
         />
       ) : (
-        <span className="flex h-full w-full items-center justify-center bg-[#081F5C]/55 text-xs font-bold text-white">
-          {initialsFromName(ownerName) || <IconComponent className="h-5 w-5" />}
+        <span className="flex h-full w-full items-center justify-center bg-[#081F5C]/55 text-[10px] sm:text-xs font-bold text-white">
+          {initialsFromName(ownerName) || <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />}
         </span>
       )}
     </span>
@@ -152,10 +152,10 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
           window.location.hash = `#/customer/shop/${encodeURIComponent(item.id)}`
         }
       }}
-      className="cursor-pointer gap-0 overflow-hidden rounded-sm border border-slate-200 py-0 ring-0 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
+      className="cursor-pointer gap-0 overflow-hidden rounded-none border border-slate-200 py-0 ring-0 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
     >
       <div
-        className="relative h-24 w-full bg-[#04133d] bg-cover bg-center"
+        className="relative h-20 sm:h-24 w-full bg-[#04133d] bg-cover bg-center"
         style={
           topBannerImage
             ? {
@@ -167,50 +167,50 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
         {(() => {
           const CategoryIcon = categoryIcon(item.category)
           return (
-            <div className="absolute inset-0 flex flex-col p-2.5">
-              <div className="relative flex min-w-0 flex-1 items-start gap-2 pr-20">
+            <div className="absolute inset-0 flex flex-col p-2 sm:p-2.5">
+              <div className="relative flex min-w-0 flex-1 items-start gap-1.5 sm:gap-2 pr-16 sm:pr-20">
                 <ServiceOwnerThumb
                   src={shopThumb}
                   ownerName={item.shopOwner ?? item.shopName ?? ''}
                   IconComponent={CategoryIcon}
                 />
                 <div className="min-w-0 flex-1">
-                  <CardTitle className="truncate text-sm font-bold text-white drop-shadow-xs">{item.shopName}</CardTitle>
-                  <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
-                    <CardDescription className="min-w-0 shrink truncate text-[11px] leading-tight text-white/90 font-medium">
+                  <CardTitle className="truncate text-xs sm:text-sm font-bold text-white drop-shadow-xs">{item.shopName}</CardTitle>
+                  <div className="mt-0.5 flex min-w-0 items-center gap-1 sm:gap-1.5 overflow-hidden">
+                    <CardDescription className="min-w-0 shrink truncate text-[10px] sm:text-[11px] leading-tight text-white/90 font-medium">
                       Owner: {item.shopOwner ?? '—'}
                     </CardDescription>
                     <div
-                      className="flex shrink-0 items-center gap-1 rounded-sm border border-white/30 bg-black/40 px-2 py-0.5 backdrop-blur-sm"
+                      className="flex shrink-0 items-center gap-0.5 sm:gap-1 rounded-none border border-white/30 bg-black/40 px-1.5 sm:px-2 py-0.5 backdrop-blur-sm"
                       aria-label={`Rating ${ratingLabel} out of 5`}
                     >
-                      <Star className="h-3 w-3 shrink-0 fill-amber-300 text-amber-200" />
-                      <span className="text-[11px] font-bold leading-none text-white tabular-nums">{ratingLabel}</span>
+                      <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 fill-amber-300 text-amber-200" />
+                      <span className="text-[10px] sm:text-[11px] font-bold leading-none text-white tabular-nums">{ratingLabel}</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="mt-auto flex shrink-0 flex-wrap items-center gap-2 pt-1">{serviceTypeBadge(item.type)}</div>
-              <Badge className={`absolute right-2.5 top-2.5 shrink-0 rounded-sm border-0 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${categoryBadgeClass(item.category)}`}>
+              <div className="mt-auto flex shrink-0 flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5 sm:pt-1">{serviceTypeBadge(item.type)}</div>
+              <Badge className={`absolute right-2 top-2 sm:right-2.5 sm:top-2.5 shrink-0 rounded-none border-0 px-1.5 sm:px-2.5 py-0.5 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider ${categoryBadgeClass(item.category)}`}>
                 {item.category}
               </Badge>
             </div>
           )
         })()}
       </div>
-      <CardHeader className="space-y-1.5 pb-2 pt-3">
-        <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-900 sm:text-sm truncate">{item.serviceName}</p>
-          <p className="text-xs text-slate-500 sm:text-sm line-clamp-2 leading-snug font-medium">
+      <CardHeader className="space-y-1 pb-1.5 sm:pb-2 pt-2.5 sm:pt-3 px-3 sm:px-5">
+        <div className="space-y-0.5 sm:space-y-1">
+          <p className="text-xs sm:text-sm font-bold uppercase tracking-wide text-slate-900 truncate">{item.serviceName}</p>
+          <p className="text-[11px] sm:text-sm text-slate-500 line-clamp-2 leading-tight sm:leading-snug font-medium">
             {item.subcategory?.trim() ? item.subcategory.trim() : '—'}
           </p>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 pb-4">
-        <div className="space-y-1.5 text-xs sm:text-sm">
+      <CardContent className="space-y-2.5 sm:space-y-3 px-3 sm:px-5 pb-3 sm:pb-4">
+        <div className="space-y-1 sm:space-y-1.5 text-[11px] sm:text-xs md:text-sm">
           <div className="flex items-center gap-1.5 text-slate-600">
-            <MapPin className="h-4 w-4 shrink-0 text-[#081F5C]" />
+            <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-[#081F5C]" />
             <span className="truncate">
               {item.shopOwnerId && Object.prototype.hasOwnProperty.call(readableShopAddresses, item.shopOwnerId)
                 ? readableShopAddresses[item.shopOwnerId]
@@ -220,32 +220,32 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-slate-600">
-            <Wrench className="h-4 w-4 shrink-0 text-[#081F5C]" />
+            <Wrench className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 text-[#081F5C]" />
             <span>{item.completedJobs} completed jobs</span>
           </div>
           <div className="flex items-center gap-1.5 text-slate-600">
-            <span className="inline-flex h-4 w-4 items-center justify-center text-[10px] font-bold text-[#081F5C]">
+            <span className="inline-flex h-3.5 w-3.5 sm:h-4 sm:w-4 items-center justify-center text-[9px] sm:text-[10px] font-bold text-[#081F5C]">
               PHP
             </span>
-            <span className="font-semibold text-slate-800">Labor price: {formatLaborPriceRange(item.laborRatingMin, item.laborRatingMax)}</span>
+            <span className="font-semibold text-slate-800">Labor: {formatLaborPriceRange(item.laborRatingMin, item.laborRatingMax)}</span>
           </div>
         </div>
 
         <div className="pt-2 border-t border-slate-100">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-900">{staffRoleHeading(item.category)}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="inline-flex items-center gap-1.5">
+          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-900">{staffRoleHeading(item.category)}</p>
+          <div className="mt-1.5 sm:mt-2 flex items-center gap-1.5 sm:gap-2">
+            <div className="inline-flex items-center gap-1 sm:gap-1.5">
               {displayedStaff.slice(0, 4).map((name) => (
                 <span
                   key={name}
                   title={name}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-sm border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
+                  className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-none border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[9px] sm:text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
                 >
                   {initialsFromName(name)}
                 </span>
               ))}
             </div>
-            <span className="text-xs font-medium text-slate-500">{staffAssignedLabel(item.category, displayedStaff.length)}</span>
+            <span className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">{staffAssignedLabel(item.category, displayedStaff.length)}</span>
           </div>
         </div>
       </CardContent>
@@ -344,7 +344,7 @@ function TopPreviewServiceCard({ catalogRow, kind, locationLine }) {
           go()
         }
       }}
-      className="w-[min(100%,280px)] shrink-0 cursor-pointer gap-2 overflow-hidden rounded-sm border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
+      className="w-[210px] sm:w-[280px] max-w-[210px] sm:max-w-[280px] shrink-0 cursor-pointer gap-1.5 sm:gap-2 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
     >
       <div className="relative aspect-5/2 w-full overflow-hidden bg-slate-100">
         {imageSrc ? (
@@ -356,53 +356,53 @@ function TopPreviewServiceCard({ catalogRow, kind, locationLine }) {
             decoding="async"
           />
         ) : (
-          <div className="flex h-full min-h-16 w-full items-center justify-center bg-linear-to-br from-slate-100 to-slate-200">
-            <Store className="h-9 w-9 text-slate-400" aria-hidden />
+          <div className="flex h-full min-h-14 sm:min-h-16 w-full items-center justify-center bg-linear-to-br from-slate-100 to-slate-200">
+            <Store className="h-7 w-7 sm:h-9 sm:w-9 text-slate-400" aria-hidden />
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/60 to-transparent" aria-hidden />
         <Badge
           className={
             isIndependent
-              ? 'absolute left-2.5 top-2.5 rounded-sm border border-violet-400/40 bg-violet-600/95 text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm'
-              : 'absolute left-2.5 top-2.5 rounded-sm border border-sky-400/40 bg-[#081F5C]/95 text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm'
+              ? 'absolute left-2 top-2 sm:left-2.5 sm:top-2.5 rounded-none border border-violet-400/40 bg-violet-600/95 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm px-1.5 sm:px-2 py-0.5'
+              : 'absolute left-2 top-2 sm:left-2.5 sm:top-2.5 rounded-none border border-sky-400/40 bg-[#081F5C]/95 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white shadow-2xs backdrop-blur-sm px-1.5 sm:px-2 py-0.5'
           }
         >
           {isIndependent ? 'On-call' : 'Shop'}
         </Badge>
         <div
-          className="absolute right-2.5 top-2.5 flex items-center gap-0.5 rounded-sm border border-white/30 bg-black/40 px-2 py-0.5 backdrop-blur-sm"
+          className="absolute right-2 top-2 sm:right-2.5 sm:top-2.5 flex items-center gap-0.5 rounded-none border border-white/30 bg-black/40 px-1.5 sm:px-2 py-0.5 backdrop-blur-sm"
           aria-label={`Rating ${rating}`}
         >
-          <Star className="h-3 w-3 shrink-0 fill-amber-300 text-amber-200" />
-          <span className="text-[11px] font-bold tabular-nums text-white">{rating.toFixed(2)}</span>
+          <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 fill-amber-300 text-amber-200" />
+          <span className="text-[10px] sm:text-[11px] font-bold tabular-nums text-white">{rating.toFixed(1)}</span>
         </div>
       </div>
-      <CardContent className="space-y-1.5 px-3 pb-3 pt-1">
-        <div className="min-w-0 space-y-1">
-          <CardTitle title={catalogRow.shopName} className="mt-0 truncate text-[14px] font-bold leading-tight tracking-wide text-slate-900 uppercase">
+      <CardContent className="space-y-1 sm:space-y-1.5 px-2.5 sm:px-3 pb-2.5 sm:pb-3 pt-1">
+        <div className="min-w-0 space-y-0.5 sm:space-y-1">
+          <CardTitle title={catalogRow.shopName} className="mt-0 truncate text-xs sm:text-[14px] font-bold leading-tight tracking-wide text-slate-900 uppercase">
             {catalogRow.shopName}
           </CardTitle>
-          <p className="flex min-w-0 items-center gap-1.5 text-xs leading-snug text-slate-600">
-            <UserRound className="h-3.5 w-3.5 shrink-0 text-[#081F5C]/70" aria-hidden />
+          <p className="flex min-w-0 items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs leading-snug text-slate-600">
+            <UserRound className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-[#081F5C]/70" aria-hidden />
             <span className="min-w-0 truncate" title={`${ownerLabel}: ${catalogRow.shopOwner || '—'}`}>
               <span className="font-semibold text-slate-700">{ownerLabel}: </span>
               <span className="text-slate-800">{catalogRow.shopOwner || '—'}</span>
             </span>
           </p>
-          <p className="flex min-w-0 items-center gap-1.5 text-xs leading-snug text-slate-600">
-            <MapPin className="h-3.5 w-3.5 shrink-0 text-[#081F5C]/70" aria-hidden />
+          <p className="flex min-w-0 items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs leading-snug text-slate-600">
+            <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-[#081F5C]/70" aria-hidden />
             <span className="min-w-0 truncate text-slate-700" title={locationLine || '—'}>
               {locationLine || '—'}
             </span>
           </p>
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-2">
-          <Badge className={`${categoryBadgeClass(catalogRow.category)} shrink-0 rounded-sm border-0 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider`}>
+        <div className="flex items-center justify-between gap-1 sm:gap-2 border-t border-slate-100 pt-1.5 sm:pt-2">
+          <Badge className={`${categoryBadgeClass(catalogRow.category)} shrink-0 rounded-none border-0 px-1.5 sm:px-2.5 py-0.5 text-[8px] sm:text-[10px] font-bold uppercase tracking-wider`}>
             {catalogRow.category}
           </Badge>
-          <span className="text-[11px] font-medium tabular-nums text-slate-600 truncate">
-            <span className="font-bold text-slate-900">{jobs}</span> completed jobs
+          <span className="text-[10px] sm:text-[11px] font-medium tabular-nums text-slate-600 truncate">
+            <span className="font-bold text-slate-900">{jobs}</span> jobs
           </span>
         </div>
       </CardContent>
@@ -501,11 +501,11 @@ function TopServicesMarqueeRow({ marqueeEntries, catalogLoading, reducedMotion }
   if (catalogLoading && !marqueeEntries.length) {
     return (
       <div className="relative overflow-hidden w-full py-1">
-        <div className="flex gap-4 overflow-x-auto px-1 py-1.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto px-1 py-1.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-46 w-[min(100%,280px)] shrink-0 animate-pulse rounded-sm bg-slate-200"
+              className="h-38 sm:h-46 w-[210px] sm:w-[280px] shrink-0 animate-pulse rounded-none bg-slate-200"
               aria-hidden
             />
           ))}
@@ -516,20 +516,20 @@ function TopServicesMarqueeRow({ marqueeEntries, catalogLoading, reducedMotion }
 
   if (!marqueeEntries.length) {
     return (
-      <div className="rounded-sm border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs font-medium text-slate-500 shadow-2xs">
+      <div className="rounded-none border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs font-medium text-slate-500 shadow-2xs">
         No listings here yet. When shops and on-call mechanics publish services, they will scroll in this strip.
       </div>
     )
   }
 
   return (
-    <div className="relative w-full py-1">
+    <div className="relative w-full">
       <div
         ref={scrollRef}
         role="region"
         aria-label="Top services, auto-scrolling. Scroll horizontally to browse manually."
         tabIndex={0}
-        className="touch-pan-x overflow-x-auto overflow-y-hidden px-1 py-1.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden contain-[layout_style]"
+        className="touch-pan-x overflow-x-auto overflow-y-hidden px-1 py-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden contain-[layout_style]"
         onPointerDown={() => {
           clearResumeTimer()
           const el = scrollRef.current
@@ -828,16 +828,12 @@ function CustomerFindServices() {
 
   return (
     <CustomerLayout activePage="find-services">
-
-      <main className="w-full px-6 sm:px-10 md:px-16 pt-6 pb-8 space-y-6 max-w-[1440px] mx-auto">
-        <section className="space-y-2.5" aria-label="Top on-call mechanics, technicians, and shop owners by rating">
+      <main className="w-full px-3.5 sm:px-10 md:px-16 pt-3 sm:pt-5 pb-6 sm:pb-8 space-y-3 sm:space-y-5 max-w-[1440px] mx-auto">
+        <section className="space-y-1 sm:space-y-1.5" aria-label="Top services">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 md:text-base">
-              Top Services — On-Call Mechanic/Technician &amp; Shop Owners
+            <h2 className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider text-slate-900 leading-tight">
+              Top Services
             </h2>
-            <p className="mt-0.5 text-xs text-slate-500 font-medium">
-              From live listings — scroll sideways or drag; the strip keeps looping.
-            </p>
           </div>
           <TopServicesMarqueeRow
             marqueeEntries={topMarqueeEntries}
@@ -846,80 +842,80 @@ function CustomerFindServices() {
           />
         </section>
 
-        <section className="space-y-3">
-          <div className="flex min-w-0 w-full max-w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+        <section className="space-y-2.5 sm:space-y-3">
+          <div className="flex min-w-0 w-full max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid grid-cols-2 sm:flex sm:flex-row sm:flex-wrap sm:gap-3 lg:flex-nowrap lg:flex-1 gap-2 min-w-0 w-full max-w-full">
               <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
-              <select
-                className={`${selectShell} ${categoryFilter === '__' ? 'text-slate-400 font-medium' : 'text-slate-900 font-semibold'}`}
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="__" disabled hidden>
-                  Category
-                </option>
-                <option value="">All Categories</option>
-                {CATEGORIES.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
+                <select
+                  className={`${selectShell} ${categoryFilter === '__' ? 'text-slate-400 font-medium' : 'text-slate-900 font-semibold'}`}
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <option value="__" disabled hidden>
+                    Category
                   </option>
-                ))}
-              </select>
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <option value="">All Categories</option>
+                  {CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 sm:right-2.5 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-400" />
               </div>
 
               <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
-              <select
-                className={`${selectShell} ${serviceTypeFilter === '__' ? 'text-slate-400 font-medium' : 'text-slate-900 font-semibold'}`}
-                value={serviceTypeFilter}
-                onChange={(e) => setServiceTypeFilter(e.target.value)}
-              >
-                <option value="__" disabled hidden>
-                  Service Type
-                </option>
-                <option value="">All Service Types</option>
-                {SERVICE_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
+                <select
+                  className={`${selectShell} ${serviceTypeFilter === '__' ? 'text-slate-400 font-medium' : 'text-slate-900 font-semibold'}`}
+                  value={serviceTypeFilter}
+                  onChange={(e) => setServiceTypeFilter(e.target.value)}
+                >
+                  <option value="__" disabled hidden>
+                    Service Type
                   </option>
-                ))}
-              </select>
-              <Home className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <option value="">All Service Types</option>
+                  {SERVICE_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                <Home className="pointer-events-none absolute top-1/2 right-2 sm:right-2.5 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-400" />
               </div>
 
               <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
-              <select
-                className={`${selectShell} ${locationFilter === '__' ? 'text-slate-400 font-medium' : 'text-slate-900 font-semibold'}`}
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-              >
-                <option value="__" disabled hidden>
-                  Location
-                </option>
-                <option value="">All Locations</option>
-                {locationOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                <select
+                  className={`${selectShell} ${locationFilter === '__' ? 'text-slate-400 font-medium' : 'text-slate-900 font-semibold'}`}
+                  value={locationFilter}
+                  onChange={(e) => setLocationFilter(e.target.value)}
+                >
+                  <option value="__" disabled hidden>
+                    Location
                   </option>
-                ))}
-              </select>
-              <MapPin className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <option value="">All Locations</option>
+                  {locationOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <MapPin className="pointer-events-none absolute top-1/2 right-2 sm:right-2.5 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-400" />
               </div>
 
               <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
-              <select className={`${selectShell} font-semibold text-slate-900`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="rating">Sort: Top Rated</option>
-                <option value="jobs">Sort: Most Completed Jobs</option>
-                <option value="price-low">Sort: Lowest Starting Price</option>
-              </select>
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <select className={`${selectShell} font-semibold text-slate-900`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                  <option value="rating">Sort: Top Rated</option>
+                  <option value="jobs">Sort: Most Jobs</option>
+                  <option value="price-low">Sort: Lowest Price</option>
+                </select>
+                <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 sm:right-2.5 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-400" />
               </div>
             </div>
 
             <div className="relative min-w-0 w-full max-w-full lg:max-w-md lg:flex-1">
               <div className="relative w-full min-w-0 max-w-full">
                 <Input
-                  className="h-9 w-full min-w-0 rounded-sm border border-slate-200 bg-white pr-12 pl-4 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300"
+                  className="h-8 sm:h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-9 sm:pr-12 pl-3 sm:pl-4 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300"
                   placeholder="Search services or shops..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -928,57 +924,57 @@ function CustomerFindServices() {
                 <Button
                   type="button"
                   size="icon-sm"
-                  className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all"
+                  className="absolute top-1/2 right-1 h-6 w-6 sm:h-7 sm:w-7 -translate-y-1/2 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all cursor-pointer"
                   aria-label="Search"
                 >
-                  <Search className="h-4 w-4 text-white" />
+                  <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                 </Button>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="space-y-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-2">
+        <section className="space-y-3 sm:space-y-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 border-b border-slate-200 pb-2">
             <div>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 md:text-base">Available Shop Services</h2>
-              <p className="text-xs text-slate-500 font-medium">
+              <h2 className="text-xs sm:text-sm md:text-base font-bold uppercase tracking-wider text-slate-900">Available Shop Services</h2>
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
                 {showCatalogSkeleton
                   ? 'Loading…'
                   : `Result: ${filteredShops.length} service${filteredShops.length === 1 ? '' : 's'} found`}
               </p>
             </div>
             {catalogError ? (
-              <Button type="button" variant="outline" size="sm" className="rounded-sm border-rose-300 text-xs font-bold uppercase tracking-wider" onClick={() => loadCatalog()}>
+              <Button type="button" variant="outline" size="sm" className="rounded-none border-rose-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 sm:px-3 sm:py-1.5" onClick={() => loadCatalog()}>
                 Retry load
               </Button>
             ) : null}
           </div>
 
           {catalogError ? (
-            <div className="rounded-sm border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900">
+            <div className="rounded-none border border-amber-300 bg-amber-50 px-3.5 py-2.5 sm:px-4 sm:py-3 text-[11px] sm:text-xs font-medium text-amber-900">
               {catalogError}
             </div>
           ) : null}
 
           {showCatalogSkeleton ? (
-            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-sm border border-dashed border-slate-300 bg-white px-6 text-center shadow-2xs">
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white px-4 sm:px-6 py-6 text-center shadow-2xs">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-900">Loading services…</p>
-              <p className="mt-1 max-w-md text-xs text-slate-500">Fetching active listings from shops.</p>
+              <p className="mt-1 max-w-md text-[11px] sm:text-xs text-slate-500">Fetching active listings from shops.</p>
             </div>
           ) : filteredShops.length === 0 ? (
-            <div className="flex min-h-[150px] flex-col items-center justify-center rounded-sm border border-dashed border-slate-300 bg-white px-6 text-center shadow-2xs">
+            <div className="flex min-h-[150px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white px-4 sm:px-6 py-6 text-center shadow-2xs">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-900">
                 {catalogServices.length === 0 ? 'No active services yet' : 'No matching shops or services'}
               </p>
-              <p className="mt-1 max-w-md text-xs text-slate-500">
+              <p className="mt-1 max-w-md text-[11px] sm:text-xs text-slate-500">
                 {catalogServices.length === 0
                   ? 'Once shop owners publish active services, they will appear here.'
                   : 'Try adjusting your search, location, or other filters to find available shops.'}
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
               {filteredShops.map((item) => (
                 <CatalogServiceCard
                   key={item.id}

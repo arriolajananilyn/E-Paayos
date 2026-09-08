@@ -165,20 +165,30 @@ function Sidebar({
           data-slot="sidebar"
           data-mobile="true"
           className={cn(
-            "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
-            SIDEBAR_TRANSITION_TIMING
+            "w-(--sidebar-width) p-0 text-white border-r border-white/15 shadow-2xl [&>button]:hidden gap-0",
+            SIDEBAR_TRANSITION_TIMING,
+            className
           )}
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE
-            }
-          }
+          style={{
+            "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+            backgroundImage: "linear-gradient(145deg, #04133d 0%, #081F5C 35%, #0b2b73 65%, #1447a6 100%)",
+            backgroundColor: "#04133d",
+            color: "#ffffff",
+          }}
           side={side}>
           <SheetHeader className="sr-only">
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div
+            className="flex h-full w-full flex-col text-white"
+            style={{
+              backgroundImage: "linear-gradient(145deg, #04133d 0%, #081F5C 35%, #0b2b73 65%, #1447a6 100%)",
+              backgroundColor: "#04133d",
+            }}
+          >
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     );
@@ -488,10 +498,18 @@ function SidebarMenuButton({
   size = "default",
   tooltip,
   className,
+  onClick,
   ...props
 }) {
   const Comp = asChild ? Slot.Root : "button"
-  const { isMobile, state } = useSidebar()
+  const { isMobile, state, setOpenMobile } = useSidebar()
+
+  const handleClick = (event) => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+    onClick?.(event)
+  }
 
   const button = (
     <Comp
@@ -500,6 +518,7 @@ function SidebarMenuButton({
       data-size={size}
       data-active={isActive}
       className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+      onClick={handleClick}
       {...props} />
   )
 

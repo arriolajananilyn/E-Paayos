@@ -50,14 +50,14 @@ export function ServiceFeeCalculateDialog({
     )
     const seeded = Array.isArray(initialReplacementParts)
       ? initialReplacementParts
-          .map((x) => ({
-            name: typeof x?.name === 'string' ? x.name : '',
-            price:
-              x?.price != null && Number.isFinite(Number(x.price))
-                ? String(x.price)
-                : '',
-          }))
-          .filter((x) => x.name || x.price)
+        .map((x) => ({
+          name: typeof x?.name === 'string' ? x.name : '',
+          price:
+            x?.price != null && Number.isFinite(Number(x.price))
+              ? String(x.price)
+              : '',
+        }))
+        .filter((x) => x.name || x.price)
       : []
     setParts(seeded.length ? seeded : [{ name: '', price: '' }])
   }, [open, initialLaborPrice, initialReplacementParts])
@@ -112,8 +112,8 @@ export function ServiceFeeCalculateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-lg" showCloseButton>
-        <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
+      <DialogContent className="rounded-none border border-slate-200 bg-white p-4 sm:p-6 max-h-[90vh] overflow-y-auto shadow-2xl sm:max-w-lg" showCloseButton>
+        <DialogHeader className="shrink-0 border-b border-slate-100 pb-3 sm:pb-3.5">
           <DialogTitle className="text-xl font-black text-slate-900">Calculate Service Fee</DialogTitle>
           <DialogDescription className="text-xs font-medium text-slate-500 mt-0.5">
             Enter the labor price and replacement parts used for{' '}

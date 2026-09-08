@@ -728,13 +728,13 @@ export default function AccountSettings() {
 
   return (
     <CustomerLayout activePage="account-settings">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 space-y-4 sm:space-y-6">
+      <main className="w-full max-w-[1440px] mx-auto px-3.5 sm:px-10 md:px-16 pt-3 sm:pt-5 pb-6 sm:pb-8 space-y-3.5 sm:space-y-5">
 
         {/* ── HERO HEADER CARD (NAVY BLUE BRAND SYSTEM) ─────────────────────── */}
         <div className={cn("overflow-hidden rounded-none bg-white ring-1 ring-slate-200/80 backdrop-blur-sm", cardShadow)}>
 
           {/* TOP COLORED MESH BANNER - NAVY BLUE GRADIENT */}
-          <div className="relative h-28 sm:h-36 w-full bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6]">
+          <div className="relative h-20 sm:h-36 w-full bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(20,71,166,0.35),transparent_55%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(8,31,92,0.5),transparent_55%)]" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.2),transparent_45%)]" />
@@ -742,29 +742,29 @@ export default function AccountSettings() {
           </div>
 
           {/* WHITE SECTION BELOW */}
-          <div className="relative px-4 pb-4 sm:px-6 sm:pb-5 bg-white space-y-3">
+          <div className="relative px-3.5 pb-3.5 sm:px-6 sm:pb-5 bg-white space-y-2.5 sm:space-y-3">
 
             {/* Row 1: Overlapping Avatar (Left) + Name & Badges Info */}
-            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-end text-center sm:text-left">
+            <div className="flex flex-col items-center gap-2.5 sm:gap-3 sm:flex-row sm:items-end text-center sm:text-left">
 
               {/* Profile Picture Avatar Circle */}
-              <div className="relative shrink-0 group self-center sm:self-auto -mt-12 sm:-mt-14 z-20">
+              <div className="relative shrink-0 group self-center sm:self-auto -mt-10 sm:-mt-14 z-20">
                 <div className="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-[#04133d] via-[#081F5C] to-[#1447a6] opacity-90 blur-xs group-hover:opacity-100 transition-opacity" />
 
-                <Avatar className="relative size-24 border-4 border-white shadow-xl sm:size-28">
+                <Avatar className="relative size-20 sm:size-28 border-3 sm:border-4 border-white shadow-xl">
                   {currentDisplayAvatar ? (
                     <AvatarImage src={currentDisplayAvatar} alt={profile.firstName} />
                   ) : null}
-                  <AvatarFallback className="bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xl font-black text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-lg sm:text-xl font-black text-white">
                     {userInitials || "CU"}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Online Status Pulse Badge */}
-                <div className="absolute bottom-0.5 left-0.5 flex items-center justify-center size-5 rounded-full bg-white shadow-sm ring-2 ring-white z-10">
-                  <span className="relative flex size-2.5">
+                <div className="absolute bottom-0.5 left-0.5 flex items-center justify-center size-4 sm:size-5 rounded-full bg-white shadow-sm ring-2 ring-white z-10">
+                  <span className="relative flex size-2 sm:size-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full size-2.5 bg-[#1447a6]"></span>
+                    <span className="relative inline-flex rounded-full size-2 sm:size-2.5 bg-[#1447a6]"></span>
                   </span>
                 </div>
 
@@ -773,9 +773,9 @@ export default function AccountSettings() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   title="Change profile picture"
-                  className="absolute bottom-0.5 right-0.5 flex size-8 items-center justify-center rounded-full bg-[#081F5C] text-white shadow-md transition-transform hover:scale-110 active:scale-95 cursor-pointer ring-2 ring-white z-10 hover:bg-[#1447a6]"
+                  className="absolute bottom-0.5 right-0.5 flex size-7 sm:size-8 items-center justify-center rounded-full bg-[#081F5C] text-white shadow-md transition-transform hover:scale-110 active:scale-95 cursor-pointer ring-2 ring-white z-10 hover:bg-[#1447a6]"
                 >
-                  <Camera className="size-4" />
+                  <Camera className="size-3.5 sm:size-4" />
                 </button>
                 <input
                   type="file"
@@ -787,24 +787,24 @@ export default function AccountSettings() {
               </div>
 
               {/* Name, Badges & Email Details */}
-              <div className="space-y-0.5 sm:pb-0.5 flex-1">
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                  <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              <div className="space-y-0.5 sm:pb-0.5 flex-1 min-w-0">
+                <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 sm:justify-start">
+                  <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 truncate">
                     {profile.firstName} {profile.lastName}
                   </h1>
 
-                  <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-[#081F5C] rounded-none shadow-2xs">
-                    <ShieldCheck className="size-3 text-[#1447a6]" />
-                    Verified E-Paayos Customer
+                  <span className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-[#081F5C] rounded-none shadow-2xs">
+                    <ShieldCheck className="size-2.5 sm:size-3 text-[#1447a6]" />
+                    Verified Customer
                   </span>
 
-                  <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-900 rounded-none">
-                    <Award className="size-3 text-amber-600" />
+                  <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-300 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold text-amber-900 rounded-none">
+                    <Award className="size-2.5 sm:size-3 text-amber-600" />
                     VIP Member
                   </span>
                 </div>
 
-                <p className="text-xs font-semibold text-slate-600">
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-600 truncate">
                   @{profile.username} • <span className="text-slate-500">{profile.email}</span>
                 </p>
               </div>
@@ -812,75 +812,75 @@ export default function AccountSettings() {
             </div>
 
             {/* Row 2: Contact Info Chips (Left) & Quick Stat Cards (Right) */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-1 border-t border-slate-100">
+            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between pt-1 border-t border-slate-100">
 
               {/* Left Side: Contact Info Chips */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-slate-600 font-medium">
-                <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 text-slate-700">
-                  <Phone className="size-3.5 text-[#081F5C]" />
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-600 font-medium">
+                <span className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2 sm:px-2.5 py-0.5 sm:py-1 text-slate-700">
+                  <Phone className="size-3 sm:size-3.5 text-[#081F5C]" />
                   {profile.phone}
                 </span>
 
-                <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 text-slate-700">
-                  <MapPin className="size-3.5 text-[#081F5C]" />
+                <span className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2 sm:px-2.5 py-0.5 sm:py-1 text-slate-700">
+                  <MapPin className="size-3 sm:size-3.5 text-[#081F5C]" />
                   Boac, Marinduque
                 </span>
 
-                <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 text-slate-700">
-                  <User className="size-3.5 text-[#081F5C]" />
+                <span className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2 sm:px-2.5 py-0.5 sm:py-1 text-slate-700">
+                  <User className="size-3 sm:size-3.5 text-[#081F5C]" />
                   {profile.buyerType}
                 </span>
               </div>
 
               {/* Right Side: 4 Stat Cards */}
-              <div className="grid grid-cols-4 gap-2 sm:flex sm:items-center sm:gap-2">
+              <div className="grid grid-cols-4 gap-1.5 sm:flex sm:items-center sm:gap-2">
 
                 {/* Bookings Stat */}
                 <div
                   onClick={() => navigate('my-bookings')}
-                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-blue-50 to-indigo-100/60 px-3 py-1.5 border border-blue-200/80 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
+                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-blue-50 to-indigo-100/60 px-2 sm:px-3 py-1 sm:py-1.5 border border-blue-200/80 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
                 >
                   <div className="flex items-center gap-1">
-                    <Wrench className="size-3.5 text-[#081F5C]" />
-                    <span className="text-xs font-black text-slate-900">{bookingsCount}</span>
+                    <Wrench className="size-3 sm:size-3.5 text-[#081F5C]" />
+                    <span className="text-xs sm:text-sm font-black text-slate-900">{bookingsCount}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-[#081F5C]">Bookings</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-[#081F5C]">Bookings</span>
                 </div>
 
                 {/* Addresses Stat */}
                 <div
                   onClick={() => setActiveTab('addresses')}
-                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-slate-50 to-blue-100/60 px-3 py-1.5 border border-slate-200 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
+                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-slate-50 to-blue-100/60 px-2 sm:px-3 py-1 sm:py-1.5 border border-slate-200 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
                 >
                   <div className="flex items-center gap-1">
-                    <MapPin className="size-3.5 text-[#1447a6]" />
-                    <span className="text-xs font-black text-slate-900">{addresses.length}</span>
+                    <MapPin className="size-3 sm:size-3.5 text-[#1447a6]" />
+                    <span className="text-xs sm:text-sm font-black text-slate-900">{addresses.length}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-[#1447a6]">Addresses</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-[#1447a6]">Addresses</span>
                 </div>
 
                 {/* Reviews Stat */}
                 <div
                   onClick={() => navigate('reviews-ratings')}
-                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-amber-50 to-yellow-100/60 px-3 py-1.5 border border-amber-200/80 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
+                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-amber-50 to-yellow-100/60 px-2 sm:px-3 py-1 sm:py-1.5 border border-amber-200/80 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
                 >
                   <div className="flex items-center gap-1">
-                    <Star className="size-3.5 text-amber-500 fill-amber-500" />
-                    <span className="text-xs font-black text-slate-900">{reviewsCount}</span>
+                    <Star className="size-3 sm:size-3.5 text-amber-500 fill-amber-500" />
+                    <span className="text-xs sm:text-sm font-black text-slate-900">{reviewsCount}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-800">Reviews</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-amber-800">Reviews</span>
                 </div>
 
                 {/* Favorites Stat */}
                 <div
                   onClick={() => navigate('find-services')}
-                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-rose-50 to-pink-100/60 px-3 py-1.5 border border-rose-200/80 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
+                  className="flex flex-col items-center justify-center rounded-none bg-gradient-to-br from-rose-50 to-pink-100/60 px-2 sm:px-3 py-1 sm:py-1.5 border border-rose-200/80 cursor-pointer transition-all hover:scale-105 hover:shadow-md"
                 >
                   <div className="flex items-center gap-1">
-                    <Heart className="size-3.5 text-rose-500 fill-rose-500" />
-                    <span className="text-xs font-black text-slate-900">{savedShopsCount}</span>
+                    <Heart className="size-3 sm:size-3.5 text-rose-500 fill-rose-500" />
+                    <span className="text-xs sm:text-sm font-black text-slate-900">{savedShopsCount}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-rose-800">Saved</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-rose-800">Saved</span>
                 </div>
 
               </div>
@@ -892,16 +892,16 @@ export default function AccountSettings() {
         </div>
 
         {/* ── MAIN CONTENT GRID ─────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12 items-start">
+        <div className="grid grid-cols-1 gap-3.5 sm:gap-5 lg:grid-cols-12 items-start">
 
           {/* SIDE NAVIGATION BAR */}
           <div className="lg:col-span-3 lg:sticky lg:top-4 lg:self-start z-10 transition-all">
             <div className={cn("space-y-1 bg-white/95 p-2 sm:p-2.5 ring-1 ring-slate-200/80 backdrop-blur-sm", cardShadow)}>
-              <div className="px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="px-2.5 py-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Account Settings
               </div>
 
-              <nav className="flex overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0 scrollbar-none gap-1">
+              <nav className="flex overflow-x-auto pb-1.5 lg:flex-col lg:overflow-visible lg:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden -mx-1 px-1 gap-1">
                 {TABS.map((tab) => {
                   const Icon = tab.icon
                   const isActive = activeTab === tab.id
@@ -918,21 +918,21 @@ export default function AccountSettings() {
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
                       className={cn(
-                        "flex shrink-0 items-center justify-between gap-2.5 rounded-none px-3 py-2 text-xs font-semibold transition-all sm:text-sm lg:w-full cursor-pointer text-left",
+                        "flex shrink-0 items-center justify-between gap-2 rounded-none px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all lg:w-full cursor-pointer text-left whitespace-nowrap",
                         isActive
                           ? "bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-[0_4px_16px_-4px_rgba(8,31,92,0.45)]"
                           : "bg-white text-slate-600 hover:bg-blue-50/70 hover:text-[#081F5C]"
                       )}
                     >
-                      <div className="flex items-center gap-2 truncate">
-                        <Icon className={cn("size-4 shrink-0", isActive ? "text-white" : "text-slate-500")} />
+                      <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+                        <Icon className={cn("size-3.5 sm:size-4 shrink-0", isActive ? "text-white" : "text-slate-500")} />
                         <span className="truncate">{tab.label}</span>
                       </div>
 
                       {badgeCount !== undefined && (
                         <span
                           className={cn(
-                            "px-1.5 py-0.5 text-[10px] font-bold rounded-none",
+                            "px-1.5 py-0.5 text-[9px] sm:text-[10px] font-bold rounded-none",
                             isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                           )}
                         >
@@ -943,7 +943,7 @@ export default function AccountSettings() {
                       {tab.badge && (
                         <span
                           className={cn(
-                            "px-1.5 py-0.5 text-[10px] font-semibold rounded-none",
+                            "px-1.5 py-0.5 text-[9px] sm:text-[10px] font-semibold rounded-none",
                             isActive ? "bg-white/20 text-white" : "bg-blue-50 text-[#081F5C]"
                           )}
                         >
@@ -1710,7 +1710,7 @@ export default function AccountSettings() {
 
         </div>
 
-      </div>
+      </main>
 
       {/* ── ADDRESS MODAL ─────────────────────────────────────────────────── */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>

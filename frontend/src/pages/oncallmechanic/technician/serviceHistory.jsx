@@ -54,17 +54,17 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
   const gradient = HISTORY_STAT_GRADIENT[variant] ?? HISTORY_STAT_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-none border border-white/15 p-4 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:shadow-lg ${gradient}`}
+      className={`relative min-h-[88px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-none border border-white/15 p-3 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:shadow-lg ${gradient}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
+      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-bold tracking-wide text-white/85 uppercase">{label}</p>
-          <p className="mt-1 text-2xl font-black tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-1 line-clamp-1 text-[11px] text-white/80 font-medium">{helper}</p> : null}
+          <p className="text-[10px] sm:text-xs font-bold tracking-wide text-white/85 uppercase truncate">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white tabular-nums">{value}</p>
+          {helper ? <p className="mt-0.5 sm:mt-1 line-clamp-1 text-[10px] sm:text-[11px] text-white/80 font-medium">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-none border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+        <div className="shrink-0 rounded-none border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
         </div>
       </div>
     </div>
@@ -314,8 +314,9 @@ export function OnCallMechanicServiceHistory() {
         title: 'Service History',
         description: 'Completed job records archive from Service Requests.',
       }}
+      wrapContent={false}
     >
-      <div className="w-full space-y-3.5 max-w-[1440px] mx-auto">
+      <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-3.5 max-w-[1440px] mx-auto">
         {listError ? (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-rose-300 bg-rose-50 px-3.5 py-2.5 text-xs font-bold text-rose-700">
             <span>{listError}</span>
@@ -326,7 +327,7 @@ export function OnCallMechanicServiceHistory() {
         ) : null}
 
         {/* Top KPI Cards */}
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3.5">
           <StatGradientCard
             variant="completed"
             label="Completed Jobs"
@@ -515,9 +516,9 @@ export function OnCallMechanicServiceHistory() {
                           href={`https://www.google.com/maps?q=${b.serviceLatitude},${b.serviceLongitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors"
+                          className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors w-full sm:w-auto"
                         >
-                          <MapPin className="size-3 text-rose-600" />
+                          <MapPin className="size-3.5 text-rose-600 shrink-0" />
                           <span>Open Location Map</span>
                         </a>
                       ) : null}

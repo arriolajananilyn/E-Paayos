@@ -221,20 +221,20 @@ const STAT_CARD_GRADIENT = {
   mechanic: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-900',
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant }) {
+function StatGradientCard({ label, value, icon: Icon, variant, className }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[112px] min-w-0 overflow-hidden rounded-lg border border-white/15 p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
+      className={`relative min-h-[84px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-lg border border-white/15 p-3 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg ${gradient} ${className || ''}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-3">
+      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
+          <p className="text-[11px] sm:text-xs font-medium tracking-wide text-white/85 truncate">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
         </div>
-        <div className="shrink-0 rounded-md border border-white/25 bg-white/15 p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-5 w-5 text-white" aria-hidden />
+        <div className="shrink-0 rounded-md border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
         </div>
       </div>
     </div>
@@ -242,7 +242,7 @@ function StatGradientCard({ label, value, icon: Icon, variant }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-md border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  'h-9 w-full appearance-none rounded-md border border-[#081F5C]/15 bg-white/95 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30 truncate'
 
 /** Admin: platform users (customers, shop owners, mechanics) — UI aligned with shop owner Manage Employee. */
 export default function AdminUserManagement() {
@@ -552,14 +552,12 @@ export default function AdminUserManagement() {
         </p>
       </div>
 
-      <div className="overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] md:overflow-visible">
-        <div className="grid w-full min-w-[520px] grid-cols-5 gap-2 sm:min-w-0 sm:gap-3">
-          <StatGradientCard variant="total" label="Total users" value={stats.total} icon={Users} />
-          <StatGradientCard variant="customer" label="Customers" value={stats.customers} icon={User} />
-          <StatGradientCard variant="shop-owner" label="Shop owners" value={stats.owners} icon={Building2} />
-          <StatGradientCard variant="independent" label="On-call providers" value={stats.independents} icon={HardHat} />
-          <StatGradientCard variant="mechanic" label="Mechanics" value={stats.mechanics} icon={Wrench} />
-        </div>
+      <div className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+        <StatGradientCard variant="total" label="Total users" value={stats.total} icon={Users} />
+        <StatGradientCard variant="customer" label="Customers" value={stats.customers} icon={User} />
+        <StatGradientCard variant="shop-owner" label="Shop owners" value={stats.owners} icon={Building2} />
+        <StatGradientCard variant="independent" label="On-call providers" value={stats.independents} icon={HardHat} />
+        <StatGradientCard variant="mechanic" label="Mechanics" value={stats.mechanics} icon={Wrench} className="col-span-2 sm:col-span-1 lg:col-span-1" />
       </div>
 
       {listError ? (
@@ -568,8 +566,8 @@ export default function AdminUserManagement() {
         </div>
       ) : null}
 
-      <div className="mb-1 flex min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-        <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap">
+      <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:gap-3 min-w-0 w-full max-w-full">
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
             <select
               className={`${selectShell} ${roleFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
@@ -666,9 +664,10 @@ export default function AdminUserManagement() {
 
       <Card className="mt-3 min-w-0 max-w-full overflow-hidden rounded-lg border border-[#081F5C]/12 bg-white shadow-lg ring-1 ring-black/3 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90 dark:ring-white/6">
         <CardContent className="min-w-0 p-0">
+          {/* Desktop Table View */}
           <div
             id="admin-um-table-x-scroll"
-            className="scrollbar-hidden max-w-full overflow-x-auto overflow-y-hidden scroll-smooth"
+            className="scrollbar-hidden hidden max-w-full overflow-x-auto overflow-y-hidden scroll-smooth md:block"
           >
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead className="[&_tr]:border-0">
@@ -789,17 +788,113 @@ export default function AdminUserManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile User Cards View */}
+          <div className="block divide-y divide-[#081F5C]/8 dark:divide-white/5 md:hidden">
+            {listLoading ? (
+              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+                Loading users…
+              </div>
+            ) : pageSlice.length === 0 ? (
+              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+                {users.length === 0
+                  ? 'No users yet, or you may not have admin access to this list.'
+                  : 'No results match your filters. Try a different keyword or filter.'}
+              </div>
+            ) : (
+              pageSlice.map((row) => (
+                <div key={row.id} className="p-3 sm:p-4 space-y-2.5 transition-colors hover:bg-[#081F5C]/3 dark:hover:bg-white/3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Avatar
+                        className="size-10 shrink-0 ring-2 ring-white shadow-sm ring-offset-1 ring-offset-background dark:ring-[#04133d]"
+                        size="sm"
+                      >
+                        <AvatarFallback className="bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-semibold text-white">
+                          {initials(row.fullName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-sm text-foreground">{row.fullName}</div>
+                        <div className="truncate text-xs text-muted-foreground">{row.subtitle}</div>
+                      </div>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 rounded-md p-0 text-[#081F5C]/70 hover:bg-[#081F5C]/10 dark:text-blue-200/80 shrink-0"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44 text-xs z-50">
+                        <DropdownMenuItem className="gap-2 text-xs" onClick={() => openDetail(row)}>
+                          <Eye className="h-4 w-4" />
+                          View
+                        </DropdownMenuItem>
+                        {row.accountApprovalStatus === 'pending' || row.accountApprovalStatus === 'rejected' ? (
+                          <DropdownMenuItem className="gap-2 text-xs" onClick={() => openApproveFlow(row)}>
+                            <Check className="h-4 w-4" />
+                            Approve
+                          </DropdownMenuItem>
+                        ) : null}
+                        {row.accountApprovalStatus === 'pending' ? (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              variant="destructive"
+                              className="gap-2 text-xs"
+                              onClick={() => openRejectFlow(row)}
+                            >
+                              <XCircle className="h-4 w-4" />
+                              Reject
+                            </DropdownMenuItem>
+                          </>
+                        ) : null}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-white/5">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="truncate font-medium text-foreground">{row.email}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">{row.phone}</div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {roleBadge(row.role)}
+                      {statusCell(row)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                    <span>Joined: {formatJoined(row.joinedAt)}</span>
+                    <button
+                      type="button"
+                      onClick={() => openDetail(row)}
+                      className="inline-flex items-center gap-1 font-semibold text-[#1447a6] hover:underline"
+                    >
+                      View details <ChevronRight className="size-3" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
       {filtered.length > 0 && (
-        <div className="mt-4 flex min-w-0 max-w-full flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="text-sm text-neutral-600 dark:text-neutral-400">
+        <div className="mt-4 flex min-w-0 max-w-full flex-col items-center justify-between gap-3 sm:flex-row sm:gap-4">
+          <div className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 text-center sm:text-left">
             Showing <span className="font-medium text-neutral-900 dark:text-neutral-100">{fromIdx}</span> to{' '}
             <span className="font-medium text-neutral-900 dark:text-neutral-100">{toIdx}</span> of{' '}
             <span className="font-medium text-neutral-900 dark:text-neutral-100">{filtered.length}</span> users
           </div>
-          <Pagination>
+          <Pagination className="mx-0 w-auto">
             <PaginationContent className="flex-wrap justify-center gap-1">
               <PaginationItem>
                 <Button
@@ -870,7 +965,7 @@ export default function AdminUserManagement() {
               <span className="font-normal text-gray-500 dark:text-gray-400">({moderationUser.email})</span>
             </p>
           ) : null}
-          <DialogFooter className="mx-0 mb-0 gap-2 sm:justify-end">
+          <DialogFooter className="mx-0 mb-0 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
             <Button
               type="button"
               variant="outline"
@@ -925,7 +1020,7 @@ export default function AdminUserManagement() {
             />
             {rejectFieldError ? <p className="text-sm text-rose-600 dark:text-rose-400">{rejectFieldError}</p> : null}
           </div>
-          <DialogFooter className="mx-0 mb-0 gap-2 sm:justify-end">
+          <DialogFooter className="mx-0 mb-0 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
             <Button
               type="button"
               variant="outline"
@@ -964,7 +1059,7 @@ export default function AdminUserManagement() {
         }}
       >
         <DialogContent
-          className="flex max-h-[90vh] max-w-[calc(100vw-1.5rem)] flex-col gap-0 overflow-hidden border-gray-200 bg-white p-0 sm:max-w-3xl dark:border-white/10 dark:bg-popover"
+          className="flex max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden border-gray-200 bg-white p-0 sm:max-w-3xl dark:border-white/10 dark:bg-popover"
           showCloseButton
         >
           <DialogHeader className="shrink-0 space-y-1 border-b border-gray-200 px-4 py-4 text-left sm:px-6 dark:border-white/10">
@@ -995,8 +1090,8 @@ export default function AdminUserManagement() {
               const isRejected = st === 'rejected'
               if (!isPending && !isRejected) return null
               return (
-                <DialogFooter className="mx-0 mb-0 shrink-0 rounded-none border-t border-gray-200 bg-white px-4 py-3 sm:justify-end sm:px-6 dark:border-white/10 dark:bg-gray-950/80">
-                  <div className="flex w-full flex-row justify-end gap-2">
+                <DialogFooter className="mx-0 mb-0 shrink-0 rounded-none border-t border-gray-200 bg-white px-4 py-3 flex flex-col-reverse sm:flex-row sm:justify-end sm:px-6 dark:border-white/10 dark:bg-gray-950/80">
+                  <div className="flex w-full flex-col-reverse sm:flex-row sm:justify-end gap-2">
                     {isPending ? (
                       <Button type="button" variant="secondary" onClick={() => openRejectFlow(detailUser)}>
                         Reject

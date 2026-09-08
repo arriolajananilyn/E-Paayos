@@ -14,6 +14,7 @@ import CustomerFindServices from './pages/customer/findServices.jsx'
 import CustomerServiceDetails from './pages/customer/serviceDetails.jsx'
 import CustomerViewShop from './pages/customer/viewshop.jsx'
 import AdminDashboard from './pages/admin/dashboard.jsx'
+import AdminNotification from './pages/admin/notification.jsx'
 import ShopOwnerDashboard from './pages/shopowner/dashboard.jsx'
 import ManageEmployeePage from './pages/shopowner/manageEmployee.jsx'
 import TrackEmployeePage from './pages/shopowner/trackEmployee.jsx'
@@ -22,7 +23,6 @@ import ServiceHistoryPage from './pages/shopowner/serviceHistory.jsx'
 import ServicesPage from './pages/shopowner/services.jsx'
 import MessagesPage from './pages/shopowner/messages.jsx'
 import ReviewsRatingsPage from './pages/shopowner/reviewsRatings.jsx'
-import ReportsAnalyticsPage from './pages/shopowner/reportsAnalytics.jsx'
 import NotificationPage from './pages/shopowner/notification.jsx'
 import AccountSettingsPage from './pages/shopowner/accountSettings.jsx'
 import ShopInfoPage from './pages/shopowner/shopInfo.jsx'
@@ -39,7 +39,6 @@ import OnCallMechanicServiceRequest from './pages/oncallmechanic/technician/serv
 import OnCallMechanicServiceHistory from './pages/oncallmechanic/technician/serviceHistory.jsx'
 import OnCallMechanicMessages from './pages/oncallmechanic/technician/messages.jsx'
 import OnCallMechanicRatingReviews from './pages/oncallmechanic/technician/ratingReviews.jsx'
-import OnCallMechanicReportAnalytics from './pages/oncallmechanic/technician/reportAnalytics.jsx'
 import OnCallMechanicNotification from './pages/oncallmechanic/technician/notification.jsx'
 import OnCallMechanicAccountSettings from './pages/oncallmechanic/technician/accountSettings.jsx'
 
@@ -94,6 +93,8 @@ function App() {
         return <CustomerFindServices />
       case '#/admin/dashboard':
         return <AdminDashboard />
+      case '#/admin/notification':
+        return <AdminNotification />
       case '#/provider/dashboard':
         return <ShopOwnerDashboard />
       case '#/provider/services':
@@ -112,8 +113,6 @@ function App() {
         return <MessagesPage />
       case '#/provider/reviews-ratings':
         return <ReviewsRatingsPage />
-      case '#/provider/reports-analytics':
-        return <ReportsAnalyticsPage />
       case '#/provider/notification':
         return <NotificationPage />
       case '#/provider/account-settings':
@@ -145,8 +144,6 @@ function App() {
         return <OnCallMechanicMessages />
       case '#/independent/technician/ratings-reviews':
         return <OnCallMechanicRatingReviews />
-      case '#/independent/technician/reports-analytics':
-        return <OnCallMechanicReportAnalytics />
       case '#/independent/technician/notification':
         return <OnCallMechanicNotification />
       case '#/independent/technician/account-settings':

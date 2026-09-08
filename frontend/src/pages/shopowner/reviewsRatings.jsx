@@ -67,17 +67,17 @@ const selectClass = cn(
   "[&_[data-slot=native-select]]:rounded-none",
   "[&_[data-slot=native-select]]:border-0",
   "[&_[data-slot=native-select]]:bg-white",
-  "[&_[data-slot=native-select]]:px-4",
-  "[&_[data-slot=native-select]]:py-2.5",
-  "[&_[data-slot=native-select]]:pr-10",
-  "[&_[data-slot=native-select]]:text-sm",
+  "[&_[data-slot=native-select]]:px-2.5 sm:[&_[data-slot=native-select]]:px-4",
+  "[&_[data-slot=native-select]]:py-2 sm:[&_[data-slot=native-select]]:py-2.5",
+  "[&_[data-slot=native-select]]:pr-8 sm:[&_[data-slot=native-select]]:pr-10",
+  "[&_[data-slot=native-select]]:text-xs sm:[&_[data-slot=native-select]]:text-sm",
   "[&_[data-slot=native-select]]:text-slate-700",
   "[&_[data-slot=native-select]]:shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)]",
   "[&_[data-slot=native-select]]:transition-shadow",
   "[&_[data-slot=native-select]]:focus-visible:outline-none",
   "[&_[data-slot=native-select]]:focus-visible:shadow-[0_4px_24px_-4px_rgba(8,31,92,0.25)]",
-  "[&_[data-slot=native-select-icon]]:right-3.5",
-  "[&_[data-slot=native-select-icon]]:size-4",
+  "[&_[data-slot=native-select-icon]]:right-2.5 sm:[&_[data-slot=native-select-icon]]:right-3.5",
+  "[&_[data-slot=native-select-icon]]:size-3.5 sm:[&_[data-slot=native-select-icon]]:size-4",
   "[&_[data-slot=native-select-icon]]:text-slate-400"
 )
 
@@ -187,7 +187,7 @@ function StatCard({ theme, label, value, icon: Icon, hint, progress }) {
   return (
     <div
       className={cn(
-        "group relative flex items-center gap-3.5 overflow-hidden rounded-none py-4 pl-4 pr-4 ring-1 ring-slate-200/45 transition-all duration-300 hover:-translate-y-0.5 hover:ring-slate-200/80 sm:gap-4 sm:py-5 sm:pl-5 sm:pr-5",
+        "group relative flex items-center gap-2.5 sm:gap-4 overflow-hidden rounded-none p-3 sm:p-5 ring-1 ring-slate-200/45 transition-all duration-300 hover:-translate-y-0.5 hover:ring-slate-200/80",
         colors.surface,
         cardShadow,
         "hover:shadow-[0_10px_36px_-10px_rgba(15,23,42,0.24)]"
@@ -211,22 +211,22 @@ function StatCard({ theme, label, value, icon: Icon, hint, progress }) {
       />
       <div
         className={cn(
-          "relative flex size-10 shrink-0 items-center justify-center rounded-none ring-4 sm:size-11",
+          "relative flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-none ring-2 sm:ring-4",
           colors.icon,
           colors.iconRing
         )}
       >
-        <Icon className="size-4 sm:size-[1.15rem]" strokeWidth={2.25} />
+        <Icon className="size-3.5 sm:size-[1.15rem]" strokeWidth={2.25} />
       </div>
       <div className="relative min-w-0 flex-1">
-        <p className="mb-0.5 truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 sm:text-xs">
+        <p className="mb-0.5 truncate text-[10px] sm:text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
           {label}
         </p>
-        <p className="truncate text-xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-2xl">
+        <p className="truncate text-xl sm:text-2xl font-bold tabular-nums tracking-tight text-slate-900">
           {value}
         </p>
         {hint ? (
-          <p className={cn("mt-0.5 truncate text-[11px] font-medium sm:text-xs", colors.hint)}>
+          <p className={cn("mt-0.5 truncate text-[10px] sm:text-xs font-medium", colors.hint)}>
             {hint}
           </p>
         ) : null}
@@ -305,10 +305,10 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
         </div>
       ) : null}
 
-      <div className="p-4 sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="flex min-w-0 flex-1 gap-3">
-            <Avatar className="size-10 shrink-0 rounded-none ring-1 ring-slate-200/60">
+      <div className="p-3.5 sm:p-5">
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-start">
+          <div className="flex min-w-0 flex-1 gap-2.5 sm:gap-3">
+            <Avatar className="size-9 sm:size-10 shrink-0 rounded-none ring-1 ring-slate-200/60">
               <AvatarFallback className="rounded-none bg-[#081F5C]/10 text-xs font-semibold text-[#081F5C]">
                 {initials || "?"}
               </AvatarFallback>
@@ -360,7 +360,7 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
                         e.stopPropagation()
                         onPreviewImage?.(imgUrl)
                       }}
-                      className="group relative size-14 overflow-hidden border border-slate-200 focus:outline-none cursor-pointer"
+                      className="group relative size-12 sm:size-14 overflow-hidden border border-slate-200 focus:outline-none cursor-pointer"
                     >
                       <img
                         src={imgUrl}
@@ -387,21 +387,21 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
             </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
+          <div className="flex shrink-0 items-center gap-3 border-t border-slate-100 sm:border-0 pt-2.5 sm:pt-0 w-full sm:w-auto sm:flex-col sm:items-end">
             <div className="flex items-center gap-2.5">
               {review.productImage ? (
                 <img
                   src={review.productImage}
                   alt={review.productName}
-                  className="size-12 object-cover ring-1 ring-slate-200/60 sm:size-14"
+                  className="size-11 sm:size-14 object-cover ring-1 ring-slate-200/60"
                   onError={(e) => { e.target.style.display = "none" }}
                 />
               ) : (
-                <div className="size-12 bg-blue-50 flex items-center justify-center text-[#081F5C] text-[10px] font-semibold sm:size-14">
+                <div className="size-11 sm:size-14 bg-blue-50 flex items-center justify-center text-[#081F5C] text-[10px] font-semibold">
                   {(review.productName || "").slice(0, 3)}
                 </div>
               )}
-              <div className="min-w-0 max-w-[140px] sm:max-w-[160px]">
+              <div className="min-w-0 max-w-[200px] sm:max-w-[160px]">
                 <p className="line-clamp-2 text-xs font-medium text-slate-700">
                   {review.productName}
                 </p>
@@ -411,7 +411,7 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
         </div>
 
         {review.adminReply ? (
-          <div className="mt-4 border-l-2 border-[#1447a6] bg-blue-50/50 px-3 py-2.5 sm:px-4">
+          <div className="mt-3 sm:mt-4 border-l-2 border-[#1447a6] bg-blue-50/50 px-3 py-2.5 sm:px-4">
             <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[#081F5C]">
               <MessageSquareReply className="size-3.5" />
               Your reply
@@ -423,13 +423,13 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
           </div>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+        <div className="mt-3.5 sm:mt-4 flex flex-wrap items-center gap-1.5 sm:gap-2 border-t border-slate-100 pt-3 sm:pt-4">
           <Button
             type="button"
             size="sm"
             variant={review.status === "pending" ? "default" : "outline"}
             className={cn(
-              "h-8 rounded-none text-xs cursor-pointer",
+              "h-8 px-2.5 sm:px-3 rounded-none text-xs cursor-pointer",
               review.status === "pending" && "bg-[#081F5C] text-white hover:bg-[#04133d]"
             )}
             onClick={() => onReply(review)}
@@ -441,7 +441,7 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
             type="button"
             size="sm"
             variant="ghost"
-            className="h-8 rounded-none text-xs text-slate-600 cursor-pointer"
+            className="h-8 px-2.5 sm:px-3 rounded-none text-xs text-slate-600 cursor-pointer"
             onClick={() => onSelect(review)}
           >
             <Eye className="size-3.5" />
@@ -452,7 +452,7 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
             size="sm"
             variant="ghost"
             className={cn(
-              "h-8 rounded-none text-xs cursor-pointer",
+              "h-8 px-2.5 sm:px-3 rounded-none text-xs cursor-pointer",
               review.flagged ? "text-rose-600" : "text-slate-600"
             )}
             onClick={() => onToggleFlag(reviewId)}
@@ -464,7 +464,7 @@ function ReviewCard({ review, onReply, onToggleFlag, onToggleHidden, onSelect, i
             type="button"
             size="sm"
             variant="ghost"
-            className="h-8 rounded-none text-xs text-slate-600 cursor-pointer"
+            className="h-8 px-2.5 sm:px-3 rounded-none text-xs text-slate-600 cursor-pointer"
             onClick={() => onToggleHidden(reviewId)}
           >
             {review.hidden ? (
@@ -770,7 +770,7 @@ export function ReviewRatings() {
 
             <label
               className={cn(
-                "flex min-h-[42px] cursor-pointer items-center gap-2 bg-white px-4 py-2.5 text-sm text-slate-700",
+                "flex min-h-[38px] sm:min-h-[42px] cursor-pointer items-center gap-2 bg-white px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-700",
                 controlShadow
               )}
             >
@@ -873,7 +873,7 @@ export function ReviewRatings() {
 
       {/* ── Reply Dialog ─────────────────────────────────────────────────────── */}
       <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
-        <DialogContent className="max-w-lg rounded-none sm:max-w-xl">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[90vh] overflow-y-auto rounded-none p-4 sm:p-6 sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="text-slate-900">
               {selectedReview?.adminReply ? "Edit reply" : "Reply to review"}
@@ -924,11 +924,11 @@ export function ReviewRatings() {
             </div>
           ) : null}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 w-full sm:justify-end">
             <Button
               type="button"
               variant="outline"
-              className="rounded-none cursor-pointer"
+              className="w-full sm:w-auto rounded-none cursor-pointer"
               onClick={() => setReplyDialogOpen(false)}
               disabled={submitting}
             >
@@ -936,7 +936,7 @@ export function ReviewRatings() {
             </Button>
             <Button
               type="button"
-              className="rounded-none bg-[#081F5C] text-white hover:bg-[#04133d] cursor-pointer"
+              className="w-full sm:w-auto rounded-none bg-[#081F5C] text-white hover:bg-[#04133d] cursor-pointer"
               disabled={!replyDraft.trim() || submitting}
               onClick={handleSubmitReply}
             >
@@ -953,7 +953,7 @@ export function ReviewRatings() {
 
       {/* ── Detail Dialog ─────────────────────────────────────────────────────── */}
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto rounded-none sm:max-w-2xl">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-h-[90vh] max-w-lg overflow-y-auto rounded-none p-4 sm:p-6 sm:max-w-2xl">
           {selectedReview ? (
             <>
               <DialogHeader>
@@ -1106,11 +1106,11 @@ export function ReviewRatings() {
                 ) : null}
               </div>
 
-              <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:justify-end">
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-none cursor-pointer"
+                  className="w-full sm:w-auto rounded-none cursor-pointer"
                   onClick={() => {
                     setDetailDialogOpen(false)
                     openReplyDialog(selectedReview)
@@ -1122,7 +1122,7 @@ export function ReviewRatings() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-none cursor-pointer"
+                  className="w-full sm:w-auto rounded-none cursor-pointer"
                   onClick={() => toggleFlag(selectedReview._id || selectedReview.id)}
                 >
                   <Flag className="size-4" />
@@ -1131,7 +1131,7 @@ export function ReviewRatings() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-none cursor-pointer"
+                  className="w-full sm:w-auto rounded-none cursor-pointer"
                   onClick={() => toggleHidden(selectedReview._id || selectedReview.id)}
                 >
                   {selectedReview.hidden ? (
@@ -1154,7 +1154,7 @@ export function ReviewRatings() {
 
       {/* ── Image Lightbox Modal ─────────────────────────────────────────────── */}
       <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
-        <DialogContent overlayClassName="bg-black/80 z-[99999]" className="max-w-3xl p-2 bg-black/90 border-none z-[99999] rounded-none">
+        <DialogContent overlayClassName="bg-black/80 z-[99999]" className="w-[calc(100vw-1rem)] max-w-3xl p-2 bg-black/90 border-none z-[99999] rounded-none">
           <div className="relative flex items-center justify-center p-4">
             <button
               onClick={() => setLightboxImage(null)}

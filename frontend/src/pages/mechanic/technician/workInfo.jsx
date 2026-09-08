@@ -55,7 +55,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
-import { API_URL, MechanicMobileNav, authHeaders } from './mechanicBookingShared.jsx'
+import { API_URL, MechanicMobileNav, MechanicTopBar, authHeaders } from './mechanicBookingShared.jsx'
 import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const navyDeep = '#04133d'
@@ -198,7 +198,7 @@ function MechanicTechnicianWorkInfo() {
     setUser(updated)
     try {
       localStorage.setItem('user', JSON.stringify(updated))
-    } catch {}
+    } catch { }
     setSavedSuccess(true)
     setTimeout(() => setSavedSuccess(false), 3500)
     setEditOpen(false)
@@ -328,76 +328,23 @@ function MechanicTechnicianWorkInfo() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <MechanicMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">{WORK_INFO_META.title}</h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{WORK_INFO_META.description}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Notification"
-                  onClick={() => {
-                    window.location.hash = '#/mechanic/technician/notification'
-                  }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-
-                <div ref={profileMenuRef} className="relative">
-                  <button
-                    type="button"
-                    aria-label="Profile menu"
-                    onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-sm transition-colors ${
-                      profileOpen
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
-                    }`}
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
-                      {(user.fullName || user.email || 'M').charAt(0).toUpperCase()}
-                    </span>
-                  </button>
-
-                  {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </header>
+            <MechanicTopBar
+              title={WORK_INFO_META.title}
+              description={WORK_INFO_META.description}
+              user={user}
+              profileOpen={profileOpen}
+              setProfileOpen={setProfileOpen}
+              profileMenuRef={profileMenuRef}
+              requestLogout={requestLogout}
+            />
 
             <div
               id="mechanic-main-scroll"
-              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
-              <div className="w-full min-w-0 max-w-full space-y-4 overflow-x-hidden pr-2 md:pr-4">
+              <div className="w-full min-w-0 max-w-full space-y-3.5 sm:space-y-4">
                 {savedSuccess ? (
-                  <div className="flex items-center justify-between gap-2 rounded-none border border-emerald-300 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-2xs">
+                  <div className="flex items-center justify-between gap-2 rounded-none border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs font-bold text-emerald-800 shadow-2xs">
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
                       <span>Work Information successfully updated!</span>
@@ -406,18 +353,18 @@ function MechanicTechnicianWorkInfo() {
                 ) : null}
 
                 {/* Section Header & Action Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 border-b border-slate-200/80 pb-2.5 sm:pb-3">
                   <div>
-                    <h2 className="text-lg font-black text-slate-900 dark:text-slate-50">Work Information</h2>
-                    <p className="text-xs text-muted-foreground">Official technician profile and shop assignment details.</p>
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-slate-50">Work Information</h2>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground">Official technician profile and shop assignment details.</p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => void loadData()}
-                      className="h-9 text-xs font-bold rounded-none border-slate-300 bg-white/90 text-slate-700 hover:bg-white shadow-2xs gap-1.5 cursor-pointer"
+                      className="flex-1 sm:flex-initial h-8 sm:h-9 text-xs font-bold rounded-none border-slate-300 bg-white/90 text-slate-700 hover:bg-white shadow-2xs gap-1.5 cursor-pointer justify-center"
                     >
                       <RefreshCw className="size-3.5" />
                       <span>Refresh</span>
@@ -426,7 +373,7 @@ function MechanicTechnicianWorkInfo() {
                       type="button"
                       size="sm"
                       onClick={() => setEditOpen(true)}
-                      className="h-9 text-xs font-bold rounded-none bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs gap-1.5 cursor-pointer"
+                      className="flex-1 sm:flex-initial h-8 sm:h-9 text-xs font-bold rounded-none bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs gap-1.5 cursor-pointer justify-center"
                     >
                       <Edit3 className="size-3.5" />
                       <span>Edit Details</span>
@@ -435,30 +382,30 @@ function MechanicTechnicianWorkInfo() {
                 </div>
 
                 {/* 4 Main Structured Information Cards Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                   {/* Card 1: Basic & Professional Details */}
-                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-5 space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 sm:pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
-                          <Briefcase className="size-4" />
+                        <div className="flex size-7 sm:size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
+                          <Briefcase className="size-3.5 sm:size-4" />
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900">Basic & Professional Details</h3>
+                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900">Basic & Professional Details</h3>
                       </div>
                       <Badge className="rounded-none bg-indigo-100 text-indigo-800 border-indigo-300 text-[10px] uppercase font-bold">
                         Verified Technician
                       </Badge>
                     </div>
 
-                    <div className="space-y-3 text-xs sm:text-sm">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                    <div className="space-y-2.5 sm:space-y-3 text-xs sm:text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                             Full Name
                           </span>
                           <p className="font-extrabold text-slate-900">{user.fullName || 'Certified Technician'}</p>
                         </div>
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                             Account Role
                           </span>
@@ -466,8 +413,8 @@ function MechanicTechnicianWorkInfo() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                             Employee Badge ID
                           </span>
@@ -475,7 +422,7 @@ function MechanicTechnicianWorkInfo() {
                             TECH-{(user._id || user.id || '88421').slice(-6).toUpperCase()}
                           </p>
                         </div>
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                             Shop Affiliation
                           </span>
@@ -483,22 +430,22 @@ function MechanicTechnicianWorkInfo() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                      <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                           Primary Specialization
                         </span>
-                        <p className="font-extrabold text-slate-900 text-sm">{specialization}</p>
+                        <p className="font-extrabold text-slate-900 text-xs sm:text-sm">{specialization}</p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block flex items-center gap-1">
                             <Clock className="size-3 text-indigo-600" />
                             <span>Experience</span>
                           </span>
                           <p className="font-bold text-slate-800">{experience}</p>
                         </div>
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block flex items-center gap-1">
                             <ShieldCheck className="size-3 text-emerald-600" />
                             <span>Certification</span>
@@ -510,37 +457,37 @@ function MechanicTechnicianWorkInfo() {
                   </Card>
 
                   {/* Card 2: Shift Schedule & Operating Availability */}
-                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-5 space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 sm:pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
-                          <Calendar className="size-4" />
+                        <div className="flex size-7 sm:size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
+                          <Calendar className="size-3.5 sm:size-4" />
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900">Shift Schedule & Availability</h3>
+                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900">Shift Schedule & Availability</h3>
                       </div>
                       <Badge className="rounded-none bg-sky-100 text-sky-800 border-sky-300 text-[10px] uppercase font-bold">
                         Full-Time
                       </Badge>
                     </div>
 
-                    <div className="space-y-3 text-xs sm:text-sm">
-                      <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                    <div className="space-y-2.5 sm:space-y-3 text-xs sm:text-sm">
+                      <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block flex items-center gap-1">
                           <CalendarClock className="size-3 text-indigo-600" />
                           <span>Standard Shift Hours</span>
                         </span>
-                        <p className="font-extrabold text-slate-900 text-sm">{schedule}</p>
+                        <p className="font-extrabold text-slate-900 text-xs sm:text-sm">{schedule}</p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block flex items-center gap-1">
                             <Store className="size-3 text-indigo-600" />
                             <span>Primary Work Hub</span>
                           </span>
                           <p className="font-bold text-slate-800">{shopName}</p>
                         </div>
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block flex items-center gap-1">
                             <MapPin className="size-3 text-rose-500" />
                             <span>Service Capabilities</span>
@@ -549,7 +496,7 @@ function MechanicTechnicianWorkInfo() {
                         </div>
                       </div>
 
-                      <div className="bg-emerald-50/80 p-3 border border-emerald-200 text-emerald-950 space-y-1">
+                      <div className="bg-emerald-50/80 p-2.5 sm:p-3 border border-emerald-200 text-emerald-950 space-y-1">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block flex items-center gap-1">
                           <CheckCircle2 className="size-3 text-emerald-600" />
                           <span>Duty Status</span>
@@ -562,29 +509,29 @@ function MechanicTechnicianWorkInfo() {
                   </Card>
 
                   {/* Card 3: Contact Information & Notes */}
-                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-5 space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 sm:pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
-                          <User className="size-4" />
+                        <div className="flex size-7 sm:size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
+                          <User className="size-3.5 sm:size-4" />
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900">Contact Details & Summary</h3>
+                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900">Contact Details & Summary</h3>
                       </div>
                       <Badge className="rounded-none bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] uppercase font-bold">
                         Verified Profile
                       </Badge>
                     </div>
 
-                    <div className="space-y-3 text-xs sm:text-sm">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                    <div className="space-y-2.5 sm:space-y-3 text-xs sm:text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block flex items-center gap-1">
                             <Phone className="size-3 text-indigo-600" />
                             <span>Contact Phone</span>
                           </span>
                           <p className="font-mono font-bold text-slate-900">{phone}</p>
                         </div>
-                        <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                        <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block flex items-center gap-1">
                             <Mail className="size-3 text-indigo-600" />
                             <span>Email Address</span>
@@ -593,7 +540,7 @@ function MechanicTechnicianWorkInfo() {
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 p-3 border border-slate-200 space-y-1">
+                      <div className="bg-slate-50 p-2.5 sm:p-3 border border-slate-200 space-y-1">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">
                           Technician Summary / Bio Notes
                         </span>
@@ -603,13 +550,13 @@ function MechanicTechnicianWorkInfo() {
                   </Card>
 
                   {/* Card 4: Assigned Shop Service Catalog */}
-                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-5 space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <Card className="rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.12)] p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 sm:pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
-                          <Layers className="size-4" />
+                        <div className="flex size-7 sm:size-8 items-center justify-center bg-indigo-50 text-indigo-700 rounded-none border border-indigo-200">
+                          <Layers className="size-3.5 sm:size-4" />
                         </div>
-                        <h3 className="text-base font-extrabold text-slate-900">Assigned Services ({assignedServices.length})</h3>
+                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900">Assigned Services ({assignedServices.length})</h3>
                       </div>
                       <Button
                         type="button"
@@ -623,7 +570,7 @@ function MechanicTechnicianWorkInfo() {
                       </Button>
                     </div>
 
-                    <div className="space-y-2.5">
+                    <div className="space-y-2 sm:space-y-2.5">
                       {loading ? (
                         <div className="flex min-h-[120px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 p-4 text-center">
                           <Loader2 className="mb-2 size-6 animate-spin text-[#081F5C]" />
@@ -641,10 +588,10 @@ function MechanicTechnicianWorkInfo() {
                         assignedServices.map((svc) => {
                           const IconComp = categoryIcon(svc.category)
                           return (
-                            <div key={svc._id} className="flex items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-none">
+                            <div key={svc._id} className="flex items-center justify-between gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50 border border-slate-200 rounded-none">
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="flex size-8 items-center justify-center bg-indigo-100 text-indigo-800 rounded-none shrink-0">
-                                  <IconComp className="size-4" />
+                                <div className="flex size-7 sm:size-8 items-center justify-center bg-indigo-100 text-indigo-800 rounded-none shrink-0">
+                                  <IconComp className="size-3.5 sm:size-4" />
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-xs font-extrabold text-slate-900 truncate">{svc.name || 'Service Listing'}</p>
@@ -669,10 +616,10 @@ function MechanicTechnicianWorkInfo() {
 
       {/* Edit Work Details Modal Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-lg" showCloseButton>
-          <DialogHeader className="shrink-0 border-b border-slate-100 pb-3">
-            <DialogTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <Edit3 className="size-5 text-indigo-600" />
+        <DialogContent className="rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl sm:max-w-lg max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full" showCloseButton>
+          <DialogHeader className="shrink-0 border-b border-slate-100 pb-2.5 sm:pb-3">
+            <DialogTitle className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+              <Edit3 className="size-4 sm:size-5 text-indigo-600" />
               <span>Edit Professional Work Info</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 mt-0.5">
@@ -680,7 +627,7 @@ function MechanicTechnicianWorkInfo() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-3.5 text-xs sm:text-sm py-2">
+          <div className="grid gap-3 text-xs sm:text-sm py-2">
             <div className="grid gap-1.5">
               <Label htmlFor="edit-phone" className="text-xs font-extrabold uppercase text-slate-700">
                 Contact Phone Number
@@ -748,19 +695,19 @@ function MechanicTechnicianWorkInfo() {
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 border-t border-slate-100 pt-3.5">
+          <DialogFooter className="shrink-0 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 border-t border-slate-100 pt-3 sm:pt-3.5">
             <Button
               type="button"
               variant="outline"
               onClick={() => setEditOpen(false)}
-              className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer"
+              className="rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               type="button"
               onClick={handleSaveWorkInfo}
-              className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md cursor-pointer"
+              className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-5 py-2 shadow-md cursor-pointer w-full sm:w-auto"
             >
               Save Changes
             </Button>

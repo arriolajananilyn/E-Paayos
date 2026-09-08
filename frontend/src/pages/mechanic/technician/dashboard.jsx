@@ -28,6 +28,7 @@ import {
   History,
   LayoutDashboard,
   LogOut,
+  Menu,
   MessageSquare,
   PlayCircle,
   Settings,
@@ -39,6 +40,7 @@ import Elogo from "../../../assets/Elogo.png"
 import { useLogoutConfirmation } from "@/hooks/useLogoutConfirmation.jsx"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
+import { MechanicTopBar } from "./mechanicBookingShared.jsx"
 
 const navyDeep = "#04133d"
 const navy = "#081F5C"
@@ -105,38 +107,39 @@ const STAT_CARD_GRADIENT = {
   completed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick }) {
+function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick, className }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.confirmed
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-sm border cursor-pointer",
-        gradient
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border cursor-pointer",
+        gradient,
+        className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-2 -top-2 size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
 
-      <div className="relative z-10 space-y-2.5">
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
         <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs">
-            <Icon className="size-3 text-white/90" />
-            {label}
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
           </span>
-          <div className="size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs">
-            <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
 
         <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
               {value}
             </span>
           </div>
           {helper ? (
-            <p className="text-[11px] text-white/85 font-medium mt-1 leading-snug truncate">
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
               {helper}
             </p>
           ) : null}
@@ -166,10 +169,11 @@ function MechanicMobileNav() {
   return (
     <button
       type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+      className="-ml-1 mr-1.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-foreground hover:bg-accent md:hidden transition-colors"
       onClick={() => setOpenMobile(true)}
+      aria-label="Toggle navigation menu"
     >
-      Menu
+      <Menu className="h-5 w-5 text-foreground" />
     </button>
   )
 }
@@ -613,76 +617,21 @@ function MechanicTechnicianDashboard() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <MechanicMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                  {DASHBOARD_META.title}
-                </h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{DASHBOARD_META.description}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Notification"
-                  onClick={() => {
-                    window.location.hash = "#/mechanic/technician/notification"
-                  }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-
-                <div ref={profileMenuRef} className="relative">
-                  <button
-                    type="button"
-                    aria-label="Profile menu"
-                    onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      profileOpen
-                        ? "bg-blue-50 text-blue-700"
-                        : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
-                      {(user.fullName || user.email || "M").charAt(0).toUpperCase()}
-                    </span>
-                  </button>
-
-                  {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </header>
+            <MechanicTopBar
+              title={DASHBOARD_META.title}
+              description={DASHBOARD_META.description}
+              user={user}
+              profileOpen={profileOpen}
+              setProfileOpen={setProfileOpen}
+              profileMenuRef={profileMenuRef}
+              requestLogout={requestLogout}
+            />
 
             <div
               id="mechanic-main-scroll"
-              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
-              <div className="space-y-4 pr-2 md:pr-4">
+              <div className="space-y-3.5 sm:space-y-5 md:space-y-6 w-full max-w-full">
                 {bookingsError ? (
                   <div className="rounded-sm border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
                     {bookingsError}
@@ -695,9 +644,9 @@ function MechanicTechnicianDashboard() {
                   </div>
                 ) : (
                   <>
-                    {/* Modern Stat Cards Grid */}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                      {kpis.map(({ label, value, icon, variant, helper, onClick }) => (
+                    {/* Modern Stat Cards Grid (2 columns on mobile, 3 on tablet, 5 on desktop) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3.5">
+                      {kpis.map(({ label, value, icon, variant, helper, onClick }, idx) => (
                         <StatGradientCard
                           key={label}
                           label={label}
@@ -706,6 +655,7 @@ function MechanicTechnicianDashboard() {
                           variant={variant}
                           helper={helper}
                           onClick={onClick}
+                          className={idx === 4 ? "col-span-2 sm:col-span-1" : ""}
                         />
                       ))}
                     </div>
@@ -713,13 +663,13 @@ function MechanicTechnicianDashboard() {
                     {/* Charts Section */}
                     <section className="grid gap-4 lg:grid-cols-3">
                       {/* Completed Jobs Over Time AreaChart */}
-                      <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2 flex flex-col justify-between">
+                      <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2 flex flex-col justify-between">
                         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold text-slate-900">Completed Jobs Over Time</p>
                             <p className="text-xs text-slate-500">Volume trend of jobs you completed</p>
                           </div>
-                          <div className="relative w-[148px] shrink-0 sm:w-[160px]">
+                          <div className="relative w-full sm:w-[160px] shrink-0">
                             <select
                               value={range}
                               onChange={(e) => setRange(e.target.value)}
@@ -784,26 +734,32 @@ function MechanicTechnicianDashboard() {
                           </ChartContainer>
                         </div>
 
-                        {/* Summary Metric Bar */}
-                        <div className="mt-3 grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-100">
-                          <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
-                            <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
-                            <span className="text-slate-500 truncate">Total Completed:</span>
-                            <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                        {/* Summary Metric Bar (Stack on mobile, 3 cols on tablet/desktop) */}
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-2 border-t border-slate-100">
+                          <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
+                              <span className="text-slate-500 truncate">Total Completed:</span>
+                            </div>
+                            <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
                               {chartSeries.reduce((acc, curr) => acc + curr.value, 0)}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                            <span className="text-slate-500 truncate">Peak Volume:</span>
-                            <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                          <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="text-slate-500 truncate">Peak Volume:</span>
+                            </div>
+                            <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
                               {Math.max(0, ...chartSeries.map((s) => s.value))}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
-                            <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
-                            <span className="text-slate-500 truncate">Avg / Slot:</span>
-                            <span className="font-bold text-slate-900 tabular-nums ml-auto">
+                          <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                              <span className="text-slate-500 truncate">Avg / Slot:</span>
+                            </div>
+                            <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
                               {chartSeries.length > 0
                                 ? (chartSeries.reduce((acc, curr) => acc + curr.value, 0) / chartSeries.length).toFixed(1)
                                 : 0}
@@ -813,14 +769,14 @@ function MechanicTechnicianDashboard() {
                       </div>
 
                       {/* Bookings By Status Donut Chart */}
-                      <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm">
+                      <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm">
                         <div className="mb-2">
                           <p className="text-sm font-semibold text-slate-900">Bookings by Status</p>
                           <p className="text-xs text-slate-500">Status overview of assigned requests</p>
                         </div>
 
-                        <div className="relative mx-auto h-[210px] w-full max-w-[260px] flex items-center justify-center">
-                          <PieChart width={220} height={210}>
+                        <div className="relative mx-auto h-[200px] sm:h-[210px] w-full max-w-[260px] flex items-center justify-center">
+                          <PieChart width={220} height={200}>
                             <defs>
                               <linearGradient id="gradMechPiePending" x1="0" y1="0" x2="1" y2="1">
                                 <stop offset="0%" stopColor="#f59e0b" />
@@ -846,9 +802,9 @@ function MechanicTechnicianDashboard() {
                             <Pie
                               data={statusPieRows}
                               cx={110}
-                              cy={105}
-                              innerRadius={58}
-                              outerRadius={90}
+                              cy={100}
+                              innerRadius={56}
+                              outerRadius={88}
                               paddingAngle={3}
                               cornerRadius={3}
                               stroke="#ffffff"
@@ -872,7 +828,7 @@ function MechanicTechnicianDashboard() {
                           </div>
                         </div>
 
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                        <div className="mt-2 grid grid-cols-2 gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
                           {statusPieRows.map((row) => (
                             <div key={row.key} className="flex min-w-0 items-center gap-1.5 rounded-none bg-slate-50 px-2 py-1 border border-slate-200/50">
                               <span
@@ -901,7 +857,7 @@ function MechanicTechnicianDashboard() {
                     {/* Recent Activity & Quick Navigation */}
                     <section className="grid gap-4 lg:grid-cols-5">
                       {/* Recent Jobs List */}
-                      <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-3">
+                      <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-3">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <div>
                             <p className="text-sm font-semibold text-slate-900">Recent Assigned Jobs</p>
@@ -936,14 +892,14 @@ function MechanicTechnicianDashboard() {
                             return (
                               <div
                                 key={o.rowKey}
-                                className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                                className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-2.5 sm:p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3"
                               >
                                 <div className="space-y-1 min-w-0">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-semibold text-slate-900 text-sm">
+                                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span className="font-semibold text-slate-900 text-xs sm:text-sm">
                                       {o.id} • {o.buyer}
                                     </span>
-                                    <span className={cn("inline-flex items-center rounded-none border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", badgeClass)}>
+                                    <span className={cn("inline-flex items-center rounded-none border px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider", badgeClass)}>
                                       {o.status}
                                     </span>
                                   </div>
@@ -951,11 +907,11 @@ function MechanicTechnicianDashboard() {
                                     {o.serviceName}
                                   </div>
                                 </div>
-                                <div className="mt-2 flex flex-row items-center justify-between gap-3 sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5">
+                                <div className="flex flex-row items-center justify-between sm:flex-col sm:items-end sm:gap-0.5 border-t border-slate-100 pt-1.5 sm:border-0 sm:pt-0">
                                   <div className="text-sm sm:text-base font-bold text-slate-900 tabular-nums">
                                     {o.amount}
                                   </div>
-                                  <div className="text-[11px] text-slate-400">
+                                  <div className="text-[10px] sm:text-[11px] text-slate-400">
                                     {o.when}
                                   </div>
                                 </div>
@@ -966,7 +922,7 @@ function MechanicTechnicianDashboard() {
                       </div>
 
                       {/* Quick Navigation Links */}
-                      <div className="rounded-none bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2">
+                      <div className="rounded-none bg-white/90 p-3.5 sm:p-4 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm lg:col-span-2">
                         <h3 className="text-sm font-semibold text-slate-900 mb-0.5">Quick Navigation</h3>
                         <p className="text-xs text-slate-500 mb-3">Shortcuts to your technician workspace sections.</p>
                         <div className="space-y-2">
@@ -974,18 +930,18 @@ function MechanicTechnicianDashboard() {
                             <a
                               key={label}
                               href={href}
-                              className="group flex w-full items-center justify-between p-3 bg-white hover:bg-slate-50/80 transition-all border border-slate-200/60 rounded-none text-left shadow-xs hover:shadow-sm"
+                              className="group flex w-full items-center justify-between p-2.5 sm:p-3 bg-white hover:bg-slate-50/80 transition-all border border-slate-200/60 rounded-none text-left shadow-xs hover:shadow-sm"
                             >
-                              <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                                 <div
-                                  className="flex size-9 shrink-0 items-center justify-center rounded-none text-white shadow-xs"
+                                  className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-none text-white shadow-xs"
                                   style={{ backgroundImage: chipTone(tone) }}
                                 >
-                                  <QaIcon className="size-4" />
+                                  <QaIcon className="size-3.5 sm:size-4" />
                                 </div>
                                 <div className="min-w-0">
                                   <span className="block text-xs font-semibold text-slate-900 truncate">{label}</span>
-                                  <span className="block text-[11px] text-slate-500 truncate">{desc}</span>
+                                  <span className="block text-[10px] sm:text-[11px] text-slate-500 truncate">{desc}</span>
                                 </div>
                               </div>
                               <ChevronRight className="size-4 text-slate-400 shrink-0 group-hover:text-slate-700 transition-colors" />
@@ -996,31 +952,31 @@ function MechanicTechnicianDashboard() {
                     </section>
 
                     {/* E-Paayos Navy Blue Footer Banner */}
-                    <footer className="mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-6 sm:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
+                    <footer className="mt-4 sm:mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-4 sm:p-6 md:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
                       <div className="pointer-events-none absolute -top-16 -right-16 size-64 bg-[#1447a6]/25 blur-3xl rounded-full" />
                       <div className="pointer-events-none absolute -bottom-16 -left-16 size-64 bg-[#081F5C]/40 blur-3xl rounded-full" />
                       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#081F5C] via-[#1447a6] to-sky-400" />
 
-                      <div className="relative z-10 grid gap-6 md:grid-cols-12 md:items-center">
-                        <div className="md:col-span-5 space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#081F5C] to-[#1447a6] text-white shadow-md shadow-blue-900/40 border border-white/10">
+                      <div className="relative z-10 grid gap-4 sm:gap-6 md:grid-cols-12 md:items-center">
+                        <div className="md:col-span-5 space-y-2 sm:space-y-3">
+                          <div className="flex items-center gap-2.5 sm:gap-3">
+                            <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#081F5C] to-[#1447a6] text-white shadow-md shadow-blue-900/40 border border-white/10">
                               <LayoutDashboard className="size-4" />
                             </div>
                             <div>
-                              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                              <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 sm:gap-2 flex-wrap">
                                 E-Paayos Technician Workspace
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider bg-[#1447a6]/30 text-blue-200 border border-blue-400/30 px-2 py-0.5 rounded-none">
+                                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-[#1447a6]/30 text-blue-200 border border-blue-400/30 px-1.5 sm:px-2 py-0.5 rounded-none">
                                   v2.4 Pro
                                 </span>
                               </h3>
-                              <p className="text-xs text-blue-200/80">
+                              <p className="text-[11px] sm:text-xs text-blue-200/80">
                                 Official Mechanic & Technician Operations Portal
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2.5 text-xs text-blue-200/90 pt-1">
+                          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-blue-200/90 pt-0.5 sm:pt-1">
                             <span className="relative flex size-2">
                               <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-400 opacity-75" />
                               <span className="relative inline-flex size-2 rounded-full bg-sky-400" />
@@ -1031,7 +987,7 @@ function MechanicTechnicianDashboard() {
                           </div>
                         </div>
 
-                        <div className="md:col-span-4 flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-blue-100">
+                        <div className="md:col-span-4 flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 text-xs font-medium text-blue-100">
                           <a href="#/mechanic/technician/assigned-request" className="hover:text-white transition-colors flex items-center gap-1">
                             <ClipboardList className="size-3.5 text-sky-400" /> Assigned Requests
                           </a>
@@ -1050,7 +1006,7 @@ function MechanicTechnicianDashboard() {
                           <p className="text-xs font-semibold text-white">
                             © {new Date().getFullYear()} E-Paayos Portal.
                           </p>
-                          <p className="text-[11px] text-blue-200/70 leading-tight">
+                          <p className="text-[10px] sm:text-[11px] text-blue-200/70 leading-tight">
                             Connecting Local Technicians & Quality Repairs
                           </p>
                         </div>

@@ -54,6 +54,7 @@ import Elogo from '../../../assets/Elogo.png'
 import {
   API_URL,
   MechanicMobileNav,
+  MechanicTopBar,
   StatGradientCard,
   authHeaders,
   mapBookingFromApi,
@@ -132,8 +133,8 @@ function categoryIcon(category) {
 
 function bookingStatusBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-      <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+    <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+      <CheckCircle2 className="size-3.5 sm:size-4 text-emerald-600 shrink-0" />
       <span>Completed</span>
     </span>
   )
@@ -425,74 +426,21 @@ function MechanicTechnicianServiceHistory() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <MechanicMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">{SERVICE_HISTORY_META.title}</h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{SERVICE_HISTORY_META.description}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Notification"
-                  onClick={() => {
-                    window.location.hash = '#/mechanic/technician/notification'
-                  }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-
-                <div ref={profileMenuRef} className="relative">
-                  <button
-                    type="button"
-                    aria-label="Profile menu"
-                    onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      profileOpen
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
-                    }`}
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
-                      {(user.fullName || user.email || 'M').charAt(0).toUpperCase()}
-                    </span>
-                  </button>
-
-                  {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </header>
+            <MechanicTopBar
+              title={SERVICE_HISTORY_META.title}
+              description={SERVICE_HISTORY_META.description}
+              user={user}
+              profileOpen={profileOpen}
+              setProfileOpen={setProfileOpen}
+              profileMenuRef={profileMenuRef}
+              requestLogout={requestLogout}
+            />
 
             <div
               id="mechanic-main-scroll"
-              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
-              <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden pr-2 md:pr-4">
+              <div className="w-full min-w-0 max-w-full space-y-3.5 sm:space-y-4">
                 {listError ? (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                     <span>{listError}</span>
@@ -502,10 +450,10 @@ function MechanicTechnicianServiceHistory() {
                   </div>
                 ) : null}
 
-                <div className="flex flex-col gap-2 rounded-none border border-slate-200 bg-white p-3.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2.5 rounded-none border border-slate-200 bg-white p-3 sm:p-3.5 shadow-2xs sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#081F5C] dark:text-blue-100">Finished work only</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground sm:text-[13px]">
+                    <p className="text-xs sm:text-sm font-semibold text-[#081F5C] dark:text-blue-100">Finished work only</p>
+                    <p className="mt-0.5 text-[11px] sm:text-xs text-muted-foreground">
                       Active and in-progress jobs stay under <span className="font-medium text-foreground">Assigned requests</span>.
                     </p>
                   </div>
@@ -513,17 +461,17 @@ function MechanicTechnicianServiceHistory() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-9 shrink-0 gap-1 rounded-none border-[#081F5C]/20 text-[#081F5C] dark:border-white/15 dark:text-blue-100"
+                    className="h-8 sm:h-9 shrink-0 gap-1 rounded-none border-[#081F5C]/20 text-[#081F5C] dark:border-white/15 dark:text-blue-100 text-xs font-bold cursor-pointer"
                     onClick={() => {
                       window.location.hash = '#/mechanic/technician/assigned-request'
                     }}
                   >
                     Assigned requests
-                    <ChevronRight className="h-4 w-4" aria-hidden />
+                    <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 [&>*:last-child]:col-span-2 sm:[&>*:last-child]:col-span-1">
                   <StatGradientCard
                     variant="completed"
                     label="Completed Jobs"
@@ -547,8 +495,8 @@ function MechanicTechnicianServiceHistory() {
                   />
                 </div>
 
-                <div className="mb-1 flex min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[200px] sm:max-w-[280px]">
+                <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[190px] sm:max-w-[260px]">
                     <select className={`${selectShell} text-neutral-900 dark:text-neutral-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                       <option value="recent">Sort: Recently completed</option>
                       <option value="oldest">Sort: Oldest completion</option>
@@ -591,7 +539,7 @@ function MechanicTechnicianServiceHistory() {
                       size="sm"
                       disabled={loading}
                       onClick={() => void loadBookings()}
-                      className="h-9 shrink-0 gap-1.5 rounded-none border-slate-300 bg-white/80 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
+                      className="h-9 shrink-0 gap-1.5 rounded-none border-slate-300 bg-white/80 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100 cursor-pointer"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
                       Refresh
@@ -613,7 +561,7 @@ function MechanicTechnicianServiceHistory() {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3.5">
+                    <div className="space-y-3 sm:space-y-3.5">
                       {filtered.map((b) => {
                         const CategoryIcon = b.shopService ? categoryIcon(b.shopService.category) : categoryIcon(b.serviceCategory)
                         const cat = b.shopService?.category || b.serviceCategory
@@ -629,32 +577,31 @@ function MechanicTechnicianServiceHistory() {
                             key={b.id}
                             data-mechanic-history-id={b.id}
                             className={cn(
-                              'rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-200 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] p-3.5 sm:p-4 hover:-translate-y-0.5 space-y-3',
+                              'rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-200 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] p-3 sm:p-4 hover:-translate-y-0.5 space-y-2.5 sm:space-y-3',
                               isHi && 'border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-50/20'
                             )}
                           >
-                            {/* Top Bar Header */}
-                            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5">
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold text-white shadow-2xs">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-2">
+                              <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                                <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold text-white shadow-2xs mt-0.5 sm:mt-0">
                                   {initialsFromName(b.contactName)}
                                 </div>
-                                <div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h3 className="text-sm font-black tracking-tight text-slate-900">{b.contactName || '—'}</h3>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <h3 className="text-sm font-black tracking-tight text-slate-900 break-words">{b.contactName || '—'}</h3>
                                     {b.ref ? (
-                                      <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
+                                      <span className="font-mono text-[10px] sm:text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
                                         Ref: #{b.ref}
                                       </span>
                                     ) : null}
                                     {b.shopName ? (
-                                      <span className="text-[11px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 border border-slate-200 inline-flex items-center gap-1">
-                                        <Store className="size-3 text-slate-500" />
+                                      <span className="text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 border border-slate-200 inline-flex items-center gap-1">
+                                        <Store className="size-2.5 sm:size-3 text-slate-500" />
                                         {b.shopName}
                                       </span>
                                     ) : null}
                                   </div>
-                                  <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                                  <p className="text-[10px] sm:text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
                                     <Phone className="size-3 text-[#081F5C]" />
                                     <a href={`tel:${b.contactPhone}`} className="text-[#081F5C] hover:underline font-bold">
                                       {b.contactPhone || '—'}
@@ -663,18 +610,16 @@ function MechanicTechnicianServiceHistory() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
+                              <div className="flex items-center justify-between sm:justify-start sm:flex-col sm:items-end gap-1.5 pt-1 sm:pt-0">
                                 {bookingStatusBadge()}
-                                <span className="text-[11px] font-semibold text-slate-500">
+                                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500">
                                   Finished: {formatSubmittedLine(b.updatedAt || b.createdAt)}
                                 </span>
                               </div>
                             </div>
 
-                            {/* 3 Container Box Body Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              {/* Container 1: Service Description */}
-                              <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
+                              <div className="bg-slate-50/80 border border-slate-200/90 p-2.5 sm:p-3 rounded-none flex flex-col justify-between space-y-1.5">
                                 <div>
                                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                                     <FileText className="size-3.5 text-[#081F5C]" />
@@ -695,8 +640,7 @@ function MechanicTechnicianServiceHistory() {
                                 ) : null}
                               </div>
 
-                              {/* Container 2: Outcome & Schedule */}
-                              <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                              <div className="bg-slate-50/80 border border-slate-200/90 p-2.5 sm:p-3 rounded-none flex flex-col justify-between space-y-1.5">
                                 <div>
                                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                                     <CheckCircle2 className="size-3.5 text-emerald-600" />
@@ -715,8 +659,7 @@ function MechanicTechnicianServiceHistory() {
                                 </div>
                               </div>
 
-                              {/* Container 3: Service Mode & Location */}
-                              <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
+                              <div className="bg-slate-50/80 border border-slate-200/90 p-2.5 sm:p-3 rounded-none flex flex-col justify-between space-y-1.5">
                                 <div>
                                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                                     <MapPin className="size-3 text-rose-500" />
@@ -743,7 +686,7 @@ function MechanicTechnicianServiceHistory() {
                                     href={`https://www.google.com/maps?q=${b.serviceLatitude},${b.serviceLongitude}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="inline-flex items-center justify-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors"
+                                    className="inline-flex items-center justify-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors mt-1"
                                   >
                                     <MapPin className="size-3 text-rose-600" />
                                     <span>Open Location Map</span>
@@ -752,16 +695,15 @@ function MechanicTechnicianServiceHistory() {
                               </div>
                             </div>
 
-                            {/* Card Footer */}
-                            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
-                              <p className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-200/95">
+                            <div className="pt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t border-slate-100">
+                              <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-800 dark:text-emerald-200/95">
                                 Outcome: <span className="font-bold">{completionOutcomeLabel(cat)}</span> · Status: <span className="font-bold">Completed</span>
                               </p>
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                className="h-8 gap-1.5 rounded-none border-slate-300 bg-white/90 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-slate-50"
+                                className="h-8 gap-1.5 rounded-none border-slate-300 bg-white/90 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-slate-50 cursor-pointer w-full sm:w-auto inline-flex items-center justify-center"
                                 onClick={() => {
                                   window.location.hash = '#/mechanic/technician/messages'
                                 }}

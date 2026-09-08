@@ -9,6 +9,7 @@ import { Conversation } from "../models/conversationModel.js"
 import { Message } from "../models/messageModel.js"
 import { isUserOnline, markOnline } from "../utils/presenceStore.js"
 import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
+import { generateShopAiReply } from "../services/shopAiService.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -291,6 +292,7 @@ export const listMessages = asyncHandler(async (req, res) => {
     createdAt: m.createdAt ? new Date(m.createdAt).toISOString() : new Date().toISOString(),
     fromMe: String(m.sender) === String(me),
     attachments: Array.isArray(m.attachments) ? m.attachments : [],
+    isAiGenerated: Boolean(m.isAiGenerated),
   }))
 
   res.json({ messages })
@@ -337,6 +339,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
     sender: me,
     content,
     attachments,
+    isAiGenerated: false,
   })
 
   const lastAt = msg.createdAt || new Date()
@@ -362,6 +365,36 @@ export const sendMessage = asyncHandler(async (req, res) => {
     await doc.save()
   }
 
+  // Check if Shop AI auto-responder should reply
+  let aiReply = null
+  const otherId = String(conv.userA) === String(me) ? conv.userB : conv.userA
+  const otherUser = await User.findById(otherId).select("role aiAutoReplyEnabled").lean()
+
+  const isCustomerSender = req.user.role === "customer"
+  const isRecipientProvider = ["shop-owner", "oncall-mechanic-technician", "mechanic-technician"].includes(
+    otherUser?.role
+  )
+  const autoReplyAllowed = otherUser?.aiAutoReplyEnabled !== false
+
+  if (isCustomerSender && isRecipientProvider && autoReplyAllowed) {
+    const isOnline = isUserOnline(otherId)
+    const forceAi =
+      req.body?.triggerAiReply === "true" ||
+      req.body?.triggerAiReply === true ||
+      req.body?.isAiQuery === "true" ||
+      req.body?.isAiQuery === true
+
+    // Auto-respond if provider is offline/busy or if customer triggered a quick AI prompt
+    if (!isOnline || forceAi) {
+      aiReply = await generateShopAiReply({
+        conversationId,
+        customerId: me,
+        providerId: otherId,
+        incomingMessageText: content || (attachments.length ? "Sent attachment(s)" : ""),
+      })
+    }
+  }
+
   res.status(201).json({
     message: {
       _id: String(msg._id),
@@ -369,7 +402,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
       createdAt: lastAt.toISOString(),
       fromMe: true,
       attachments,
+      isAiGenerated: false,
     },
+    aiReply: aiReply || null,
   })
 })
 

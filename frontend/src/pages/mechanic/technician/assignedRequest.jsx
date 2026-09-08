@@ -65,6 +65,7 @@ import Elogo from '../../../assets/Elogo.png'
 import {
   API_URL,
   MechanicMobileNav,
+  MechanicTopBar,
   StatGradientCard,
   authHeaders,
   mapBookingFromApi,
@@ -152,39 +153,39 @@ function bookingStatusBadge(status) {
   const s = String(status || '').toLowerCase()
   if (s === 'completed') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-        <CheckCircle2 className="size-4 text-emerald-600 shrink-0" />
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+        <CheckCircle2 className="size-3.5 sm:size-4 text-emerald-600 shrink-0" />
         <span>Completed</span>
       </span>
     )
   }
   if (s === 'cancelled' || s === 'canceled') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
-        <X className="size-4 text-rose-600 shrink-0" />
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+        <X className="size-3.5 sm:size-4 text-rose-600 shrink-0" />
         <span>Cancelled</span>
       </span>
     )
   }
   if (s === 'confirmed') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-sky-100 text-sky-800 border border-sky-300 shadow-2xs">
-        <span className="size-2 rounded-full bg-sky-500 animate-pulse" />
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-sky-100 text-sky-800 border border-sky-300 shadow-2xs">
+        <span className="size-1.5 sm:size-2 rounded-full bg-sky-500 animate-pulse" />
         <span>Confirmed</span>
       </span>
     )
   }
   if (s === 'working') {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs">
-        <span className="size-2 rounded-full bg-purple-500 animate-pulse" />
+      <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-purple-100 text-purple-800 border border-purple-300 shadow-2xs">
+        <span className="size-1.5 sm:size-2 rounded-full bg-purple-500 animate-pulse" />
         <span>Working</span>
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-extrabold uppercase rounded-none bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
-      <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+    <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
+      <span className="size-1.5 sm:size-2 rounded-full bg-amber-500 animate-pulse" />
       <span>Pending</span>
     </span>
   )
@@ -577,76 +578,21 @@ function MechanicTechnicianAssignedRequest() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <MechanicMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">
-                  {ASSIGNED_REQUEST_META.title}
-                </h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{ASSIGNED_REQUEST_META.description}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Notification"
-                  onClick={() => {
-                    window.location.hash = '#/mechanic/technician/notification'
-                  }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-transparent text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <Bell className="h-5 w-5" />
-                </button>
-
-                <div ref={profileMenuRef} className="relative">
-                  <button
-                    type="button"
-                    aria-label="Profile menu"
-                    onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      profileOpen
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
-                    }`}
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
-                      {(user.fullName || user.email || 'M').charAt(0).toUpperCase()}
-                    </span>
-                  </button>
-
-                  {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </header>
+            <MechanicTopBar
+              title={ASSIGNED_REQUEST_META.title}
+              description={ASSIGNED_REQUEST_META.description}
+              user={user}
+              profileOpen={profileOpen}
+              setProfileOpen={setProfileOpen}
+              profileMenuRef={profileMenuRef}
+              requestLogout={requestLogout}
+            />
 
             <div
               id="mechanic-main-scroll"
-              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
-              <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden pr-2 md:pr-4">
+              <div className="w-full min-w-0 max-w-full space-y-3.5 sm:space-y-4">
                 {listError ? (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                     <span>{listError}</span>
@@ -661,7 +607,8 @@ function MechanicTechnicianAssignedRequest() {
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {/* 2 columns on mobile, 4 columns on desktop */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
                   <StatGradientCard
                     variant="pending"
                     label="Awaiting shop"
@@ -692,8 +639,8 @@ function MechanicTechnicianAssignedRequest() {
                   />
                 </div>
 
-                <div className="mb-1 flex min-w-0 max-w-full flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+                <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 sm:gap-3 w-full min-w-0 max-w-full flex-1">
                     <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
                       <select
                         className={`${selectShell} text-neutral-900 dark:text-neutral-100`}
@@ -722,7 +669,7 @@ function MechanicTechnicianAssignedRequest() {
 
                   <div className="relative h-9 w-full min-w-0 shrink-0 lg:w-[320px]">
                     <Input
-                      className="h-9 w-full rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+                      className="h-9 w-full rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-xs sm:text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
                       placeholder="Search name, phone, service, shop, notes…"
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
@@ -797,48 +744,50 @@ function MechanicTechnicianAssignedRequest() {
                         return (
                           <article
                             key={b.id}
-                            className="bg-white border border-slate-200 shadow-[0_3px_8px_rgba(15,23,42,0.12)] transition-all duration-200 hover:border-indigo-500 hover:shadow-[0_6px_16px_rgba(8,31,92,0.18)] hover:-translate-y-0.5 p-4 sm:p-5 space-y-4 rounded-none"
+                            className="bg-white border border-slate-200 shadow-[0_3px_8px_rgba(15,23,42,0.12)] transition-all duration-200 hover:border-indigo-500 hover:shadow-[0_6px_16px_rgba(8,31,92,0.18)] hover:-translate-y-0.5 p-3 sm:p-5 space-y-3 sm:space-y-4 rounded-none"
                           >
                             {/* Top Bar Header */}
-                            <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
-                              <div className="flex items-center gap-3">
-                                <div className="flex size-9 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
-                                  <CategoryIcon className="size-5" />
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 pb-2 border-b border-slate-100/80">
+                              <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 mt-0.5 sm:mt-0">
+                                  <CategoryIcon className="size-4 sm:size-5" />
                                 </div>
-                                <div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="text-base font-black text-slate-900">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                    <span className="text-sm sm:text-base font-black text-slate-900 leading-snug break-words">
                                       {b.shopService?.name || b.serviceName || 'Service Request'}
                                     </span>
-                                    <span className="text-[11px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
-                                      <Tag className="size-3 text-indigo-600" />
+                                    <span className="text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-700 px-1.5 sm:px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
+                                      <Tag className="size-2.5 sm:size-3 text-indigo-600" />
                                       Ref: {b.ref || b.id}
                                     </span>
-                                    <span className="text-[11px] font-bold bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-none border border-indigo-200 inline-flex items-center gap-1">
-                                      <User className="size-3 text-indigo-600" />
+                                    <span className="text-[10px] sm:text-[11px] font-bold bg-indigo-50 text-indigo-800 px-1.5 sm:px-2 py-0.5 rounded-none border border-indigo-200 inline-flex items-center gap-1">
+                                      <User className="size-2.5 sm:size-3 text-indigo-600" />
                                       {b.contactName || 'Customer'}
                                     </span>
                                     {b.shopName ? (
-                                      <span className="text-[11px] font-medium bg-slate-100 text-slate-600 px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
-                                        <Store className="size-3 text-slate-500" />
+                                      <span className="text-[10px] sm:text-[11px] font-medium bg-slate-100 text-slate-600 px-1.5 sm:px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
+                                        <Store className="size-2.5 sm:size-3 text-slate-500" />
                                         {b.shopName}
                                       </span>
                                     ) : null}
                                   </div>
-                                  <span className="text-[11px] text-slate-500 block mt-0.5">
+                                  <span className="text-[10px] sm:text-[11px] text-slate-500 block mt-0.5">
                                     Submitted {formatSubmittedLine(b.createdAt)}
                                   </span>
                                 </div>
                               </div>
 
                               {/* Status Pill Badge */}
-                              {bookingStatusBadge(b.status)}
+                              <div className="self-start sm:self-auto shrink-0">
+                                {bookingStatusBadge(b.status)}
+                              </div>
                             </div>
 
                             {/* Customer, Schedule & Financial Summary 3-Column Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 text-xs sm:text-sm">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5 sm:gap-3.5 text-xs sm:text-sm">
                               {/* 1. Customer Details */}
-                              <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2.5 rounded-none flex flex-col justify-between">
+                              <div className="bg-slate-50/80 p-2.5 sm:p-3.5 border border-slate-200 space-y-2 sm:space-y-2.5 rounded-none flex flex-col justify-between">
                                 <div>
                                   <div className="flex items-center justify-between pb-1">
                                     <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
@@ -848,7 +797,7 @@ function MechanicTechnicianAssignedRequest() {
                                     {b.contactPhone && (
                                       <a
                                         href={`tel:${b.contactPhone}`}
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-none shadow-2xs transition-colors"
+                                        className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors"
                                       >
                                         <Phone className="size-3" />
                                         <span>Call</span>
@@ -880,7 +829,7 @@ function MechanicTechnicianAssignedRequest() {
                               </div>
 
                               {/* 2. Schedule & Location Details */}
-                              <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                              <div className="bg-slate-50/80 p-2.5 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                                 <div>
                                   <div className="flex items-center justify-between pb-1">
                                     <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
@@ -938,7 +887,7 @@ function MechanicTechnicianAssignedRequest() {
                               </div>
 
                               {/* 3. Fee & Service Quote Summary */}
-                              <div className="bg-slate-50/80 p-3.5 border border-slate-200 space-y-2.5 rounded-none flex flex-col justify-between">
+                              <div className="bg-slate-50/80 p-2.5 sm:p-3.5 border border-slate-200 space-y-2 sm:space-y-2.5 rounded-none flex flex-col justify-between">
                                 <div>
                                   <div className="flex items-center justify-between pb-1">
                                     <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5">
@@ -972,7 +921,7 @@ function MechanicTechnicianAssignedRequest() {
                                     </div>
                                     <div className="flex justify-between items-center pt-1 font-bold">
                                       <span className="text-slate-900">Total Fee:</span>
-                                      <span className="font-black text-indigo-700 text-base">
+                                      <span className="font-black text-indigo-700 text-sm sm:text-base">
                                         {(b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null)
                                           ? formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))
                                           : "Awaiting Quote"}
@@ -987,14 +936,14 @@ function MechanicTechnicianAssignedRequest() {
                             {((Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0) || b.notes?.trim()) && (
                               <div
                                 className={cn(
-                                  "grid gap-3.5",
+                                  "grid gap-2.5 sm:gap-3.5",
                                   Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0 && b.notes?.trim()
                                     ? "grid-cols-1 md:grid-cols-2"
                                     : "grid-cols-1"
                                 )}
                               >
                                 {Array.isArray(b.issuePhotos) && b.issuePhotos.length > 0 && (
-                                  <div className="bg-indigo-50/50 border border-indigo-100 p-3 text-xs space-y-2 rounded-none flex flex-col justify-between">
+                                  <div className="bg-indigo-50/50 border border-indigo-100 p-2.5 sm:p-3 text-xs space-y-1.5 sm:space-y-2 rounded-none flex flex-col justify-between">
                                     <div>
                                       <span className="font-bold text-indigo-900 flex items-center gap-1.5">
                                         <ImageIcon className="size-4 text-indigo-600" />
@@ -1010,7 +959,7 @@ function MechanicTechnicianAssignedRequest() {
                                 )}
 
                                 {b.notes?.trim() && (
-                                  <div className="bg-slate-50 border border-slate-200 p-3 text-xs space-y-1 rounded-none flex flex-col justify-between">
+                                  <div className="bg-slate-50 border border-slate-200 p-2.5 sm:p-3 text-xs space-y-1 rounded-none flex flex-col justify-between">
                                     <div>
                                       <span className="font-bold text-slate-700 block">Additional Notes:</span>
                                       <p className="text-slate-700 italic mt-1 leading-relaxed">"{b.notes.trim()}"</p>
@@ -1022,7 +971,7 @@ function MechanicTechnicianAssignedRequest() {
 
                             {/* Rejection Note */}
                             {b.status === 'cancelled' && b.rejectionReason?.trim() && (
-                              <div className="bg-rose-50 border border-rose-200 p-3 text-xs space-y-1">
+                              <div className="bg-rose-50 border border-rose-200 p-2.5 sm:p-3 text-xs space-y-1">
                                 <span className="font-bold text-rose-900 block">Rejection Reason:</span>
                                 <p className="text-rose-700">{b.rejectionReason.trim()}</p>
                               </div>
@@ -1030,7 +979,7 @@ function MechanicTechnicianAssignedRequest() {
 
                             {/* Completed Job Info Banner */}
                             {b.status === 'completed' && (
-                              <div className="flex w-full flex-col gap-2 bg-emerald-50/60 p-3 sm:flex-row sm:items-center sm:justify-between text-xs">
+                              <div className="flex w-full flex-col gap-2 bg-emerald-50/60 p-2.5 sm:p-3 sm:flex-row sm:items-center sm:justify-between text-xs">
                                 <p className="min-w-0 text-emerald-950/90 font-medium">
                                   Job finished — recorded as <span className="font-bold">{completionOutcomeLabel(b.shopService?.category || b.serviceCategory)}</span>. Status: <span className="font-bold text-emerald-700">Completed</span>. Listed in Service history.
                                 </p>
@@ -1039,10 +988,10 @@ function MechanicTechnicianAssignedRequest() {
                                   onClick={() => {
                                     try {
                                       sessionStorage.setItem('epaayosMechanicHistoryFocusBookingId', b.id)
-                                    } catch {}
+                                    } catch { }
                                     window.location.hash = '#/mechanic/technician/service-history'
                                   }}
-                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-none shadow-2xs transition-colors cursor-pointer shrink-0"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-none shadow-2xs transition-colors cursor-pointer shrink-0 w-full sm:w-auto"
                                 >
                                   <History className="size-3.5" />
                                   <span>Service History</span>
@@ -1051,13 +1000,13 @@ function MechanicTechnicianAssignedRequest() {
                             )}
 
                             {/* Action Controls Footer */}
-                            <div className="pt-1 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100">
+                            <div className="pt-1.5 sm:pt-2 flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 border-t border-slate-100">
                               <button
                                 type="button"
                                 onClick={() => {
                                   window.location.hash = '#/mechanic/technician/messages'
                                 }}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                                className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
                               >
                                 <MessageSquare className="size-3.5 text-slate-500" />
                                 <span>Messages</span>
@@ -1074,7 +1023,7 @@ function MechanicTechnicianAssignedRequest() {
                                       serviceName: b.shopService?.name || b.serviceName || 'Service',
                                     })
                                   }
-                                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                                 >
                                   {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Wrench className="size-3.5" />}
                                   <span>Start Job (Working)</span>
@@ -1083,7 +1032,7 @@ function MechanicTechnicianAssignedRequest() {
 
                               {b.status === 'working' && (
                                 <>
-                                  <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold rounded-none">
+                                  <span className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold rounded-none">
                                     <Wrench className="size-3.5 opacity-70" />
                                     <span>Working</span>
                                   </span>
@@ -1095,7 +1044,7 @@ function MechanicTechnicianAssignedRequest() {
                                         setFeeDialogError('')
                                         setFeeBooking(b)
                                       }}
-                                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                                      className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                                     >
                                       <DollarSign className="size-3.5" />
                                       <span>Calculate Service Fee</span>
@@ -1105,7 +1054,7 @@ function MechanicTechnicianAssignedRequest() {
                                       type="button"
                                       disabled={busy}
                                       onClick={() => void patchTechnicianBooking(b.id, 'completed')}
-                                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                                      className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                                     >
                                       {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle className="size-3.5" />}
                                       <span>{workingFinishButtonLabel(b.shopService?.category || b.serviceCategory)}</span>
@@ -1120,10 +1069,10 @@ function MechanicTechnicianAssignedRequest() {
                                   onClick={() => {
                                     try {
                                       sessionStorage.setItem('epaayosMechanicHistoryFocusBookingId', b.id)
-                                    } catch {}
+                                    } catch { }
                                     window.location.hash = '#/mechanic/technician/service-history'
                                   }}
-                                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
                                 >
                                   <History className="size-3.5" />
                                   <span>Service History</span>
@@ -1166,9 +1115,9 @@ function MechanicTechnicianAssignedRequest() {
           if (!open) setConfirmWorkingBooking(null)
         }}
       >
-        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-6 shadow-2xl sm:max-w-md">
+        <AlertDialogContent className="rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl sm:max-w-md max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
           <AlertDialogHeader className="border-b border-slate-100 pb-3">
-            <AlertDialogTitle className="text-lg font-black text-slate-900">Start Service Job Now?</AlertDialogTitle>
+            <AlertDialogTitle className="text-base sm:text-lg font-black text-slate-900">Start Service Job Now?</AlertDialogTitle>
             <AlertDialogDescription className="text-left text-xs font-medium text-slate-600 mt-1 leading-relaxed">
               {confirmWorkingBooking ? (
                 <>
@@ -1185,13 +1134,13 @@ function MechanicTechnicianAssignedRequest() {
               ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="pt-3.5 gap-2">
-            <AlertDialogCancel type="button" className="rounded-none border-slate-300 text-xs font-bold cursor-pointer">
+          <AlertDialogFooter className="pt-3.5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+            <AlertDialogCancel type="button" className="rounded-none border-slate-300 text-xs font-bold cursor-pointer w-full sm:w-auto">
               Cancel
             </AlertDialogCancel>
             <Button
               type="button"
-              className="rounded-none bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-purple-900/20 cursor-pointer disabled:opacity-50"
+              className="rounded-none bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 shadow-md shadow-purple-900/20 cursor-pointer disabled:opacity-50 w-full sm:w-auto"
               disabled={!confirmWorkingBooking || updatingId === confirmWorkingBooking?.id}
               onClick={async () => {
                 if (!confirmWorkingBooking) return

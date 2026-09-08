@@ -19,9 +19,10 @@ import {
   useSidebar,
 } from '../../../components/ui/sidebar'
 import { TooltipProvider } from '../../../components/ui/tooltip'
-import { Bell, Briefcase, ClipboardList, History, LayoutDashboard, LogOut, MessageSquare, Settings, Star } from 'lucide-react'
+import { Bell, Briefcase, ClipboardList, History, LayoutDashboard, LogOut, Menu, MessageSquare, Settings, Star } from 'lucide-react'
 import Elogo from '../../../assets/Elogo.png'
 import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
+import { MechanicTopBar } from './mechanicBookingShared.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -46,19 +47,6 @@ let mechanicTechnicianSidebarOpenState = false
 const sidebarMenuButtonClass =
   'h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap'
 
-function MechanicMobileNav() {
-  const { isMobile, setOpenMobile } = useSidebar()
-  if (!isMobile) return null
-  return (
-    <button
-      type="button"
-      className="-ml-1 mr-2 shrink-0 rounded-sm px-2 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
-      onClick={() => setOpenMobile(true)}
-    >
-      Menu
-    </button>
-  )
-}
 
 function readMechanicTechnicianSession() {
   const raw = localStorage.getItem('user')
@@ -234,76 +222,23 @@ function MechanicTechnicianNotification() {
           </Sidebar>
 
           <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
-            <header className="relative z-30 flex h-14 shrink-0 flex-none items-center gap-3 border-b border-border/60 bg-white/90 px-4 shadow-sm backdrop-blur-md dark:bg-background/95 md:px-6">
-              <MechanicMobileNav />
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-semibold tracking-tight text-foreground md:text-xl">{NOTIFICATION_META.title}</h1>
-                <p className="hidden truncate text-xs text-muted-foreground sm:block">{NOTIFICATION_META.description}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Notification"
-                  onClick={() => {
-                    window.location.hash = '#/mechanic/technician/notification'
-                  }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-blue-50 text-blue-700 transition-colors hover:bg-blue-100"
-                >
-                  <NotificationBellIndicator unreadCount={headerUnread}>
-                    <Bell className="h-5 w-5" />
-                  </NotificationBellIndicator>
-                </button>
-
-                <div ref={profileMenuRef} className="relative">
-                  <button
-                    type="button"
-                    aria-label="Profile menu"
-                    onClick={() => setProfileOpen((prev) => !prev)}
-                    className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      profileOpen
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground'
-                    }`}
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-base font-semibold leading-none text-white">
-                      {(user.fullName || user.email || 'M').charAt(0).toUpperCase()}
-                    </span>
-                  </button>
-
-                  {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-sm border border-border/80 bg-background shadow-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Account Settings</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false)
-                          requestLogout()
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Log out</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </header>
+            <MechanicTopBar
+              title={NOTIFICATION_META.title}
+              description={NOTIFICATION_META.description}
+              user={user}
+              profileOpen={profileOpen}
+              setProfileOpen={setProfileOpen}
+              profileMenuRef={profileMenuRef}
+              requestLogout={requestLogout}
+              unreadCount={headerUnread}
+              isNotificationActive={true}
+            />
 
             <div
               id="mechanic-main-scroll"
-              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain py-4 pl-4 pr-1 md:py-6 md:pl-6 md:pr-2"
+              className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
-              <div className="space-y-2 sm:space-y-3.5 pr-2 md:pr-4">
+              <div className="w-full min-w-0 max-w-full space-y-3.5 sm:space-y-4">
                 <NotificationFeedContent
                   user={user}
                   readScope="mechanic_shop"

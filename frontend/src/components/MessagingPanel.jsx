@@ -9,6 +9,12 @@ import {
   Info,
   X,
   MessageSquare,
+  Bot,
+  Sparkles,
+  Tag,
+  Clock,
+  MapPin,
+  CalendarCheck,
 } from 'lucide-react'
 import useMessaging from '../hooks/useMessaging'
 
@@ -137,6 +143,7 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
     hasSelectedNewConversation,
     formatTime,
     handleSendMessage,
+    sendQuickAiQuery,
     isOwnMessage,
     setError,
     attachments,
@@ -192,32 +199,32 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
         />
       )}
 
-      <div className="relative flex min-h-0 flex-1 basis-0 items-stretch gap-3 sm:gap-4">
+      <div className="relative flex min-h-0 flex-1 basis-0 items-stretch gap-2.5 sm:gap-4">
         <aside
-          className={`absolute inset-y-0 left-0 z-30 flex h-full min-h-0 w-[min(100%,16rem)] flex-col rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-transform duration-200 sm:static sm:inset-y-auto sm:left-auto sm:w-64 lg:w-72 ${
+          className={`absolute inset-y-0 left-0 z-30 flex h-full min-h-0 w-[min(100%,18rem)] sm:w-64 lg:w-72 flex-col rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-transform duration-200 sm:static sm:inset-y-auto sm:left-auto ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'
           }`}
         >
-          <div className="p-3 shadow-2xs rounded-none border-b border-slate-200 bg-white">
+          <div className="p-2.5 sm:p-3 shadow-2xs rounded-none border-b border-slate-200 bg-white">
             <div className="relative">
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search conversations..."
-                className="w-full bg-white border border-slate-200 rounded-none px-3.5 py-2 pr-10 outline-none focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C] transition-all shadow-[0_2px_5px_rgba(15,23,42,0.14)] text-xs sm:text-sm"
+                className="w-full bg-white border border-slate-200 rounded-none px-3 sm:px-3.5 py-1.5 sm:py-2 pr-9 sm:pr-10 outline-none focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C] transition-all shadow-[0_2px_5px_rgba(15,23,42,0.14)] text-xs sm:text-sm"
               />
-              <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white p-1.5 rounded-none shadow-2xs">
+              <span className="pointer-events-none absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white p-1.5 rounded-none shadow-2xs">
                 <Search className="h-3 w-3" />
               </span>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto scrollbar-hidden rounded-none bg-white">
+          <div className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden rounded-none bg-white">
             {loading ? (
-              <div className="p-6 text-center text-slate-500 text-sm font-medium">Loading conversations...</div>
+              <div className="p-6 text-center text-slate-500 text-xs sm:text-sm font-medium">Loading conversations...</div>
             ) : error ? (
-              <div className="p-6 text-center text-red-500 text-sm">
+              <div className="p-6 text-center text-red-500 text-xs sm:text-sm">
                 <div>{error}</div>
                 <button
                   type="button"
@@ -228,14 +235,17 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
                 </button>
               </div>
             ) : filtered.length === 0 ? (
-              <div className="p-6 text-center text-slate-500 text-sm font-medium">No conversations</div>
+              <div className="p-6 text-center text-slate-500 text-xs sm:text-sm font-medium">No conversations</div>
             ) : (
               filtered.map((c) => (
                 <button
                   key={c.conversationId}
                   type="button"
-                  onClick={() => setSelectedId(c.conversationId)}
-                  className={`w-full px-3 py-2.5 flex items-start gap-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 text-left transition-colors ${
+                  onClick={() => {
+                    setSelectedId(c.conversationId)
+                    setSidebarOpen(false)
+                  }}
+                  className={`w-full px-2.5 sm:px-3 py-2 sm:py-2.5 flex items-start gap-2 sm:gap-2.5 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 text-left transition-colors cursor-pointer ${
                     currentConversation && currentConversation.conversationId === c.conversationId
                       ? 'bg-slate-100/90 border-l-4 border-l-[#081F5C]'
                       : 'bg-white'
@@ -390,7 +400,23 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
                 <div className="text-sm text-slate-500 font-medium">No conversation selected</div>
               </div>
             )}
-            <div className="hidden sm:flex items-center gap-1 text-slate-500 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 text-slate-500 shrink-0">
+              {/* Show AI Active pill when chatting with a provider */}
+              {(currentConversation?.participant?.role === 'Shop' ||
+                currentConversation?.participant?.role === 'Mechanic' ||
+                currentConversation?.participant?.role === 'Independent' ||
+                sellerInfo?.role === 'Shop' ||
+                sellerInfo?.role === 'Mechanic' ||
+                sellerInfo?.role === 'Independent') && (
+                <div
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[10px] font-semibold text-blue-700 shadow-2xs"
+                  title="Shop AI Assistant replies automatically to services, hours, and rates when provider is busy or away"
+                >
+                  <Sparkles className="h-3 w-3 text-blue-600 animate-pulse" />
+                  <span className="hidden sm:inline">Shop AI Active</span>
+                  <span className="sm:hidden">AI</span>
+                </div>
+              )}
               <button
                 type="button"
                 className="h-8 w-8 rounded-none hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
@@ -511,9 +537,18 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
                       className={`${
                         isMe
                           ? 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white'
+                          : m.isAiGenerated
+                          ? 'bg-gradient-to-b from-blue-50/80 via-white to-white text-slate-900 border border-blue-200/90 shadow-xs'
                           : 'bg-white text-slate-900 border border-slate-200'
-                      } max-w-[82%] rounded-none px-3.5 py-2.5 text-[13px] shadow-[0_2px_5px_rgba(15,23,42,0.08)]`}
+                      } max-w-[88%] sm:max-w-[82%] rounded-none px-3 sm:px-3.5 py-2 sm:py-2.5 text-xs sm:text-[13px] shadow-[0_2px_5px_rgba(15,23,42,0.08)]`}
                     >
+                      {m.isAiGenerated && (
+                        <div className="flex items-center gap-1.5 pb-1 mb-1.5 border-b border-blue-200/60 text-[10px] font-bold text-blue-700">
+                          <Bot className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                          <span className="uppercase tracking-wider">Virtual Assistant</span>
+                          <span className="text-[9px] font-medium text-slate-400">· Automated Shop Reply</span>
+                        </div>
+                      )}
                       {useBookingPhotoLayout ? (
                         <>
                           <div className="whitespace-pre-wrap wrap-break-word">{parts[0].trimEnd()}</div>
@@ -539,14 +574,68 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
                 )
               })
             )}
+            {uploading && (
+              <div className="flex justify-start animate-pulse">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-none text-xs text-blue-700 shadow-2xs">
+                  <Bot className="h-3.5 w-3.5 text-blue-600 animate-spin" />
+                  <span className="text-[11px] font-medium">Shop AI Assistant is preparing a reply...</span>
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Quick Action Chips for Customer */}
+          {variant === 'customer' && (currentConversation || (hasSelectedNewConversation && sellerInfo)) ? (
+            <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-50 border-t border-slate-200/80 overflow-x-auto [scrollbar-width:none]">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1 mr-0.5">
+                <Bot className="h-3 w-3 text-[#081F5C]" />
+                <span className="hidden xs:inline">Ask AI:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => sendQuickAiQuery('Ano-ano po ang mga serbisyo at presyo ninyo?')}
+                disabled={uploading}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none bg-white border border-slate-200 text-slate-700 hover:border-[#081F5C] hover:text-[#081F5C] text-[11px] font-medium transition-colors shadow-2xs whitespace-nowrap cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                <Tag className="h-3 w-3 text-blue-600" />
+                <span>Services & Rates</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => sendQuickAiQuery('Ano po ang inyong operating hours at araw ng operasyon?')}
+                disabled={uploading}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none bg-white border border-slate-200 text-slate-700 hover:border-[#081F5C] hover:text-[#081F5C] text-[11px] font-medium transition-colors shadow-2xs whitespace-nowrap cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                <Clock className="h-3 w-3 text-amber-600" />
+                <span>Operating Hours</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => sendQuickAiQuery('Saan po ang inyong exact location at landmark?')}
+                disabled={uploading}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none bg-white border border-slate-200 text-slate-700 hover:border-[#081F5C] hover:text-[#081F5C] text-[11px] font-medium transition-colors shadow-2xs whitespace-nowrap cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                <MapPin className="h-3 w-3 text-emerald-600" />
+                <span>Shop Location</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => sendQuickAiQuery('May update po ba sa aking booking status?')}
+                disabled={uploading}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-none bg-white border border-slate-200 text-slate-700 hover:border-[#081F5C] hover:text-[#081F5C] text-[11px] font-medium transition-colors shadow-2xs whitespace-nowrap cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                <CalendarCheck className="h-3 w-3 text-purple-600" />
+                <span>My Bookings</span>
+              </button>
+            </div>
+          ) : null}
 
           <form
             onSubmit={handleSendMessage}
-            className="p-2.5 bg-white shrink-0 rounded-none border-t border-slate-200"
+            className="p-2 sm:p-2.5 bg-white shrink-0 rounded-none border-t border-slate-200"
           >
             {attachments.length > 0 ? (
-              <div className="mb-2 flex flex-wrap gap-2">
+              <div className="mb-2 flex flex-wrap gap-1.5 sm:gap-2">
                 {attachments.map((file, idx) => (
                   <ComposerAttachmentChip
                     key={`${file.name}-${file.size}-${file.lastModified}-${idx}`}
@@ -556,8 +645,8 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
                 ))}
               </div>
             ) : null}
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-1 text-slate-500 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-0.5 sm:gap-1 text-slate-500 shrink-0">
                 <input
                   type="file"
                   ref={imageInputRef}
@@ -568,36 +657,36 @@ export function MessagingPanel({ variant = 'customer', className = '' }) {
                 <button
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
-                  className="h-9 w-9 rounded-none hover:bg-slate-100 grid place-items-center text-slate-600 transition-colors"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-none hover:bg-slate-100 grid place-items-center text-slate-600 transition-colors cursor-pointer"
                   title="Send image"
                 >
-                  <ImageIcon className="h-4 w-4" />
+                  <ImageIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
                 <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-9 w-9 rounded-none hover:bg-slate-100 grid place-items-center text-slate-600 transition-colors"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-none hover:bg-slate-100 grid place-items-center text-slate-600 transition-colors cursor-pointer"
                   title="Send file"
                 >
-                  <Paperclip className="h-4 w-4" />
+                  <Paperclip className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Type a message here..."
-                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-none px-3.5 py-2 text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C]"
+                className="flex-1 min-w-0 bg-white border border-slate-200 rounded-none px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C]"
               />
               <button
                 type="submit"
                 disabled={(!input.trim() && attachments.length === 0) || uploading}
-                className="h-9 w-9 shrink-0 rounded-none bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white grid place-items-center shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-none bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white grid place-items-center shadow-[0_2px_5px_rgba(15,23,42,0.14)] hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {uploading ? (
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="h-3.5 w-3.5 sm:h-4 sm:w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 )}
               </button>
             </div>

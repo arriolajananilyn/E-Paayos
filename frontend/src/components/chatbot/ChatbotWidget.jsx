@@ -141,10 +141,11 @@ export default function ChatbotWidget() {
     } catch {
       // fallback
     }
-    // Default position: bottom-right (20px margin)
+    // Default position: bottom-right (elevated on mobile to float cleanly above bottom bar)
+    const isMobile = window.innerWidth < 768
     return {
       x: Math.max(10, window.innerWidth - 76),
-      y: Math.max(10, window.innerHeight - 76),
+      y: Math.max(10, isMobile ? window.innerHeight - 136 : window.innerHeight - 76),
     }
   })
 
@@ -156,8 +157,9 @@ export default function ChatbotWidget() {
   useEffect(() => {
     const handleResize = () => {
       setPosition((prev) => {
+        const isMobile = window.innerWidth < 768
         const maxX = Math.max(10, window.innerWidth - 76)
-        const maxY = Math.max(10, window.innerHeight - 76)
+        const maxY = Math.max(10, isMobile ? window.innerHeight - 136 : window.innerHeight - 76)
         return {
           x: Math.min(Math.max(10, prev.x), maxX),
           y: Math.min(Math.max(10, prev.y), maxY),

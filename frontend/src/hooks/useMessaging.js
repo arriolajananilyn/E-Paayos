@@ -231,7 +231,7 @@ export default function useMessaging(variant = 'customer') {
   const isOwnMessage = useCallback((m) => Boolean(m?.fromMe), [])
 
   const deliverMessage = useCallback(
-    async (rawText, files = []) => {
+    async (rawText, files = [], opts = {}) => {
       const text = String(rawText || '').trim()
       const fileList = Array.isArray(files) ? files : []
       if (!text && fileList.length === 0) return
@@ -242,6 +242,9 @@ export default function useMessaging(variant = 'customer') {
       const sendForm = async (convId) => {
         const fd = new FormData()
         fd.append('content', text)
+        if (opts.isAiQuery) {
+          fd.append('triggerAiReply', 'true')
+        }
         for (const file of fileList) {
           fd.append('files', file)
         }
@@ -286,7 +289,11 @@ export default function useMessaging(variant = 'customer') {
           setHasSelectedNewConversation(false)
           setSellerInfo(null)
           sessionStorage.removeItem(RECIPIENT_KEY)
-          setMessages([msg])
+          if (sent.aiReply) {
+            setMessages([msg, sent.aiReply])
+          } else {
+            setMessages([msg])
+          }
           setSelectedId(convId)
           setInput('')
           setAttachments([])
@@ -295,13 +302,18 @@ export default function useMessaging(variant = 'customer') {
           const sent = await sendForm(selectedId)
           const msg = sent.message
           if (!msg) throw new Error('Message was not saved.')
-          setMessages((prev) => [...prev, msg])
+          if (sent.aiReply) {
+            setMessages((prev) => [...prev, msg, sent.aiReply])
+          } else {
+            setMessages((prev) => [...prev, msg])
+          }
+          const finalPreview = sent.aiReply?.content || preview
           setConversations((prev) =>
             prev.map((c) =>
               c.conversationId === selectedId
                 ? {
                     ...c,
-                    lastMessage: { content: preview, createdAt: msg.createdAt || now },
+                    lastMessage: { content: finalPreview, createdAt: sent.aiReply?.createdAt || msg.createdAt || now },
                     unreadCount: 0,
                   }
                 : c,
@@ -328,6 +340,13 @@ export default function useMessaging(variant = 'customer') {
     [attachments, deliverMessage, input],
   )
 
+  const sendQuickAiQuery = useCallback(
+    async (promptText) => {
+      await deliverMessage(promptText, [], { isAiQuery: true })
+    },
+    [deliverMessage],
+  )
+
   return {
     query,
     setQuery,
@@ -348,6 +367,7 @@ export default function useMessaging(variant = 'customer') {
     hasSelectedNewConversation,
     formatTime: formatMessageTime,
     handleSendMessage,
+    sendQuickAiQuery,
     isOwnMessage,
     setError,
     attachments,
