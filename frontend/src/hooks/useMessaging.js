@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getApiBaseUrl } from '../lib/apiBaseUrl'
 
 const RECIPIENT_KEY = 'epaayos_message_recipient'
 
-const API_BASE = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+const API_BASE = getApiBaseUrl()
 
 function getToken() {
   return localStorage.getItem('token')

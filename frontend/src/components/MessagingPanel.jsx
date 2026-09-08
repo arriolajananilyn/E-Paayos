@@ -17,8 +17,9 @@ import {
   CalendarCheck,
 } from 'lucide-react'
 import useMessaging from '../hooks/useMessaging'
+import { getApiBaseUrl } from '../lib/apiBaseUrl'
 
-const API_BASE = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+const API_BASE = getApiBaseUrl()
 
 /** Booking auto-message: photos render between "Photo Issue:" and "Issue / problem:" */
 const BOOKING_ISSUE_SPLIT = /\n(?=Issue \/ problem:)/

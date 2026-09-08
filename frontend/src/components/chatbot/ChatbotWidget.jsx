@@ -10,14 +10,13 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
+import { getApiBaseUrl } from '@/lib/apiBaseUrl'
+
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
-const API_BASE =
-  typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL
-    ? import.meta.env.VITE_API_URL
-    : 'http://localhost:5000'
+const API_BASE = getApiBaseUrl()
 
 const SUGGESTED_QUESTIONS = [
   'What services are available?',
