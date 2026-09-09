@@ -324,10 +324,17 @@ export default function ChatbotWidget() {
         }),
       })
 
-      const data = await res.json()
+      let data = {}
+      const contentType = res.headers.get('content-type') || ''
+      if (contentType.includes('application/json')) {
+        data = await res.json().catch(() => ({}))
+      }
 
       if (!res.ok) {
-        throw new Error(data.message || 'Something went wrong')
+        if (res.status === 404) {
+          throw new Error('Chatbot backend service is currently offline or not yet deployed on Vercel.')
+        }
+        throw new Error(data.message || 'Something went wrong. Please try again.')
       }
 
       setMessages((prev) => [
