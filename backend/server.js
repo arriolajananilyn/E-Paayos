@@ -22,15 +22,27 @@ if (!process.env.JWT_SECRET) {
 const app = express()
 
 // Middleware — allow comma-separated CLIENT_URL values (local + Vercel)
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
+const rawOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean)
 
+const allowedOrigins = new Set([
+  ...rawOrigins,
+  ...rawOrigins.map((s) => s.replace(/\/$/, "")),
+  "https://marinduque-epaayos.vercel.app",
+  "https://e-paayos.vercel.app",
+])
+
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.has("*") ||
+        allowedOrigins.has(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
         return callback(null, true)
       }
       return callback(null, false)
