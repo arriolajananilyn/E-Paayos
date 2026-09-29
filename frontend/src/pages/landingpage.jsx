@@ -528,7 +528,15 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
   ]
 
   const handleNavClick = (target) => {
-    scrollToSection(target)
+    if (target === 'hero' || target === 'home' || target === 'top') {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+      } catch {
+        window.scrollTo(0, 0)
+      }
+    } else {
+      scrollToSection(target)
+    }
     setMobileMenuOpen(false)
   }
 
@@ -805,6 +813,14 @@ export default function LandingPage() {
   }
 
   const scrollToSection = (id) => {
+    if (!id || id === 'hero' || id === 'home' || id === 'top') {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+      } catch {
+        window.scrollTo(0, 0)
+      }
+      return
+    }
     const el = document.getElementById(id)
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' })
@@ -820,6 +836,7 @@ export default function LandingPage() {
 
   return (
     <div
+      id="top"
       className={`min-h-screen font-sans selection:bg-sky-500 selection:text-white relative overflow-x-hidden transition-colors duration-300 scroll-smooth ${isDark ? 'bg-[#030b21] text-slate-100' : 'bg-gradient-to-br from-[#eef4ff] via-[#f4f8ff] to-[#e6efff] text-slate-800'
         }`}
     >

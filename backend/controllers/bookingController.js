@@ -1847,6 +1847,7 @@ function mapBookingForAdmin(b, techNameById) {
 
   const id = String(b._id)
   return {
+    _id: id,
     id,
     ref: `BK-${id.slice(-8).toUpperCase()}`,
     status: b.status,
@@ -1864,6 +1865,7 @@ function mapBookingForAdmin(b, techNameById) {
     updatedAt: b.updatedAt,
     customer: cust
       ? {
+        _id: cust._id ? String(cust._id) : undefined,
         fullName: cust.fullName || "",
         email: cust.email || "",
         phone: [cust.phoneCode, cust.phoneNumber].filter(Boolean).join(" ").trim(),
@@ -1872,20 +1874,51 @@ function mapBookingForAdmin(b, techNameById) {
       : null,
     shopOwner: owner
       ? {
+        _id: owner._id ? String(owner._id) : undefined,
         fullName: owner.fullName || "",
         shopName: owner.shopName || "",
+        role: owner.role || "shop_owner",
+        phone: owner.phone || owner.phoneNumber || "",
+        email: owner.email || "",
       }
       : null,
     shopService: svc
       ? {
         id: String(svc._id),
+        _id: String(svc._id),
         name: svc.name || "",
         category: svc.category || "",
         subcategory: svc.subcategory || "",
         location: svc.location,
+        status: svc.status,
+        startingPrice:
+          svc.startingPrice != null &&
+          Number.isFinite(Number(svc.startingPrice)) &&
+          Number(svc.startingPrice) > 0
+            ? Number(svc.startingPrice)
+            : null,
       }
       : null,
+    serviceFeeLaborRateAtCalc:
+      b.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(b.serviceFeeLaborRateAtCalc))
+        ? Number(b.serviceFeeLaborRateAtCalc)
+        : null,
+    serviceFeeMaterialsAmount:
+      b.serviceFeeMaterialsAmount != null && Number.isFinite(Number(b.serviceFeeMaterialsAmount))
+        ? Number(b.serviceFeeMaterialsAmount)
+        : null,
+    serviceFeeMaterialsDescription:
+      typeof b.serviceFeeMaterialsDescription === "string" ? b.serviceFeeMaterialsDescription : "",
+    serviceFeeReplacementParts: Array.isArray(b.serviceFeeReplacementParts)
+      ? b.serviceFeeReplacementParts
+      : [],
+    paymentStatus: b.paymentStatus || "unpaid",
+    paymentMethod: b.paymentMethod || "",
+    paidAt: b.paidAt || null,
+    customerReviewRating: b.customerReviewRating || null,
+    customerReviewComment: b.customerReviewComment || "",
     assignedTechnicians: uniqueTechNames,
+    assignedTechnicianName: b.assignedTechnicianName || "",
   }
 }
 
@@ -1903,13 +1936,16 @@ export const listAdminServiceBookings = asyncHandler(async (req, res) => {
   const rows = await Booking.find(query)
     .sort({ createdAt: -1 })
     .populate("customer", "fullName email phoneCode phoneNumber role")
-    .populate("shopOwner", "fullName shopName")
-    .populate("shopService", "name category subcategory location status technicianIds")
+    .populate("shopOwner", "fullName shopName role phone phoneNumber email")
+    .populate("shopService", "name category subcategory location status technicianIds startingPrice")
     .lean()
 
   const techNameById = await buildTechnicianNameMap(rows)
   const data = rows.map((row) => mapBookingForAdmin(row, techNameById)).filter(Boolean)
-  return res.json({ data })
+  return res.json({
+    data,
+    bookings: data,
+  })
 })
 
 export const getAdminServiceBookingStats = asyncHandler(async (_req, res) => {

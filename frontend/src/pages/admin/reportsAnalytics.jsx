@@ -175,8 +175,21 @@ export function AdminReportsAnalyticsContent() {
         throw new Error(bData?.message || "Failed to fetch platform bookings.")
       }
 
-      setBookings(Array.isArray(bData?.bookings) ? bData.bookings : Array.isArray(bData) ? bData : [])
-      setUsers(Array.isArray(uData?.users) ? uData.users : Array.isArray(uData) ? uData : [])
+      const rawBookings = Array.isArray(bData?.data)
+        ? bData.data
+        : Array.isArray(bData?.bookings)
+        ? bData.bookings
+        : Array.isArray(bData)
+        ? bData
+        : []
+      const rawUsers = Array.isArray(uData?.users)
+        ? uData.users
+        : Array.isArray(uData)
+        ? uData
+        : []
+
+      setBookings(rawBookings)
+      setUsers(rawUsers)
       if (isRefresh) toast.success("Reports refreshed successfully!")
     } catch (err) {
       setLoadError(err.message || "Failed to load system reports.")
@@ -420,7 +433,7 @@ export function AdminReportsAnalyticsContent() {
   const topProvidersLeaderboard = useMemo(() => {
     const map = {}
     dateFilteredBookings.forEach((b) => {
-      const providerId = b.shopOwner?._id || b.shopOwner?.fullName || "Shop"
+      const providerId = b.shopOwner?._id || b.shopOwner?.id || b.shopOwner?.fullName || "Shop"
       const providerName = b.shopOwner?.shopName || b.shopOwner?.fullName || "Auto Service Partner"
       if (!map[providerId]) {
         map[providerId] = {
@@ -458,7 +471,7 @@ export function AdminReportsAnalyticsContent() {
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim()
-        const idMatch = String(b._id || "").toLowerCase().includes(q)
+        const idMatch = String(b.id || b._id || b.ref || "").toLowerCase().includes(q)
         const custMatch = String(b.contactName || b.customer?.fullName || "").toLowerCase().includes(q)
         const shopMatch = String(b.shopOwner?.shopName || b.shopOwner?.fullName || "").toLowerCase().includes(q)
         const serviceMatch = String(b.shopService?.name || "").toLowerCase().includes(q)
@@ -491,29 +504,31 @@ export function AdminReportsAnalyticsContent() {
     }
 
     const headers = [
-      "Booking Ref / ID",
+      "Booking Reference / ID",
       "Date",
       "Customer Name",
       "Customer Phone",
       "Provider / Shop Name",
+      "Provider Type",
       "Service Category / Name",
       "Service Mode",
-      "Labor Fee (PHP)",
-      "Materials Fee (PHP)",
+      "Labor Amount (PHP)",
+      "Materials / Parts (PHP)",
       "Total Amount (PHP)",
       "Booking Status",
       "Payment Status",
-      "Customer Rating",
+      "Customer Review Rating",
     ]
 
     const rows = tableRecords.map((b) => [
-      b.ref || b._id || "",
+      b.ref || (b.id ? `BK-${String(b.id).slice(-8).toUpperCase()}` : (b._id ? `BK-${String(b._id).slice(-8).toUpperCase()}` : "")),
       formatDateDisplay(b.preferredDate || b.createdAt),
       b.contactName || b.customer?.fullName || "Customer",
       b.contactPhone || b.customer?.phone || "—",
       b.shopOwner?.shopName || b.shopOwner?.fullName || "Provider",
+      b.shopOwner?.role === "mechanic_independent" ? "On-Call Mechanic" : "Auto Repair Shop",
       b.shopService?.name || b.serviceCategory || "Repair Service",
-      b.serviceMode === "home" ? "Home Service" : "Shop Diagnostic",
+      b.serviceMode === "home" ? "Home Service" : "Shop Service",
       Number(b.serviceFeeLaborRateAtCalc || 0),
       Number(b.serviceFeeMaterialsAmount || 0),
       calculateBookingAmount(b),
@@ -547,39 +562,43 @@ export function AdminReportsAnalyticsContent() {
 
     const rows = tableRecords.map((b, idx) => [
       `#${idx + 1}`,
-      b.ref ? `#${b.ref}` : (b._id?.slice(-8) || "—"),
+      b.ref ? `#${b.ref}` : (b.id ? `#BK-${String(b.id).slice(-8).toUpperCase()}` : (b._id ? `#BK-${String(b._id).slice(-8).toUpperCase()}` : "—")),
       formatDateDisplay(b.preferredDate || b.createdAt),
       b.contactName || b.customer?.fullName || "Customer",
       b.shopOwner?.shopName || b.shopOwner?.fullName || "Provider",
       b.shopService?.name || b.serviceCategory || "Service",
-      b.serviceMode === "home" ? "Home Service" : "Shop Visit",
+      b.serviceMode === "home" ? "Home Service" : "Shop Service",
+      currencyPHP(b.serviceFeeLaborRateAtCalc || 0),
+      currencyPHP(b.serviceFeeMaterialsAmount || 0),
       currencyPHP(calculateBookingAmount(b)),
       b.status ? b.status.toUpperCase() : "PENDING",
       b.paymentStatus ? b.paymentStatus.toUpperCase() : "UNPAID",
       b.customerReviewRating ? `${b.customerReviewRating} ★` : "—",
     ])
 
-    const totalGMV = tableRecords.reduce((sum, b) => sum + calculateBookingAmount(b), 0)
+    const totalRevenueCalc = tableRecords.reduce((sum, b) => sum + calculateBookingAmount(b), 0)
+    const totalLaborCalc = tableRecords.reduce((sum, b) => sum + Number(b.serviceFeeLaborRateAtCalc || 0), 0)
+    const totalPartsCalc = tableRecords.reduce((sum, b) => sum + Number(b.serviceFeeMaterialsAmount || 0), 0)
 
     printOfficialDocument({
-      systemName: "E-PAAYOS REPAIR & SERVICES SYSTEM",
-      systemTagline: "Centralized Automotive & Electronics Multi-Vendor Management Platform",
-      docTitle: "SYSTEM AUDIT & PERFORMANCE ANALYTICS REPORT",
-      docSubtitle: "Official Executive Platform Volume & Operational Performance Documentation",
+      systemName: "E-PAAYOS REPAIR & SERVICES SYSTEM • ADMIN HEADQUARTERS",
+      systemTagline: "Centralized Multi-Vendor Automotive & Electronics Management Platform",
+      docTitle: "PLATFORM AUDIT & OPERATIONS ANALYTICS REPORT",
+      docSubtitle: "Executive Multi-Vendor Performance, Gross Volume & Financial Documentation",
       docCode: `DOC-ADM-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`,
       periodLabel: `${periodLabel} (Scope: ${statusFilter !== "all" ? `Status=${statusFilter}` : "All Statuses"}, ${roleFilter !== "all" ? `Provider=${roleFilter}` : "All Providers"})`,
       entity: {
         name: currentAdmin.fullName || "E-Paayos Administration Office",
-        role: "Platform Administrator & System Auditor",
-        contact: currentAdmin.email || currentAdmin.phone || "admin@e-paayos.ph",
+        role: "Central Platform Administrator & System Auditor",
+        contact: currentAdmin.email || currentAdmin.phone || currentAdmin.phoneNumber || "admin@e-paayos.ph",
         address: "Central System Management & Operations Center",
         extra: `Active User Accounts: ${kpis.totalUsers} (${kpis.customerCount} Customers, ${kpis.shopOwnerCount} Shops, ${kpis.mechanicCount} Independent Mechanics)`,
       },
       kpis: [
-        { label: "Platform Gross Volume", value: currencyPHP(kpis.totalPlatformGMV), helper: `${kpis.completedCount} completed repair requests` },
-        { label: "Total Bookings Handled", value: String(kpis.totalBookings), helper: `${kpis.completionRate}% fulfillment rate` },
-        { label: "Active In-Progress", value: String(kpis.workingCount + kpis.pendingCount), helper: `${kpis.workingCount} working, ${kpis.pendingCount} pending` },
-        { label: "Customer Satisfaction", value: `${kpis.avgRating} ★`, helper: `From ${kpis.ratingCount} client rating evaluations` },
+        { label: "Total Platform GMV", value: currencyPHP(kpis.totalPlatformGMV), helper: `Labor: ${currencyPHP(kpis.totalLaborVolume)} • Parts: ${currencyPHP(kpis.totalPartsVolume)}` },
+        { label: "Platform Bookings", value: String(kpis.totalBookings), helper: `${kpis.completedCount} completed (${kpis.completionRate}% rate)` },
+        { label: "Active Jobs in Queue", value: String(kpis.workingCount + kpis.pendingCount), helper: `${kpis.workingCount} in progress, ${kpis.pendingCount} pending` },
+        { label: "Customer Satisfaction", value: `${kpis.avgRating} ★`, helper: `Rated across ${kpis.ratingCount} client evaluations` },
       ],
       sections: [
         {
@@ -589,7 +608,7 @@ export function AdminReportsAnalyticsContent() {
           rows: topProvidersLeaderboard.map((p) => [
             p.name,
             p.type,
-            `${p.completed} completed`,
+            `${p.completed} jobs`,
             currencyPHP(p.totalVolume),
             p.ratingCount > 0 ? `${(p.ratingSum / p.ratingCount).toFixed(1)} ★ (${p.ratingCount} reviews)` : "5.0 ★ (New)",
           ]),
@@ -611,11 +630,11 @@ export function AdminReportsAnalyticsContent() {
       ledger: {
         title: "Section 3: Master Booking & Transaction Audit Ledger",
         subtitle: `Itemized audit records (${tableRecords.length} entries matching selected filters)`,
-        headers: ["#", "Ref Code", "Date", "Customer Name", "Provider / Shop", "Service", "Mode", "Total Bill", "Status", "Payment", "Rating"],
+        headers: ["#", "Ref Code", "Date", "Customer Name", "Provider / Shop", "Service", "Mode", "Labor Fee", "Parts / Mats", "Total Bill", "Status", "Payment", "Rating"],
         rows,
-        amountColIdxs: [7],
-        statusColIdx: 8,
-        aligns: ["text-center", "", "", "", "", "", "text-center", "text-right", "text-center", "text-center", "text-center"],
+        amountColIdxs: [7, 8, 9],
+        statusColIdx: 10,
+        aligns: ["text-center", "", "", "", "", "", "text-center", "text-right", "text-right", "text-right", "text-center", "text-center", "text-center"],
         totals: [
           "Summary Total",
           `${tableRecords.length} records`,
@@ -624,18 +643,20 @@ export function AdminReportsAnalyticsContent() {
           "—",
           "—",
           "—",
-          currencyPHP(totalGMV),
+          currencyPHP(totalLaborCalc),
+          currencyPHP(totalPartsCalc),
+          currencyPHP(totalRevenueCalc),
           `${kpis.completedCount} Completed`,
           "—",
-          `${kpis.avgRating} ★ Average`,
+          `${kpis.avgRating} ★ Avg`,
         ],
       },
       signOff: {
         preparedBy: currentAdmin.fullName || "System Administrator",
-        preparedRole: "Platform Operations & Data Compliance Lead",
-        verifiedBy: "Executive Operations Office",
-        verifiedRole: "Certified System Auditor",
-        notes: "This document is an official system-generated audit report from E-Paayos. All records, timestamps, and financial figures reflect verified platform transaction records as of generation date.",
+        preparedRole: "Central Operations & Platform Compliance Lead",
+        verifiedBy: "Executive Operations & Audit Office",
+        verifiedRole: "Certified Lead Auditor",
+        notes: "This official documentation represents verified system transaction records and provider service fulfillment logs for the designated reporting period.",
       },
     })
   }
@@ -1236,9 +1257,9 @@ export function AdminReportsAnalyticsContent() {
                     const amt = calculateBookingAmount(b)
                     const st = normalizeStatus(b.status)
                     return (
-                      <tr key={b._id} className="hover:bg-slate-50 transition-colors">
+                      <tr key={b.id || b._id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-3.5 py-2.5 font-mono font-bold text-slate-700">
-                          BK-{String(b._id || "").slice(-6).toUpperCase()}
+                          {b.ref ? b.ref : (b.id ? `BK-${String(b.id).slice(-6).toUpperCase()}` : (b._id ? `BK-${String(b._id).slice(-6).toUpperCase()}` : "—"))}
                         </td>
                         <td className="px-3.5 py-2.5 text-slate-600 whitespace-nowrap">
                           {formatDateDisplay(b.preferredDate || b.createdAt)}
