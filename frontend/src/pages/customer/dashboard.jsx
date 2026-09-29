@@ -257,7 +257,7 @@ function FeaturedShopCard({ shop, readableShopAddress }) {
         </div>
 
         <Badge
-          className={`absolute bottom-2 left-2 sm:bottom-2.5 sm:left-2.5 rounded-none px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-sm ${
+          className={`absolute bottom-2 right-2 sm:bottom-2.5 sm:right-2.5 rounded-none px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-sm ${
             isOnCall
               ? 'border border-violet-400/40 bg-violet-600/95 text-white'
               : 'border border-sky-400/40 bg-[#081F5C]/95 text-white'
@@ -420,7 +420,18 @@ function CustomerDashboard() {
     setLoading(true)
     setListError('')
     try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setLoading(false)
+        return
+      }
       const res = await fetch(`${API_URL}/api/catalog/bookings`, { headers: authHeaders() })
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.hash = '#/login'
+        return
+      }
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || 'Could not load dashboard data.')
       const rows = Array.isArray(data?.bookings) ? data.bookings : []
@@ -437,7 +448,18 @@ function CustomerDashboard() {
     setCatalogLoading(true)
     setCatalogError('')
     try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        setCatalogLoading(false)
+        return
+      }
       const res = await fetch(`${API_URL}/api/catalog/shop-services`, { headers: authHeaders() })
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.hash = '#/login'
+        return
+      }
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || 'Could not load services.')
       setCatalogServices(Array.isArray(data) ? data : [])

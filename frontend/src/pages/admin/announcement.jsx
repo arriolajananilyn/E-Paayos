@@ -26,8 +26,9 @@ import {
   Search,
   Trash2,
 } from 'lucide-react'
+import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 
-const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+const API_URL = getApiBaseUrl()
 
 const STAT_CARD_GRADIENT = {
   total: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',

@@ -14,6 +14,7 @@ import {
   Store,
   User,
   Wrench,
+  RotateCcw,
 } from 'lucide-react'
 import logoEpaayos from '../assets/epaayosLOGO.png'
 import {
@@ -44,6 +45,12 @@ const PAGE_TOP_BAR_CONFIG = {
     icon: Wrench,
     backUrl: '#/customer/find-services',
   },
+  'view-shop': {
+    title: 'Shop Profile',
+    description: 'View shop details, location map, service catalog, and customer reviews',
+    icon: Store,
+    backUrl: '#/customer/find-services',
+  },
   'reviews-ratings': {
     title: 'Reviews & Ratings',
     description: 'View and manage your service reviews and ratings',
@@ -66,6 +73,18 @@ const PAGE_TOP_BAR_CONFIG = {
     title: 'Booking History',
     description: 'View your completed, past, and cancelled service requests',
     icon: Wrench,
+    backUrl: '#/customer/my-bookings',
+  },
+  'booking-details': {
+    title: 'Booking Details',
+    description: 'View real-time booking status, assigned staff, and service quote',
+    icon: Wrench,
+    backUrl: '#/customer/my-bookings',
+  },
+  'track-refix': {
+    title: 'Track Refix / Re-repair',
+    description: 'Real-time tracking of your rework service and warranty claim',
+    icon: RotateCcw,
     backUrl: '#/customer/my-bookings',
   },
 }
@@ -359,9 +378,10 @@ export default function CustomerLayout({ children, activePage, hideBottomNav = f
   const currentRoute = typeof window !== 'undefined' ? window.location.hash || '' : ''
   const currentTab =
     activePage ||
-    (currentRoute.startsWith('#/customer/shop/') ||
-    currentRoute.startsWith('#/customer/view-shop/')
+    (currentRoute.startsWith('#/customer/shop/')
       ? 'service-details'
+      : currentRoute.startsWith('#/customer/view-shop/')
+      ? 'view-shop'
       : currentRoute.startsWith('#/customer/find-services')
         ? 'find-services'
         : currentRoute.startsWith('#/customer/my-bookings')
@@ -378,7 +398,7 @@ export default function CustomerLayout({ children, activePage, hideBottomNav = f
                   ? 'account-settings'
                   : 'home')
 
-  const shouldShowBottomNav = !hideBottomNav && currentTab !== 'service-details'
+  const shouldShowBottomNav = !hideBottomNav && currentTab !== 'service-details' && currentTab !== 'view-shop'
 
   if (!user) {
     return (

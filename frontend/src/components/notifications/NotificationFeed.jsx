@@ -163,10 +163,18 @@ export function useNotificationUnreadCount({ user, readScope, bookingsUrl, route
 
   const refresh = async () => {
     if (!user || !enabled) return
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setUnreadCount(0)
+      return
+    }
     try {
       const res = await fetch(url, { headers: notificationAuthHeaders() })
+      if (res.status === 401 || !res.ok) {
+        setUnreadCount(0)
+        return
+      }
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) return
       const bookings = Array.isArray(data?.bookings)
         ? data.bookings
         : Array.isArray(data?.data)
@@ -535,10 +543,21 @@ export function NotificationFeedContent({
 
   const loadNotifications = async () => {
     if (!user) return
+    const token = localStorage.getItem('token')
+    if (!token) {
+      setItems([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
       const res = await fetch(url, { headers: notificationAuthHeaders() })
+      if (res.status === 401) {
+        setItems([])
+        setError('Your session has expired. Please log in again.')
+        return
+      }
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || 'Could not load notifications.')
       const bookings = Array.isArray(data?.bookings)

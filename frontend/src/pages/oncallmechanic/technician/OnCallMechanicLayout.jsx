@@ -16,6 +16,7 @@ import {
 } from '../../../components/ui/sidebar'
 import { TooltipProvider } from '../../../components/ui/tooltip'
 import {
+  BarChart3,
   Bell,
   Building2,
   ChevronDown,
@@ -65,6 +66,7 @@ const ROUTES = {
   serviceHistory: '#/independent/technician/service-history',
   messages: '#/independent/technician/messages',
   ratingsReviews: '#/independent/technician/ratings-reviews',
+  reportsAnalytics: '#/independent/technician/reports-analytics',
   notification: '#/independent/technician/notification',
   accountSettings: '#/independent/technician/account-settings',
 }
@@ -183,6 +185,7 @@ export default function OnCallMechanicLayout({
   const isServiceHistoryActive = activeSection === 'service-history'
   const isMessagesActive = activeSection === 'messages'
   const isRatingsReviewsActive = activeSection === 'ratings-reviews'
+  const isReportsAnalyticsActive = activeSection === 'reports-analytics'
   const isNotificationActive = activeSection === 'notification'
   const isAccountSettingsActive = activeSection === 'account-settings'
 
@@ -299,6 +302,17 @@ export default function OnCallMechanicLayout({
                       >
                         <Star className="size-[18px] opacity-90" />
                         <span className="whitespace-nowrap">Ratings & Reviews</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isReportsAnalyticsActive}
+                        tooltip="Reports & Analytics"
+                        onClick={() => go(ROUTES.reportsAnalytics)}
+                        className={sidebarMenuButtonClass}
+                      >
+                        <BarChart3 className="size-[18px] opacity-90" />
+                        <span className="whitespace-nowrap">Reports & Analytics</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>

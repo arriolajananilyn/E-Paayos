@@ -5,20 +5,26 @@ import path from "path"
 import { fileURLToPath } from "url"
 import crypto from "crypto"
 import { User } from "../models/userModel.js"
+import { ShopEmployee } from "../models/shopEmployeeModel.js"
 import { ShopService } from "../models/shopServiceModel.js"
 import { Booking } from "../models/bookingModel.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 import { sendDirectMessage } from "../services/directMessage.js"
 import {
   buildPaymentProofAttachments,
+  buildStartJobProofAttachments,
+  buildWarrantyProofAttachments,
   formatNewBookingCustomerToProvider,
   formatPaymentToProvider,
   formatServiceFeeToCustomer,
   formatStatusUpdateToCustomer,
   formatTechnicianActionToCustomer,
+  formatWarrantyClaimCustomerToProvider,
+  formatWarrantyClaimResponseToCustomer,
   issuePhotosToMessageAttachments,
 } from "../utils/bookingAutoMessages.js"
 import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
+import { formatReadableShopAddress } from "../utils/psgcResolve.js"
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : ""
@@ -108,6 +114,18 @@ async function normalizeIssuePhotos(value, req) {
   const list = parseIssuePhotos(value)
   if (!list.length) return []
   const out = await Promise.all(list.map((src) => persistIssuePhotoSource(src, req)))
+  return out.filter(Boolean)
+}
+
+async function normalizeProofPhotos(value, req) {
+  let list = []
+  if (Array.isArray(value)) {
+    list = value.map((x) => clean(String(x || ""))).filter(Boolean)
+  } else if (typeof value === "string" && clean(value)) {
+    list = [clean(value)]
+  }
+  if (!list.length) return []
+  const out = await Promise.all(list.slice(0, 6).map((src) => persistIssuePhotoSource(src, req)))
   return out.filter(Boolean)
 }
 
@@ -344,19 +362,79 @@ function preferredDateToYmd(d) {
   return x.toISOString().slice(0, 10)
 }
 
-function mapBookingForCustomer(b) {
+async function resolveBookingTechnician(shopOwnerId, techId) {
+  if (!techId) return null
+  const s = String(techId).trim()
+  if (!s || !mongoose.Types.ObjectId.isValid(s)) return null
+  const oid = new mongoose.Types.ObjectId(s)
+  if (String(shopOwnerId) === s) {
+    const owner = await User.findById(oid).select("fullName phoneCode phoneNumber shopJobTitle").lean()
+    if (owner) {
+      return {
+        id: owner._id,
+        name: owner.fullName || "Provider",
+        jobTitle: owner.shopJobTitle || "On-call Mechanic/Technician",
+        phone: [owner.phoneCode, owner.phoneNumber].filter(Boolean).join(" ").trim(),
+        model: "User",
+      }
+    }
+  }
+  const userMech = await User.findOne({
+    _id: oid,
+    role: "mechanic-technician",
+    employedByShopOwner: shopOwnerId,
+  }).select("fullName phoneCode phoneNumber shopJobTitle").lean()
+  if (userMech) {
+    return {
+      id: userMech._id,
+      name: userMech.fullName || "Mechanic",
+      jobTitle: userMech.shopJobTitle || "Mechanic / Technician",
+      phone: [userMech.phoneCode, userMech.phoneNumber].filter(Boolean).join(" ").trim(),
+      model: "User",
+    }
+  }
+  const emp = await ShopEmployee.findOne({
+    _id: oid,
+    shopOwner: shopOwnerId,
+  }).lean()
+  if (emp) {
+    return {
+      id: emp._id,
+      name: emp.name || "Directory staff",
+      jobTitle: "Directory staff",
+      phone: "",
+      model: "ShopEmployee",
+    }
+  }
+  return null
+}
+
+function mapBookingForCustomer(b, shopAddressReadable = "") {
   if (!b) return null
   const svc = b.shopService && typeof b.shopService === "object" ? b.shopService : null
   const owner = b.shopOwner && typeof b.shopOwner === "object" ? b.shopOwner : null
   const id = String(b._id)
   const shopName = (owner?.shopName && String(owner.shopName).trim()) || owner?.fullName || "Shop"
+  const shopOwnerName = (owner?.fullName && String(owner.fullName).trim()) || ""
+  const shopPhone = [owner?.phoneCode, owner?.phoneNumber].filter(Boolean).join(" ").trim()
+  const shopAddress = shopAddressReadable || [owner?.shopDetailedAddress, owner?.shopBarangay, owner?.shopCityMunicipality, owner?.shopProvince].filter(Boolean).join(", ").trim()
   const shopImage = owner?.shopPlacePhoto || ""
   return {
     id,
     ref: `BK-${id.slice(-8).toUpperCase()}`,
     shopServiceId: svc?._id != null ? String(svc._id) : "",
+    shopOwnerId: owner?._id != null ? String(owner._id) : "",
     serviceName: svc?.name || "Service",
     shopName,
+    shopOwnerName,
+    shopPhone,
+    shopAddress,
+    shopRegion: owner?.shopRegion || "",
+    shopProvince: owner?.shopProvince || "",
+    shopCityMunicipality: owner?.shopCityMunicipality || "",
+    shopBarangay: owner?.shopBarangay || "",
+    shopDetailedAddress: owner?.shopDetailedAddress || "",
+    shopOperatingHours: owner?.operatingHours || "",
     shopImage,
     acceptedPaymentMethods: Array.isArray(owner?.acceptedPaymentMethods) ? owner.acceptedPaymentMethods : [],
     category: svc?.category || "",
@@ -369,10 +447,16 @@ function mapBookingForCustomer(b) {
     serviceMode: b.serviceMode,
     serviceAddress: b.serviceAddress || "",
     issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos : [],
+    startJobProofPhotos: Array.isArray(b.startJobProofPhotos) ? b.startJobProofPhotos : [],
+    completionProofPhotos: Array.isArray(b.completionProofPhotos) ? b.completionProofPhotos : [],
+    completionNotes: b.completionNotes || "",
     problemDescription: b.problemDescription,
     notes: b.notes || "",
     status: b.status,
     rejectionReason: b.rejectionReason || "",
+    assignedTechnicianName: b.assignedTechnicianName || "",
+    assignedTechnicianJobTitle: b.assignedTechnicianJobTitle || "",
+    assignedTechnicianPhone: b.assignedTechnicianPhone || "",
     serviceFeeLaborRateAtCalc:
       b.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(b.serviceFeeLaborRateAtCalc))
         ? Number(b.serviceFeeLaborRateAtCalc)
@@ -383,17 +467,44 @@ function mapBookingForCustomer(b) {
         : null,
     serviceFeeReplacementParts: Array.isArray(b.serviceFeeReplacementParts)
       ? b.serviceFeeReplacementParts
-          .map((x) => ({
-            name: typeof x?.name === "string" ? x.name : "",
-            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
-          }))
-          .filter((x) => x.name)
+        .map((x) => ({
+          name: typeof x?.name === "string" ? x.name : "",
+          price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+        }))
+        .filter((x) => x.name)
       : [],
     serviceFeeConfirmedAt: b.serviceFeeConfirmedAt || null,
+    fixedAt: b.fixedAt || null,
     paymentStatus: b.paymentStatus || "unpaid",
     paymentMethod: b.paymentMethod || "",
     paymentProofImage: b.paymentProofImage || "",
     paidAt: b.paidAt || null,
+    completedAt: b.completedAt || b.paidAt || (b.status === "completed" ? b.updatedAt : null),
+    warrantyClaim: b.warrantyClaim
+      ? {
+          status: b.warrantyClaim.status || "none",
+          claimType: b.warrantyClaim.claimType || "refund",
+          reason: b.warrantyClaim.reason || "",
+          details: b.warrantyClaim.details || "",
+          proofPhotos: Array.isArray(b.warrantyClaim.proofPhotos) ? b.warrantyClaim.proofPhotos : [],
+          isLaborCovered: b.warrantyClaim.isLaborCovered ?? true,
+          isPartsCovered: b.warrantyClaim.isPartsCovered ?? false,
+          requestedAmount: Number(b.warrantyClaim.requestedAmount) || 0,
+          approvedAmount: Number(b.warrantyClaim.approvedAmount) || 0,
+          refundPaymentMethod: b.warrantyClaim.refundPaymentMethod || "",
+          refundAccountName: b.warrantyClaim.refundAccountName || "",
+          refundAccountNumber: b.warrantyClaim.refundAccountNumber || "",
+          refundProofImage: b.warrantyClaim.refundProofImage || "",
+          rejectionReason: b.warrantyClaim.rejectionReason || "",
+          resolutionNotes: b.warrantyClaim.resolutionNotes || "",
+          claimedAt: b.warrantyClaim.claimedAt || null,
+          approvedAt: b.warrantyClaim.approvedAt || null,
+          startedAt: b.warrantyClaim.startedAt || null,
+          fixedAt: b.warrantyClaim.fixedAt || null,
+          resolvedAt: b.warrantyClaim.resolvedAt || null,
+        }
+      : { status: "none" },
+    warrantySettings: owner?.warrantySettings || null,
     customerReviewRating:
       Number.isFinite(Number(b.customerReviewRating)) && Number(b.customerReviewRating) > 0
         ? Number(b.customerReviewRating)
@@ -422,11 +533,73 @@ export const listCustomerBookings = asyncHandler(async (req, res) => {
   const rows = await Booking.find(query)
     .sort({ createdAt: -1 })
     .populate("shopService", "name category subcategory location status startingPrice")
-    .populate("shopOwner", "fullName shopName acceptedPaymentMethods shopPlacePhoto")
+    .populate("shopOwner", "fullName shopName acceptedPaymentMethods shopPlacePhoto phoneCode phoneNumber shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress operatingHours warrantySettings role")
     .lean()
 
+  const ownerMap = new Map()
+  for (const b of rows) {
+    if (b.shopOwner?._id) {
+      const oid = String(b.shopOwner._id)
+      if (!ownerMap.has(oid)) {
+        ownerMap.set(oid, b.shopOwner)
+      }
+    }
+  }
+
+  const addressByOwner = new Map()
+  await Promise.all(
+    [...ownerMap.entries()].map(async ([oid, owner]) => {
+      try {
+        const readable = await formatReadableShopAddress(owner)
+        addressByOwner.set(oid, readable)
+      } catch {
+        addressByOwner.set(oid, "")
+      }
+    })
+  )
+
   return res.json({
-    bookings: rows.map((row) => mapBookingForCustomer(row)).filter(Boolean),
+    bookings: rows
+      .map((row) =>
+        mapBookingForCustomer(
+          row,
+          addressByOwner.get(String(row.shopOwner?._id || "")) || ""
+        )
+      )
+      .filter(Boolean),
+  })
+})
+
+export const getCustomerBookingById = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking ID")
+  }
+  const b = await Booking.findOne({ _id: id, customer: req.user._id })
+    .populate("shopService", "name category subcategory location status startingPrice servicePhotos")
+    .populate(
+      "shopOwner",
+      "fullName shopName acceptedPaymentMethods shopPlacePhoto phoneCode phoneNumber shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress operatingHours warrantySettings role"
+    )
+    .lean()
+
+  if (!b) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+
+  let readableAddress = ""
+  if (b.shopOwner) {
+    try {
+      readableAddress = await formatReadableShopAddress(b.shopOwner)
+    } catch {
+      readableAddress = ""
+    }
+  }
+
+  return res.json({
+    booking: mapBookingForCustomer(b, readableAddress),
   })
 })
 
@@ -462,11 +635,14 @@ export const payCustomerBooking = asyncHandler(async (req, res) => {
   const allowed = Array.isArray(booking.shopOwner?.acceptedPaymentMethods)
     ? booking.shopOwner.acceptedPaymentMethods
     : []
-  let chosen = allowed.find((m) => String(m?.id || "") === paymentMethod)
+  let chosen = allowed.find(
+    (m) => String(m?.id || m?._id || "") === paymentMethod || String(m?.type || "") === paymentMethod
+  )
   if (!chosen) {
-    // Cash on-site is always available as face-to-face fallback.
-    if (paymentMethod === "cash_on_service") {
-      chosen = { type: "cash_on_service" }
+    if (paymentMethod === "cash_on_service" || paymentMethod === "cash") {
+      chosen = { type: "cash_on_service", name: "Cash on Service" }
+    } else if (paymentMethod === "gcash" || paymentMethod === "maya" || paymentMethod === "bank_transfer") {
+      chosen = { type: paymentMethod, name: paymentMethod.toUpperCase() }
     } else {
       res.status(400)
       throw new Error("Selected payment method is not available.")
@@ -875,33 +1051,41 @@ function mapBookingForShopOwner(b) {
     serviceLatitude: b.serviceLatitude,
     serviceLongitude: b.serviceLongitude,
     issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos : [],
+    startJobProofPhotos: Array.isArray(b.startJobProofPhotos) ? b.startJobProofPhotos : [],
+    completionProofPhotos: Array.isArray(b.completionProofPhotos) ? b.completionProofPhotos : [],
+    completionNotes: b.completionNotes || "",
     problemDescription: b.problemDescription,
     notes: b.notes || "",
     rejectionReason: b.rejectionReason || "",
+    assignedTechnician: b.assignedTechnician ? String(b.assignedTechnician) : null,
+    assignedTechnicianName: b.assignedTechnicianName || "",
+    assignedTechnicianJobTitle: b.assignedTechnicianJobTitle || "",
+    assignedTechnicianPhone: b.assignedTechnicianPhone || "",
+    assignedTechnicianModel: b.assignedTechnicianModel || "none",
     createdAt: b.createdAt,
     updatedAt: b.updatedAt,
     customer: cust
       ? {
-          fullName: cust.fullName || "",
-          email: cust.email || "",
-          phone: [cust.phoneCode, cust.phoneNumber].filter(Boolean).join(" ").trim(),
-        }
+        fullName: cust.fullName || "",
+        email: cust.email || "",
+        phone: [cust.phoneCode, cust.phoneNumber].filter(Boolean).join(" ").trim(),
+      }
       : null,
     shopService: svc
       ? {
-          id: String(svc._id),
-          name: svc.name || "",
-          category: svc.category || "",
-          subcategory: svc.subcategory || "",
-          location: svc.location,
-          status: svc.status,
-          startingPrice:
-            svc.startingPrice != null &&
+        id: String(svc._id),
+        name: svc.name || "",
+        category: svc.category || "",
+        subcategory: svc.subcategory || "",
+        location: svc.location,
+        status: svc.status,
+        startingPrice:
+          svc.startingPrice != null &&
             Number.isFinite(Number(svc.startingPrice)) &&
             Number(svc.startingPrice) > 0
-              ? Number(svc.startingPrice)
-              : null,
-        }
+            ? Number(svc.startingPrice)
+            : null,
+      }
       : null,
     serviceFeeLaborRateAtCalc:
       b.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(b.serviceFeeLaborRateAtCalc))
@@ -914,13 +1098,44 @@ function mapBookingForShopOwner(b) {
     serviceFeeMaterialsDescription: typeof b.serviceFeeMaterialsDescription === "string" ? b.serviceFeeMaterialsDescription : "",
     serviceFeeReplacementParts: Array.isArray(b.serviceFeeReplacementParts)
       ? b.serviceFeeReplacementParts
-          .map((x) => ({
-            name: typeof x?.name === "string" ? x.name : "",
-            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
-          }))
-          .filter((x) => x.name)
+        .map((x) => ({
+          name: typeof x?.name === "string" ? x.name : "",
+          price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+        }))
+        .filter((x) => x.name)
       : [],
     serviceFeeConfirmedAt: b.serviceFeeConfirmedAt || null,
+    fixedAt: b.fixedAt || null,
+    paymentStatus: b.paymentStatus || "unpaid",
+    paymentMethod: b.paymentMethod || "",
+    paymentProofImage: b.paymentProofImage || "",
+    paidAt: b.paidAt || null,
+    completedAt: b.completedAt || b.paidAt || (b.status === "completed" ? b.updatedAt : null),
+    warrantyClaim: b.warrantyClaim
+      ? {
+          status: b.warrantyClaim.status || "none",
+          claimType: b.warrantyClaim.claimType || "refund",
+          reason: b.warrantyClaim.reason || "",
+          details: b.warrantyClaim.details || "",
+          proofPhotos: Array.isArray(b.warrantyClaim.proofPhotos) ? b.warrantyClaim.proofPhotos : [],
+          isLaborCovered: b.warrantyClaim.isLaborCovered ?? true,
+          isPartsCovered: b.warrantyClaim.isPartsCovered ?? false,
+          requestedAmount: Number(b.warrantyClaim.requestedAmount) || 0,
+          approvedAmount: Number(b.warrantyClaim.approvedAmount) || 0,
+          refundPaymentMethod: b.warrantyClaim.refundPaymentMethod || "",
+          refundAccountName: b.warrantyClaim.refundAccountName || "",
+          refundAccountNumber: b.warrantyClaim.refundAccountNumber || "",
+          refundProofImage: b.warrantyClaim.refundProofImage || "",
+          rejectionReason: b.warrantyClaim.rejectionReason || "",
+          resolutionNotes: b.warrantyClaim.resolutionNotes || "",
+          claimedAt: b.warrantyClaim.claimedAt || null,
+          approvedAt: b.warrantyClaim.approvedAt || null,
+          startedAt: b.warrantyClaim.startedAt || null,
+          fixedAt: b.warrantyClaim.fixedAt || null,
+          resolvedAt: b.warrantyClaim.resolvedAt || null,
+        }
+      : { status: "none" },
+    warrantySettings: b.shopOwner?.warrantySettings || null,
   }
 }
 
@@ -938,6 +1153,7 @@ export const listShopOwnerBookings = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .populate("customer", "fullName email phoneCode phoneNumber")
     .populate("shopService", "name category subcategory location status startingPrice")
+    .populate("shopOwner", "fullName shopName warrantySettings")
     .lean()
 
   return res.json({
@@ -948,7 +1164,7 @@ export const listShopOwnerBookings = asyncHandler(async (req, res) => {
 const MIN_REJECTION_REASON_LEN = 10
 
 /**
- * PATCH body: { status: pending|confirmed|working|cancelled|completed, rejectionReason?: string }
+ * PATCH body: { status?: pending|confirmed|working|cancelled|completed, rejectionReason?: string, assignedTechnician?: string }
  * When status is "cancelled", rejectionReason is required (min length enforced).
  * Transitions: pending→confirmed|cancelled; confirmed→working; working→completed (complete only after working).
  */
@@ -961,10 +1177,6 @@ export const patchShopOwnerBookingStatus = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error("Invalid booking")
   }
-  if (!["confirmed", "working", "cancelled", "completed"].includes(nextStatus)) {
-    res.status(400)
-    throw new Error("Invalid status")
-  }
 
   const doc = await Booking.findOne({ _id: id, shopOwner: req.user._id })
   if (!doc) {
@@ -974,60 +1186,153 @@ export const patchShopOwnerBookingStatus = asyncHandler(async (req, res) => {
 
   const prev = doc.status
 
-  if (nextStatus === "cancelled") {
-    if (prev !== "pending") {
-      res.status(400)
-      throw new Error("Only pending bookings can be rejected.")
+  // Handle technician assignment/reassignment if passed
+  if (req.body?.assignedTechnician !== undefined) {
+    const assignedTechId = clean(req.body.assignedTechnician)
+    if (assignedTechId) {
+      const techInfo = await resolveBookingTechnician(req.user._id, assignedTechId)
+      if (techInfo) {
+        doc.assignedTechnician = techInfo.id
+        doc.assignedTechnicianName = techInfo.name
+        doc.assignedTechnicianJobTitle = techInfo.jobTitle
+        doc.assignedTechnicianPhone = techInfo.phone
+        doc.assignedTechnicianModel = techInfo.model
+      }
+    } else {
+      doc.assignedTechnician = null
+      doc.assignedTechnicianName = ""
+      doc.assignedTechnicianJobTitle = ""
+      doc.assignedTechnicianPhone = ""
+      doc.assignedTechnicianModel = "none"
     }
-    if (rejectionReason.length < MIN_REJECTION_REASON_LEN) {
+  }
+
+  if (nextStatus) {
+    if (!["confirmed", "working", "fixed", "completed", "cancelled"].includes(nextStatus)) {
       res.status(400)
-      throw new Error(`Please enter a rejection reason (at least ${MIN_REJECTION_REASON_LEN} characters).`)
+      throw new Error("Invalid status")
     }
-    doc.rejectionReason = rejectionReason
+
+    if (nextStatus === "cancelled") {
+      if (prev !== "pending") {
+        res.status(400)
+        throw new Error("Only pending bookings can be rejected.")
+      }
+      if (rejectionReason.length < MIN_REJECTION_REASON_LEN) {
+        res.status(400)
+        throw new Error(`Please enter a rejection reason (at least ${MIN_REJECTION_REASON_LEN} characters).`)
+      }
+      doc.rejectionReason = rejectionReason
+      doc.status = "cancelled"
+    }
+
+    if (nextStatus === "confirmed") {
+      if (prev !== "pending") {
+        res.status(400)
+        throw new Error("Only pending bookings can be confirmed.")
+      }
+      doc.status = "confirmed"
+    }
+
+    if (nextStatus === "working") {
+      if (prev !== "confirmed") {
+        res.status(400)
+        throw new Error("Only confirmed bookings can be marked as working.")
+      }
+      const rawProof =
+        req.body?.startJobProofPhotos ??
+        req.body?.workingProofPhotos ??
+        req.body?.proofPhotos ??
+        req.body?.pictureProof
+      const proofList = await normalizeProofPhotos(rawProof, req)
+      if (proofList.length === 0) {
+        res.status(400)
+        throw new Error("Please upload at least one picture proof before starting the job.")
+      }
+      doc.startJobProofPhotos = proofList
+      doc.status = "working"
+    }
+
+    if (nextStatus === "fixed") {
+      if (prev !== "working") {
+        res.status(400)
+        throw new Error("Mark the booking as working first, then mark as fixed when the repair is finished.")
+      }
+      if (
+        !doc.serviceFeeConfirmedAt ||
+        doc.serviceFeeMaterialsAmount == null ||
+        doc.serviceFeeLaborRateAtCalc == null
+      ) {
+        res.status(400)
+        throw new Error("Calculate and save the service fee before marking this job as fixed.")
+      }
+      doc.fixedAt = new Date()
+      doc.status = "fixed"
+    }
+
+    if (nextStatus === "completed") {
+      if (prev !== "fixed" && prev !== "working") {
+        res.status(400)
+        throw new Error("Mark the booking as fixed first, then complete when customer payment is confirmed.")
+      }
+      if (
+        !doc.serviceFeeConfirmedAt ||
+        doc.serviceFeeMaterialsAmount == null ||
+        doc.serviceFeeLaborRateAtCalc == null
+      ) {
+        res.status(400)
+        throw new Error("Calculate and save the service fee before completing.")
+      }
+      if (doc.paymentStatus !== "paid") {
+        res.status(400)
+        throw new Error("Customer must complete payment first before this booking can be marked as Paid (Completed).")
+      }
+
+      const rawCompletionProof =
+        req.body?.completionProofPhotos ??
+        req.body?.handoverProofPhotos ??
+        req.body?.proofPhotos ??
+        req.body?.completionProof
+      const completionProofList = await normalizeProofPhotos(rawCompletionProof, req)
+      if (completionProofList.length > 0) {
+        doc.completionProofPhotos = completionProofList
+      }
+      if (typeof req.body?.completionNotes === "string") {
+        doc.completionNotes = req.body.completionNotes.trim()
+      }
+
+      doc.status = "completed"
+      doc.completedAt = doc.completedAt || new Date()
+    }
   }
 
-  if (nextStatus === "confirmed" && prev !== "pending") {
-    res.status(400)
-    throw new Error("Only pending bookings can be confirmed.")
-  }
-
-  if (nextStatus === "working" && prev !== "confirmed") {
-    res.status(400)
-    throw new Error("Only confirmed bookings can be marked as working.")
-  }
-
-  if (nextStatus === "completed" && prev !== "working") {
-    res.status(400)
-    throw new Error("Mark the booking as working first, then complete when the job is done.")
-  }
-
-  if (
-    nextStatus === "completed" &&
-    (!doc.serviceFeeConfirmedAt || doc.serviceFeeMaterialsAmount == null || doc.serviceFeeLaborRateAtCalc == null)
-  ) {
-    res.status(400)
-    throw new Error("Calculate and save the service fee before marking this job complete.")
-  }
-
-  doc.status = nextStatus
   await doc.save()
 
-  try {
-    const actor = await User.findById(req.user._id).select("shopName fullName").lean()
-    const shopLabel = (actor?.shopName && String(actor.shopName).trim()) || actor?.fullName || "Provider"
-    const text = formatStatusUpdateToCustomer({
-      newStatus: nextStatus,
-      bookingRefId: doc._id,
-      shopName: shopLabel,
-      rejectionReason: nextStatus === "cancelled" ? doc.rejectionReason || rejectionReason : "",
-    })
-    await sendDirectMessage({
-      fromUserId: req.user._id,
-      toUserId: doc.customer,
-      content: text,
-    })
-  } catch (err) {
-    console.error("Booking chat notification failed:", err?.message || err)
+  if (nextStatus) {
+    try {
+      const actor = await User.findById(req.user._id).select("shopName fullName").lean()
+      const shopLabel = (actor?.shopName && String(actor.shopName).trim()) || actor?.fullName || "Provider"
+      const text = formatStatusUpdateToCustomer({
+        newStatus: nextStatus,
+        bookingRefId: doc._id,
+        shopName: shopLabel,
+        rejectionReason: nextStatus === "cancelled" ? doc.rejectionReason || rejectionReason : "",
+      })
+      let attachments = []
+      if (nextStatus === "working" && Array.isArray(doc.startJobProofPhotos) && doc.startJobProofPhotos.length > 0) {
+        attachments = buildStartJobProofAttachments(doc.startJobProofPhotos)
+      } else if (nextStatus === "completed" && Array.isArray(doc.completionProofPhotos) && doc.completionProofPhotos.length > 0) {
+        attachments = buildStartJobProofAttachments(doc.completionProofPhotos)
+      }
+      await sendDirectMessage({
+        fromUserId: req.user._id,
+        toUserId: doc.customer,
+        content: text,
+        attachments,
+      })
+    } catch (err) {
+      console.error("Booking chat notification failed:", err?.message || err)
+    }
   }
 
   const populated = await Booking.findById(doc._id)
@@ -1144,7 +1449,7 @@ export const patchShopOwnerBookingServiceFee = asyncHandler(async (req, res) => 
   })
 })
 
-/** Bookings for services where this mechanic is listed in technicianIds. */
+/** Bookings for services where this mechanic is assigned or listed in technicianIds. */
 function mapBookingForTechnician(b) {
   if (!b) return null
   const cust = b.customer && typeof b.customer === "object" ? b.customer : null
@@ -1167,9 +1472,15 @@ function mapBookingForTechnician(b) {
     serviceLatitude: b.serviceLatitude,
     serviceLongitude: b.serviceLongitude,
     issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos : [],
+    startJobProofPhotos: Array.isArray(b.startJobProofPhotos) ? b.startJobProofPhotos : [],
+    completionProofPhotos: Array.isArray(b.completionProofPhotos) ? b.completionProofPhotos : [],
+    completionNotes: b.completionNotes || "",
     problemDescription: b.problemDescription,
     notes: b.notes || "",
     rejectionReason: b.rejectionReason || "",
+    assignedTechnician: b.assignedTechnician ? String(b.assignedTechnician) : null,
+    assignedTechnicianName: b.assignedTechnicianName || "",
+    assignedTechnicianJobTitle: b.assignedTechnicianJobTitle || "",
     createdAt: b.createdAt,
     updatedAt: b.updatedAt,
     startingPrice,
@@ -1179,19 +1490,19 @@ function mapBookingForTechnician(b) {
     customerFullName: cust?.fullName || "",
     customer: cust
       ? {
-          fullName: cust.fullName || "",
-          email: cust.email || "",
-          phone: [cust.phoneCode, cust.phoneNumber].filter(Boolean).join(" ").trim(),
-        }
+        fullName: cust.fullName || "",
+        email: cust.email || "",
+        phone: [cust.phoneCode, cust.phoneNumber].filter(Boolean).join(" ").trim(),
+      }
       : null,
     shopService: svc
       ? {
-          id: String(svc._id),
-          name: svc.name || "",
-          category: svc.category || "",
-          subcategory: svc.subcategory || "",
-          location: svc.location,
-        }
+        id: String(svc._id),
+        name: svc.name || "",
+        category: svc.category || "",
+        subcategory: svc.subcategory || "",
+        location: svc.location,
+      }
       : null,
     serviceFeeLaborRateAtCalc:
       b.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(b.serviceFeeLaborRateAtCalc))
@@ -1204,13 +1515,44 @@ function mapBookingForTechnician(b) {
     serviceFeeMaterialsDescription: typeof b.serviceFeeMaterialsDescription === "string" ? b.serviceFeeMaterialsDescription : "",
     serviceFeeReplacementParts: Array.isArray(b.serviceFeeReplacementParts)
       ? b.serviceFeeReplacementParts
-          .map((x) => ({
-            name: typeof x?.name === "string" ? x.name : "",
-            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
-          }))
-          .filter((x) => x.name)
+        .map((x) => ({
+          name: typeof x?.name === "string" ? x.name : "",
+          price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+        }))
+        .filter((x) => x.name)
       : [],
     serviceFeeConfirmedAt: b.serviceFeeConfirmedAt || null,
+    fixedAt: b.fixedAt || null,
+    paymentStatus: b.paymentStatus || "unpaid",
+    paymentMethod: b.paymentMethod || "",
+    paymentProofImage: b.paymentProofImage || "",
+    paidAt: b.paidAt || null,
+    completedAt: b.completedAt || b.paidAt || (b.status === "completed" ? b.updatedAt : null),
+    warrantyClaim: b.warrantyClaim
+      ? {
+          status: b.warrantyClaim.status || "none",
+          claimType: b.warrantyClaim.claimType || "refund",
+          reason: b.warrantyClaim.reason || "",
+          details: b.warrantyClaim.details || "",
+          proofPhotos: Array.isArray(b.warrantyClaim.proofPhotos) ? b.warrantyClaim.proofPhotos : [],
+          isLaborCovered: b.warrantyClaim.isLaborCovered ?? true,
+          isPartsCovered: b.warrantyClaim.isPartsCovered ?? false,
+          requestedAmount: Number(b.warrantyClaim.requestedAmount) || 0,
+          approvedAmount: Number(b.warrantyClaim.approvedAmount) || 0,
+          refundPaymentMethod: b.warrantyClaim.refundPaymentMethod || "",
+          refundAccountName: b.warrantyClaim.refundAccountName || "",
+          refundAccountNumber: b.warrantyClaim.refundAccountNumber || "",
+          refundProofImage: b.warrantyClaim.refundProofImage || "",
+          rejectionReason: b.warrantyClaim.rejectionReason || "",
+          resolutionNotes: b.warrantyClaim.resolutionNotes || "",
+          claimedAt: b.warrantyClaim.claimedAt || null,
+          approvedAt: b.warrantyClaim.approvedAt || null,
+          startedAt: b.warrantyClaim.startedAt || null,
+          fixedAt: b.warrantyClaim.fixedAt || null,
+          resolvedAt: b.warrantyClaim.resolvedAt || null,
+        }
+      : { status: "none" },
+    warrantySettings: owner?.warrantySettings || null,
   }
 }
 
@@ -1224,11 +1566,13 @@ export const listTechnicianBookings = asyncHandler(async (req, res) => {
 
   const services = await ShopService.find({ technicianIds: techId }).select("_id").lean()
   const serviceIds = services.map((s) => s._id)
-  if (!serviceIds.length) {
-    return res.json({ bookings: [] })
-  }
 
-  const query = { shopService: { $in: serviceIds } }
+  const orConditions = [
+    { assignedTechnician: techId },
+    ...(serviceIds.length ? [{ shopService: { $in: serviceIds } }] : []),
+  ]
+
+  const query = { $or: orConditions }
   if (["pending", "confirmed", "working", "cancelled", "completed"].includes(statusQ)) {
     query.status = statusQ
   }
@@ -1237,7 +1581,7 @@ export const listTechnicianBookings = asyncHandler(async (req, res) => {
     .sort({ updatedAt: -1 })
     .populate("customer", "fullName email phoneCode phoneNumber")
     .populate("shopService", "name category subcategory location status startingPrice")
-    .populate("shopOwner", "fullName shopName")
+    .populate("shopOwner", "fullName shopName warrantySettings")
     .lean()
 
   return res.json({
@@ -1247,7 +1591,7 @@ export const listTechnicianBookings = asyncHandler(async (req, res) => {
 
 /**
  * PATCH body: { action: "working" | "completed" }
- * Technician must be listed on the booking’s shop service (`technicianIds`).
+ * Technician must be assigned to the booking or listed on the shop service.
  * working: confirmed → working. completed: working → completed.
  */
 export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
@@ -1258,9 +1602,9 @@ export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
     res.status(400)
     throw new Error("Invalid booking")
   }
-  if (!["working", "completed"].includes(action)) {
+  if (!["working", "fixed", "completed"].includes(action)) {
     res.status(400)
-    throw new Error('Use action "working" or "completed".')
+    throw new Error('Use action "working", "fixed", or "completed".')
   }
 
   const techId = req.user._id
@@ -1273,10 +1617,12 @@ export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
 
   const svc = doc.shopService && typeof doc.shopService === "object" ? doc.shopService : null
   const ids = Array.isArray(svc?.technicianIds) ? svc.technicianIds : []
-  const allowed = ids.some((x) => String(x) === String(techId))
+  const allowed =
+    (doc.assignedTechnician && String(doc.assignedTechnician) === String(techId)) ||
+    ids.some((x) => String(x) === String(techId))
   if (!allowed) {
     res.status(403)
-    throw new Error("You are not assigned to this booking’s service.")
+    throw new Error("You are not assigned to this booking.")
   }
 
   const prev = doc.status
@@ -1286,17 +1632,58 @@ export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
       res.status(400)
       throw new Error("Only confirmed bookings can be marked as working.")
     }
+    const rawProof =
+      req.body?.startJobProofPhotos ??
+      req.body?.workingProofPhotos ??
+      req.body?.proofPhotos ??
+      req.body?.pictureProof
+    if (rawProof) {
+      const proofList = await normalizeProofPhotos(rawProof, req)
+      if (proofList.length > 0) {
+        doc.startJobProofPhotos = proofList
+      }
+    }
     doc.status = "working"
-  } else {
+  } else if (action === "fixed") {
     if (prev !== "working") {
       res.status(400)
-      throw new Error("Only working bookings can be marked complete.")
+      throw new Error("Mark the booking as working first, then mark as fixed when the repair is finished.")
+    }
+    if (!doc.serviceFeeConfirmedAt || doc.serviceFeeMaterialsAmount == null || doc.serviceFeeLaborRateAtCalc == null) {
+      res.status(400)
+      throw new Error("Calculate and save the service fee before marking this job as fixed.")
+    }
+    doc.fixedAt = new Date()
+    doc.status = "fixed"
+  } else {
+    if (prev !== "fixed" && prev !== "working") {
+      res.status(400)
+      throw new Error("Mark the booking as fixed first, then complete when customer payment is confirmed.")
     }
     if (!doc.serviceFeeConfirmedAt || doc.serviceFeeMaterialsAmount == null || doc.serviceFeeLaborRateAtCalc == null) {
       res.status(400)
       throw new Error("Calculate and save the service fee before marking this job complete.")
     }
+    if (doc.paymentStatus !== "paid") {
+      res.status(400)
+      throw new Error("Customer must complete payment first before this booking can be marked as Paid (Completed).")
+    }
+
+    const rawCompletionProof =
+      req.body?.completionProofPhotos ??
+      req.body?.handoverProofPhotos ??
+      req.body?.proofPhotos ??
+      req.body?.completionProof
+    const completionProofList = await normalizeProofPhotos(rawCompletionProof, req)
+    if (completionProofList.length > 0) {
+      doc.completionProofPhotos = completionProofList
+    }
+    if (typeof req.body?.completionNotes === "string") {
+      doc.completionNotes = req.body.completionNotes.trim()
+    }
+
     doc.status = "completed"
+    doc.completedAt = doc.completedAt || new Date()
   }
 
   await doc.save()
@@ -1361,10 +1748,12 @@ export const patchMechanicBookingServiceFee = asyncHandler(async (req, res) => {
 
   const svc = doc.shopService && typeof doc.shopService === "object" ? doc.shopService : null
   const ids = Array.isArray(svc?.technicianIds) ? svc.technicianIds : []
-  const allowed = ids.some((x) => String(x) === String(techId))
+  const allowed =
+    (doc.assignedTechnician && String(doc.assignedTechnician) === String(techId)) ||
+    ids.some((x) => String(x) === String(techId))
   if (!allowed) {
     res.status(403)
-    throw new Error("You are not assigned to this booking’s service.")
+    throw new Error("You are not assigned to this booking.")
   }
 
   if (doc.status !== "working") {
@@ -1417,6 +1806,9 @@ export const patchMechanicBookingServiceFee = asyncHandler(async (req, res) => {
 async function buildTechnicianNameMap(rows) {
   const ids = new Set()
   for (const b of rows) {
+    if (b.assignedTechnician) {
+      ids.add(String(b.assignedTechnician))
+    }
     const svc = b.shopService
     if (svc && typeof svc === "object" && Array.isArray(svc.technicianIds)) {
       for (const tid of svc.technicianIds) {
@@ -1442,11 +1834,16 @@ function mapBookingForAdmin(b, techNameById) {
   const svc = b.shopService && typeof b.shopService === "object" ? b.shopService : null
   const owner = b.shopOwner && typeof b.shopOwner === "object" ? b.shopOwner : null
   const techIds = svc && Array.isArray(svc.technicianIds) ? svc.technicianIds : []
-  const technicianNames = techIds.map((tid) => {
+  const serviceTechNames = techIds.map((tid) => {
     if (!tid) return null
     const name = techNameById.get(String(tid))
     return name || "Assigned staff"
   })
+  const allTechNames = [
+    b.assignedTechnicianName || (b.assignedTechnician ? techNameById.get(String(b.assignedTechnician)) : null),
+    ...serviceTechNames,
+  ].filter(Boolean)
+  const uniqueTechNames = [...new Set(allTechNames)]
 
   const id = String(b._id)
   return {
@@ -1467,28 +1864,28 @@ function mapBookingForAdmin(b, techNameById) {
     updatedAt: b.updatedAt,
     customer: cust
       ? {
-          fullName: cust.fullName || "",
-          email: cust.email || "",
-          phone: [cust.phoneCode, cust.phoneNumber].filter(Boolean).join(" ").trim(),
-          role: cust.role || "customer",
-        }
+        fullName: cust.fullName || "",
+        email: cust.email || "",
+        phone: [cust.phoneCode, cust.phoneNumber].filter(Boolean).join(" ").trim(),
+        role: cust.role || "customer",
+      }
       : null,
     shopOwner: owner
       ? {
-          fullName: owner.fullName || "",
-          shopName: owner.shopName || "",
-        }
+        fullName: owner.fullName || "",
+        shopName: owner.shopName || "",
+      }
       : null,
     shopService: svc
       ? {
-          id: String(svc._id),
-          name: svc.name || "",
-          category: svc.category || "",
-          subcategory: svc.subcategory || "",
-          location: svc.location,
-        }
+        id: String(svc._id),
+        name: svc.name || "",
+        category: svc.category || "",
+        subcategory: svc.subcategory || "",
+        location: svc.location,
+      }
       : null,
-    assignedTechnicians: technicianNames.filter(Boolean),
+    assignedTechnicians: uniqueTechNames,
   }
 }
 
@@ -1549,3 +1946,469 @@ export const getAdminServiceBookingStats = asyncHandler(async (_req, res) => {
     },
   })
 })
+
+/**
+ * POST /api/catalog/bookings/:id/warranty-claim
+ * Customer submits a warranty claim / refund request on a completed booking.
+ */
+export const submitCustomerWarrantyClaim = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking ID")
+  }
+
+  const booking = await Booking.findOne({ _id: id, customer: req.user._id })
+    .populate("shopOwner", "fullName shopName warrantySettings")
+    .populate("shopService", "name")
+
+  if (!booking) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+
+  if (booking.status !== "completed") {
+    res.status(400)
+    throw new Error("Warranty claims and refund requests are only available for completed bookings.")
+  }
+
+  if (booking.warrantyClaim?.status === "pending") {
+    res.status(400)
+    throw new Error("A warranty claim is already pending review for this booking.")
+  }
+
+  const claimType = clean(req.body?.claimType) === "labor_rework" ? "labor_rework" : "refund"
+  const reason = clean(req.body?.reason)
+  const details = clean(req.body?.details)
+  const rawProof = req.body?.proofPhotos ?? req.body?.photos
+  const proofPhotos = await normalizeProofPhotos(rawProof, req)
+  const requestedAmountRaw = parseNonNegativeMoney(req.body?.requestedAmount)
+
+  const refundPaymentMethod = clean(req.body?.refundPaymentMethod)
+  const refundAccountName = clean(req.body?.refundAccountName)
+  const refundAccountNumber = clean(req.body?.refundAccountNumber)
+
+  if (!reason) {
+    res.status(400)
+    throw new Error("Please select or specify a reason for the warranty claim.")
+  }
+  if (!details || details.length < 10) {
+    res.status(400)
+    throw new Error("Please provide a detailed explanation of the defect or issue (at least 10 characters).")
+  }
+
+  // Calculate warranty validity based on provider's warranty settings
+  const ownerWarranty = booking.shopOwner?.warrantySettings || {}
+  const laborDays = ownerWarranty.laborWarrantyEnabled !== false ? Number(ownerWarranty.laborWarrantyDays) || 30 : 0
+  const partsDays = ownerWarranty.partsWarrantyEnabled !== false ? Number(ownerWarranty.partsWarrantyDays) || 30 : 0
+
+  const completionDate = booking.completedAt || booking.paidAt || booking.updatedAt || booking.createdAt
+  const completionTime = new Date(completionDate).getTime()
+  const now = Date.now()
+
+  const isLaborCovered = laborDays > 0 && now <= completionTime + laborDays * 24 * 60 * 60 * 1000
+  const isPartsCovered = partsDays > 0 && now <= completionTime + partsDays * 24 * 60 * 60 * 1000
+
+  // Total paid calculation
+  const laborFee = Number(booking.serviceFeeLaborRateAtCalc) || 0
+  const partsFee = Number(booking.serviceFeeMaterialsAmount) || 0
+  const totalPaid = laborFee + partsFee
+
+  let requestedAmount = requestedAmountRaw != null ? requestedAmountRaw : 0
+  if (claimType === "labor_rework") {
+    // Free labor rework: requested amount is 0 (labor is waived under warranty)
+    requestedAmount = 0
+  } else if (requestedAmount === 0 || requestedAmount > totalPaid) {
+    // Default to labor fee if labor warranty is active, or total paid
+    requestedAmount = isLaborCovered && requestedAmount === 0 ? laborFee : Math.min(requestedAmount || totalPaid, totalPaid)
+  }
+
+  booking.warrantyClaim = {
+    status: "pending",
+    claimType,
+    reason,
+    details,
+    proofPhotos,
+    isLaborCovered,
+    isPartsCovered,
+    requestedAmount,
+    approvedAmount: 0,
+    refundPaymentMethod,
+    refundAccountName,
+    refundAccountNumber,
+    refundProofImage: "",
+    rejectionReason: "",
+    resolutionNotes: "",
+    claimedAt: new Date(),
+    resolvedAt: null,
+  }
+
+  await booking.save()
+
+  // Send direct message notification to shop provider
+  try {
+    const text = formatWarrantyClaimCustomerToProvider({
+      booking,
+      claimType,
+      reason,
+      details,
+      requestedAmount,
+      isLaborCovered,
+      refundPaymentMethod,
+      refundAccountName,
+      refundAccountNumber,
+    })
+    const attachments = buildWarrantyProofAttachments(proofPhotos)
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: booking.shopOwner._id,
+      content: text,
+      attachments,
+    })
+  } catch (err) {
+    console.error("Warranty claim notification error:", err?.message || err)
+  }
+
+  const populated = await Booking.findById(booking._id)
+    .populate("shopService", "name category subcategory location status startingPrice")
+    .populate(
+      "shopOwner",
+      "fullName shopName acceptedPaymentMethods shopPlacePhoto phoneCode phoneNumber shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress operatingHours warrantySettings role"
+    )
+    .lean()
+
+  let readableAddress = ""
+  if (populated.shopOwner) {
+    try {
+      readableAddress = await formatReadableShopAddress(populated.shopOwner)
+    } catch {
+      readableAddress = ""
+    }
+  }
+
+  return res.json({
+    message: "Warranty claim request submitted successfully.",
+    booking: mapBookingForCustomer(populated, readableAddress),
+  })
+})
+
+/**
+ * PATCH /api/shop/bookings/:id/warranty-claim
+ * Shop owner reviews and approves or rejects customer warranty claim / refund.
+ */
+export const patchShopOwnerWarrantyClaim = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  let rawAction = clean(req.body?.action).toLowerCase() // "approved", "working", "fixed", "resolved", "rejected"
+  if (rawAction === "approve") rawAction = "approved"
+  if (rawAction === "reject") rawAction = "rejected"
+  if (rawAction === "resolve" || rawAction === "complete") rawAction = "resolved"
+  if (rawAction === "fix") rawAction = "fixed"
+  if (rawAction === "work") rawAction = "working"
+  const action = rawAction
+  const rejectionReason = clean(req.body?.rejectionReason)
+  const resolutionNotes = clean(req.body?.resolutionNotes)
+  const approvedAmountRaw = parseNonNegativeMoney(req.body?.approvedAmount)
+  const rawRefundProof = req.body?.refundProofImage ?? req.body?.proofImage
+  const refundProofImage = rawRefundProof ? await persistIssuePhotoSource(rawRefundProof, req) : ""
+
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking ID")
+  }
+  const validActions = ["approved", "working", "in_progress", "fixed", "resolved", "completed", "rejected"]
+  if (!validActions.includes(action)) {
+    res.status(400)
+    throw new Error("Invalid action. Must be 'approved', 'working', 'fixed', 'resolved', or 'rejected'.")
+  }
+
+  const booking = await Booking.findOne({ _id: id, shopOwner: req.user._id })
+    .populate("shopService", "name")
+    .populate("shopOwner", "shopName fullName")
+
+  if (!booking) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+  if (!booking.warrantyClaim || !booking.warrantyClaim.status || booking.warrantyClaim.status === "none") {
+    res.status(400)
+    throw new Error("This booking does not have an active warranty claim.")
+  }
+
+  if (action === "rejected") {
+    if (!rejectionReason || rejectionReason.length < 5) {
+      res.status(400)
+      throw new Error("Please provide a reason for rejecting the warranty claim (at least 5 characters).")
+    }
+    booking.warrantyClaim.status = "rejected"
+    booking.warrantyClaim.rejectionReason = rejectionReason
+    booking.warrantyClaim.resolvedAt = new Date()
+  } else if (action === "working" || action === "in_progress") {
+    booking.warrantyClaim.status = "working"
+    booking.warrantyClaim.startedAt = new Date()
+    if (resolutionNotes) booking.warrantyClaim.resolutionNotes = resolutionNotes
+
+    const rawStartPhotos = Array.isArray(req.body?.startJobProofPhotos)
+      ? req.body.startJobProofPhotos
+      : Array.isArray(req.body?.proofPhotos)
+        ? req.body.proofPhotos
+        : []
+    if (rawStartPhotos.length > 0) {
+      const persisted = []
+      for (const p of rawStartPhotos) {
+        if (p && typeof p === "string") {
+          persisted.push(await persistIssuePhotoSource(p, req))
+        }
+      }
+      if (persisted.length > 0) {
+        booking.startJobProofPhotos = persisted
+      }
+    }
+  } else if (action === "fixed") {
+    booking.warrantyClaim.status = "fixed"
+    booking.warrantyClaim.fixedAt = new Date()
+    if (resolutionNotes) booking.warrantyClaim.resolutionNotes = resolutionNotes
+  } else if (action === "resolved" || action === "completed") {
+    booking.warrantyClaim.status = "resolved"
+    booking.warrantyClaim.resolvedAt = new Date()
+    if (resolutionNotes) booking.warrantyClaim.resolutionNotes = resolutionNotes
+    if (refundProofImage) booking.warrantyClaim.refundProofImage = refundProofImage
+
+    const rawCompPhotos = Array.isArray(req.body?.completionProofPhotos)
+      ? req.body.completionProofPhotos
+      : Array.isArray(req.body?.proofPhotos)
+        ? req.body.proofPhotos
+        : []
+    if (rawCompPhotos.length > 0) {
+      const persisted = []
+      for (const p of rawCompPhotos) {
+        if (p && typeof p === "string") {
+          persisted.push(await persistIssuePhotoSource(p, req))
+        }
+      }
+      if (persisted.length > 0) {
+        booking.completionProofPhotos = persisted
+      }
+    }
+  } else {
+    // Approved
+    const totalPaid =
+      (Number(booking.serviceFeeLaborRateAtCalc) || 0) + (Number(booking.serviceFeeMaterialsAmount) || 0)
+    const approvedAmount =
+      approvedAmountRaw != null
+        ? Math.min(approvedAmountRaw, totalPaid)
+        : booking.warrantyClaim.requestedAmount || 0
+
+    booking.warrantyClaim.status = "approved"
+    booking.warrantyClaim.approvedAt = new Date()
+    booking.warrantyClaim.approvedAmount = approvedAmount
+    if (refundProofImage) {
+      booking.warrantyClaim.refundProofImage = refundProofImage
+    }
+    if (resolutionNotes) {
+      booking.warrantyClaim.resolutionNotes = resolutionNotes
+    }
+  }
+
+  await booking.save()
+
+  // Chat notification to customer
+  try {
+    const shopLabel =
+      (booking.shopOwner?.shopName && String(booking.shopOwner.shopName).trim()) ||
+      booking.shopOwner?.fullName ||
+      "Provider"
+    const text = formatWarrantyClaimResponseToCustomer({
+      booking,
+      action,
+      approvedAmount: booking.warrantyClaim.approvedAmount,
+      rejectionReason,
+      resolutionNotes,
+      shopName: shopLabel,
+    })
+    const attachments = refundProofImage ? buildPaymentProofAttachments(refundProofImage) : []
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: booking.customer,
+      content: text,
+      attachments,
+    })
+  } catch (err) {
+    console.error("Warranty claim resolution notification error:", err?.message || err)
+  }
+
+  const populated = await Booking.findById(booking._id)
+    .populate("customer", "fullName email phoneCode phoneNumber")
+    .populate("shopService", "name category subcategory location status startingPrice")
+    .populate("shopOwner", "fullName shopName warrantySettings")
+    .lean()
+
+  return res.json({
+    message: action === "rejected" ? "Warranty claim rejected." : "Warranty claim updated successfully.",
+    booking: mapBookingForShopOwner(populated),
+  })
+})
+
+/**
+ * PATCH /api/mechanic/bookings/:id/warranty-claim
+ * Assigned technician reviews and approves or rejects customer warranty claim / refund.
+ */
+export const patchMechanicWarrantyClaim = asyncHandler(async (req, res) => {
+  const id = clean(req.params.id)
+  let rawAction = clean(req.body?.action).toLowerCase()
+  if (rawAction === "approve") rawAction = "approved"
+  if (rawAction === "reject") rawAction = "rejected"
+  if (rawAction === "resolve" || rawAction === "complete") rawAction = "resolved"
+  if (rawAction === "fix") rawAction = "fixed"
+  if (rawAction === "work") rawAction = "working"
+  const action = rawAction
+  const rejectionReason = clean(req.body?.rejectionReason)
+  const resolutionNotes = clean(req.body?.resolutionNotes)
+  const approvedAmountRaw = parseNonNegativeMoney(req.body?.approvedAmount)
+  const rawRefundProof = req.body?.refundProofImage ?? req.body?.proofImage
+  const refundProofImage = rawRefundProof ? await persistIssuePhotoSource(rawRefundProof, req) : ""
+
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid booking ID")
+  }
+  const validActions = ["approved", "working", "in_progress", "fixed", "resolved", "completed", "rejected"]
+  if (!validActions.includes(action)) {
+    res.status(400)
+    throw new Error("Invalid action. Must be 'approved', 'working', 'fixed', 'resolved', or 'rejected'.")
+  }
+
+  const techId = req.user._id
+  const booking = await Booking.findById(id)
+    .populate("shopService", "name technicianIds")
+    .populate("shopOwner", "shopName fullName")
+
+  if (!booking) {
+    res.status(404)
+    throw new Error("Booking not found")
+  }
+
+  const svc = booking.shopService && typeof booking.shopService === "object" ? booking.shopService : null
+  const ids = Array.isArray(svc?.technicianIds) ? svc.technicianIds : []
+  const allowed =
+    (booking.assignedTechnician && String(booking.assignedTechnician) === String(techId)) ||
+    ids.some((x) => String(x) === String(techId))
+  if (!allowed) {
+    res.status(403)
+    throw new Error("You are not assigned to this booking.")
+  }
+
+  if (!booking.warrantyClaim || !booking.warrantyClaim.status || booking.warrantyClaim.status === "none") {
+    res.status(400)
+    throw new Error("This booking does not have an active warranty claim.")
+  }
+
+  if (action === "rejected") {
+    if (!rejectionReason || rejectionReason.length < 5) {
+      res.status(400)
+      throw new Error("Please provide a reason for rejecting the warranty claim (at least 5 characters).")
+    }
+    booking.warrantyClaim.status = "rejected"
+    booking.warrantyClaim.rejectionReason = rejectionReason
+    booking.warrantyClaim.resolvedAt = new Date()
+  } else if (action === "working" || action === "in_progress") {
+    booking.warrantyClaim.status = "working"
+    booking.warrantyClaim.startedAt = new Date()
+    if (resolutionNotes) booking.warrantyClaim.resolutionNotes = resolutionNotes
+
+    const rawStartPhotos = Array.isArray(req.body?.startJobProofPhotos)
+      ? req.body.startJobProofPhotos
+      : Array.isArray(req.body?.proofPhotos)
+        ? req.body.proofPhotos
+        : []
+    if (rawStartPhotos.length > 0) {
+      const persisted = []
+      for (const p of rawStartPhotos) {
+        if (p && typeof p === "string") {
+          persisted.push(await persistIssuePhotoSource(p, req))
+        }
+      }
+      if (persisted.length > 0) {
+        booking.startJobProofPhotos = persisted
+      }
+    }
+  } else if (action === "fixed") {
+    booking.warrantyClaim.status = "fixed"
+    booking.warrantyClaim.fixedAt = new Date()
+    if (resolutionNotes) booking.warrantyClaim.resolutionNotes = resolutionNotes
+  } else if (action === "resolved" || action === "completed") {
+    booking.warrantyClaim.status = "resolved"
+    booking.warrantyClaim.resolvedAt = new Date()
+    if (resolutionNotes) booking.warrantyClaim.resolutionNotes = resolutionNotes
+    if (refundProofImage) booking.warrantyClaim.refundProofImage = refundProofImage
+
+    const rawCompPhotos = Array.isArray(req.body?.completionProofPhotos)
+      ? req.body.completionProofPhotos
+      : Array.isArray(req.body?.proofPhotos)
+        ? req.body.proofPhotos
+        : []
+    if (rawCompPhotos.length > 0) {
+      const persisted = []
+      for (const p of rawCompPhotos) {
+        if (p && typeof p === "string") {
+          persisted.push(await persistIssuePhotoSource(p, req))
+        }
+      }
+      if (persisted.length > 0) {
+        booking.completionProofPhotos = persisted
+      }
+    }
+  } else {
+    const totalPaid =
+      (Number(booking.serviceFeeLaborRateAtCalc) || 0) + (Number(booking.serviceFeeMaterialsAmount) || 0)
+    const approvedAmount =
+      approvedAmountRaw != null
+        ? Math.min(approvedAmountRaw, totalPaid)
+        : booking.warrantyClaim.requestedAmount || 0
+
+    booking.warrantyClaim.status = "approved"
+    booking.warrantyClaim.approvedAt = new Date()
+    booking.warrantyClaim.approvedAmount = approvedAmount
+    if (refundProofImage) {
+      booking.warrantyClaim.refundProofImage = refundProofImage
+    }
+    if (resolutionNotes) {
+      booking.warrantyClaim.resolutionNotes = resolutionNotes
+    }
+  }
+
+  await booking.save()
+
+  try {
+    const tech = await User.findById(techId).select("fullName").lean()
+    const techName = tech?.fullName?.trim() || "Technician"
+    const text = formatWarrantyClaimResponseToCustomer({
+      booking,
+      action,
+      approvedAmount: booking.warrantyClaim.approvedAmount,
+      rejectionReason,
+      resolutionNotes,
+      shopName: techName,
+    })
+    const attachments = refundProofImage ? buildPaymentProofAttachments(refundProofImage) : []
+    await sendDirectMessage({
+      fromUserId: techId,
+      toUserId: booking.customer,
+      content: text,
+      attachments,
+    })
+  } catch (err) {
+    console.error("Warranty claim notification error:", err?.message || err)
+  }
+
+  const populated = await Booking.findById(booking._id)
+    .populate("customer", "fullName email phoneCode phoneNumber")
+    .populate("shopService", "name category subcategory location status startingPrice")
+    .populate("shopOwner", "fullName shopName warrantySettings")
+    .lean()
+
+  return res.json({
+    message: action === "rejected" ? "Warranty claim rejected." : "Warranty claim processed.",
+    booking: mapBookingForTechnician(populated),
+  })
+})
+

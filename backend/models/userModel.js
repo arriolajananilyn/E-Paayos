@@ -403,6 +403,33 @@ const userSchema = new mongoose.Schema(
       ],
       default: [],
     },
+    warrantySettings: {
+      laborWarrantyEnabled: { type: Boolean, default: true },
+      laborWarrantyDays: { type: Number, default: 30 },
+      partsWarrantyEnabled: { type: Boolean, default: true },
+      partsWarrantyDays: { type: Number, default: 90 },
+      warrantyPolicyTerms: { type: String, default: "" },
+      coveredItems: {
+        type: [
+          {
+            id: { type: String, required: true },
+            text: { type: String, required: true },
+            active: { type: Boolean, default: true },
+          },
+        ],
+        default: [],
+      },
+      voidConditions: {
+        type: [
+          {
+            id: { type: String, required: true },
+            text: { type: String, required: true },
+            active: { type: Boolean, default: true },
+          },
+        ],
+        default: [],
+      },
+    },
 
     email: { type: String, required: true, unique: true, lowercase: true, index: true },
     password: { type: String, required: true },

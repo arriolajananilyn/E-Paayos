@@ -42,12 +42,19 @@ const bookingSchema = new mongoose.Schema(
     notes: { type: String, default: "", trim: true },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "working", "cancelled", "completed"],
+      enum: ["pending", "confirmed", "working", "fixed", "completed", "cancelled"],
       default: "pending",
       index: true,
     },
+    fixedAt: { type: Date, default: null },
     /** Set when the shop owner rejects (cancels) a booking from the dashboard. */
     rejectionReason: { type: String, default: "", trim: true, maxlength: 2000 },
+    /** Picture proof uploaded by provider or technician when starting job (working status). */
+    startJobProofPhotos: [{ type: String, trim: true }],
+    /** Handover / item claimed picture proof uploaded when marking job as completed. */
+    completionProofPhotos: [{ type: String, trim: true }],
+    /** Notes regarding item handover, test, and release condition. */
+    completionNotes: { type: String, default: "", trim: true, maxlength: 2000 },
     /** Customer feedback after completed service. */
     customerReviewRating: { type: Number, min: 1, max: 5, default: null },
     customerReviewComment: { type: String, default: "", trim: true, maxlength: 4000 },
@@ -81,6 +88,21 @@ const bookingSchema = new mongoose.Schema(
     ],
     /** Set when provider saves the calculate-fee step; required before completed. */
     serviceFeeConfirmedAt: { type: Date, default: null },
+    /** ShopEmployee or registered mechanic User assigned by shop owner to manage/perform this booking. */
+    assignedTechnician: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    assignedTechnicianName: { type: String, default: "", trim: true },
+    assignedTechnicianJobTitle: { type: String, default: "", trim: true },
+    assignedTechnicianPhone: { type: String, default: "", trim: true },
+    assignedTechnicianModel: {
+      type: String,
+      enum: ["User", "ShopEmployee", "none"],
+      default: "none",
+    },
     paymentStatus: {
       type: String,
       enum: ["unpaid", "paid"],
@@ -90,6 +112,40 @@ const bookingSchema = new mongoose.Schema(
     paymentMethod: { type: String, default: "", trim: true },
     paymentProofImage: { type: String, default: "", trim: true },
     paidAt: { type: Date, default: null },
+    completedAt: { type: Date, default: null },
+
+    /** Warranty Claim & Refund Process */
+    warrantyClaim: {
+      status: {
+        type: String,
+        enum: ["none", "pending", "approved", "working", "in_progress", "fixed", "rejected", "resolved", "completed"],
+        default: "none",
+        index: true,
+      },
+      claimType: {
+        type: String,
+        enum: ["labor_rework", "refund", "both"],
+        default: "refund",
+      },
+      reason: { type: String, default: "", trim: true },
+      details: { type: String, default: "", trim: true, maxlength: 4000 },
+      proofPhotos: [{ type: String, trim: true }],
+      isLaborCovered: { type: Boolean, default: true },
+      isPartsCovered: { type: Boolean, default: false },
+      requestedAmount: { type: Number, default: 0, min: 0 },
+      approvedAmount: { type: Number, default: 0, min: 0 },
+      refundPaymentMethod: { type: String, default: "", trim: true },
+      refundAccountName: { type: String, default: "", trim: true },
+      refundAccountNumber: { type: String, default: "", trim: true },
+      refundProofImage: { type: String, default: "", trim: true },
+      rejectionReason: { type: String, default: "", trim: true, maxlength: 2000 },
+      resolutionNotes: { type: String, default: "", trim: true, maxlength: 2000 },
+      claimedAt: { type: Date, default: null },
+      approvedAt: { type: Date, default: null },
+      startedAt: { type: Date, default: null },
+      fixedAt: { type: Date, default: null },
+      resolvedAt: { type: Date, default: null },
+    },
   },
   { timestamps: true }
 )

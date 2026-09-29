@@ -1,25 +1,35 @@
 import { useEffect, useState, useMemo } from 'react'
 import {
+  AlertCircle,
   ArrowRight,
   ArrowUpRight,
   Award,
+  Bell,
   Bike,
   Bot,
+  Calendar,
   Car,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Droplet,
+  Eye,
   Home,
+  Info,
   Laptop,
   LayoutDashboard,
   LogIn,
   MapPin,
+  Megaphone,
   Menu,
   MessageSquare,
   Moon,
+  Pause,
+  Play,
   Plug,
+  Radio,
   Search,
   ShieldCheck,
   Smartphone,
@@ -30,19 +40,29 @@ import {
   UserCheck,
   UserRound,
   Users,
+  Volume2,
   WashingMachine,
   Wrench,
   X,
 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Badge } from '../components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog'
 import logoEpaayos from '../assets/epaayosLOGO.png'
 import headerBackground from '../assets/headerbackground.png'
 import gadgetsImg from '../assets/gadgets.png'
 import applianceImg from '../assets/applience.png'
 import vehiclesImg from '../assets/vehicles.png'
+import { getApiBaseUrl } from '../lib/apiBaseUrl'
 
-const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
+const API_URL = getApiBaseUrl()
 
 /**
  * E-PAAYOS Branding Palette - Minimal Micro-Radius Theme (rounded-sm / rounded)
@@ -57,6 +77,72 @@ export const SERVICE_TYPES = [
   { value: 'in-shop', label: 'In-shop' },
   { value: 'both', label: 'Both Home service and in-shop' },
 ]
+
+export const ANNOUNCEMENT_AUDIENCE_TABS = [
+  { value: 'all', label: 'All Bulletins' },
+  { value: 'customer', label: 'For Customers' },
+  { value: 'shop-owner', label: 'For Repair Shops' },
+  { value: 'mechanic-technician', label: 'For Technicians' },
+]
+
+function formatAnnouncementDate(dateString) {
+  if (!dateString) return 'Recent'
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }).format(new Date(dateString))
+  } catch {
+    return 'Recent'
+  }
+}
+
+function getAnnouncementPriorityMeta(priority) {
+  switch (String(priority).toLowerCase()) {
+    case 'high':
+      return {
+        label: 'Urgent Advisory',
+        pillClass: 'border-rose-500/40 bg-rose-500/20 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.35)]',
+        pulseClass: 'bg-rose-500',
+        badgeBg: 'bg-gradient-to-r from-rose-600 to-red-700 text-white',
+        borderAccent: 'border-rose-500/50',
+      }
+    case 'normal':
+      return {
+        label: 'Official Bulletin',
+        pillClass: 'border-sky-400/40 bg-sky-500/20 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.25)]',
+        pulseClass: 'bg-sky-400',
+        badgeBg: 'bg-gradient-to-r from-blue-600 to-sky-600 text-white',
+        borderAccent: 'border-sky-500/40',
+      }
+    case 'low':
+    default:
+      return {
+        label: 'System Notice',
+        pillClass: 'border-indigo-400/30 bg-indigo-500/15 text-indigo-300',
+        pulseClass: 'bg-indigo-400',
+        badgeBg: 'bg-gradient-to-r from-slate-600 to-indigo-700 text-white',
+        borderAccent: 'border-indigo-500/30',
+      }
+  }
+}
+
+function audienceLabel(val) {
+  switch (val) {
+    case 'customer':
+      return 'For Customers'
+    case 'shop-owner':
+      return 'For Repair Shops'
+    case 'mechanic-technician':
+      return 'For Technicians'
+    case 'admin':
+      return 'Admins Only'
+    case 'all':
+    default:
+      return 'Public Bulletin'
+  }
+}
 
 function serviceTypeBadge(type) {
   const label = SERVICE_TYPES.find((x) => x.value === type)?.label ?? 'Home service'
@@ -97,17 +183,24 @@ function initialsFromName(name) {
 
 function staffRoleHeading(category) {
   const normalized = String(category ?? '').toLowerCase()
-  if (normalized === 'vehicle') return 'Mechanics'
-  return 'Technicians'
+  if (normalized === 'vehicle') return 'Shop Mechanics'
+  return 'Shop Technicians'
 }
 
-function staffAssignedLabel(category, count) {
+function staffAssignedLabel(category, count, isOnCall = false) {
   const n = Math.max(0, Number(count) || 0)
   const normalized = String(category ?? '').toLowerCase()
-  if (normalized === 'vehicle') {
-    return `${n} ${n === 1 ? 'mechanic' : 'mechanics'} assigned`
+  const isVehicle = normalized === 'vehicle'
+  const singular = isVehicle ? 'mechanic' : 'technician'
+  const plural = isVehicle ? 'mechanics' : 'technicians'
+
+  if (isOnCall) {
+    return `1 on-call ${singular}`
   }
-  return `${n} ${n === 1 ? 'technician' : 'technicians'} assigned`
+  if (n === 0) {
+    return `0 ${plural} in shop`
+  }
+  return `${n} ${n === 1 ? singular : plural} in shop`
 }
 
 function formatLaborPriceRange(min, max) {
@@ -428,7 +521,7 @@ function PublicTopbar({ isDark, toggleTheme, scrollToSection }) {
     { label: 'Home', target: 'hero' },
     { label: 'About', target: 'about' },
     { label: 'Featured Services', target: 'featured-services' },
-    { label: 'Portals', target: 'portals' },
+    { label: 'Announcements', target: 'announcements' },
     { label: 'Features', target: 'features' },
     { label: 'Process', target: 'process' },
     { label: 'FAQ', target: 'faq' },
@@ -588,6 +681,14 @@ export default function LandingPage() {
   // Live Catalog services state with fallback to findServices.jsx structure
   const [liveServices, setLiveServices] = useState(FALLBACK_PUBLIC_SERVICES)
 
+  // Announcements Billboard State (Connected directly to MongoDB database)
+  const [announcements, setAnnouncements] = useState([])
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true)
+  const [currentAnnounceIndex, setCurrentAnnounceIndex] = useState(0)
+  const [isAnnouncePlaying, setIsAnnouncePlaying] = useState(true)
+  const [selectedAnnounceAudience, setSelectedAnnounceAudience] = useState('all')
+  const [viewingAnnouncementModal, setViewingAnnouncementModal] = useState(null)
+
   const isDark = theme === 'dark'
 
   const toggleTheme = () => {
@@ -622,6 +723,77 @@ export default function LandingPage() {
         .catch(() => { })
       : null
   }, [])
+
+  // Fetch real published announcements from MongoDB database
+  useEffect(() => {
+    setAnnouncementsLoading(true)
+    fetch(`${API_URL}/api/users/announcements/public`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (Array.isArray(json?.data)) {
+          setAnnouncements(json.data)
+        }
+      })
+      .catch(() => { })
+      .finally(() => {
+        setAnnouncementsLoading(false)
+      })
+  }, [])
+
+  const handleOpenAnnouncement = (item) => {
+    if (!item) return
+    setViewingAnnouncementModal(item)
+    if (item._id) {
+      fetch(`${API_URL}/api/users/announcements/${item._id}/view`, { method: 'POST' })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((resJson) => {
+          if (resJson?.data?.viewCount !== undefined) {
+            setAnnouncements((prev) =>
+              prev.map((a) => (a._id === item._id ? { ...a, viewCount: resJson.data.viewCount } : a))
+            )
+            setViewingAnnouncementModal((prev) =>
+              prev && prev._id === item._id ? { ...prev, viewCount: resJson.data.viewCount } : prev
+            )
+          }
+        })
+        .catch(() => { })
+    }
+  }
+
+  const filteredAnnouncements = useMemo(() => {
+    if (selectedAnnounceAudience === 'all') return announcements
+    return announcements.filter(
+      (a) => a.targetAudience === 'all' || a.targetAudience === selectedAnnounceAudience
+    )
+  }, [announcements, selectedAnnounceAudience])
+
+  // Clamp current announcement index if filtered list changes
+  useEffect(() => {
+    if (currentAnnounceIndex >= filteredAnnouncements.length) {
+      setCurrentAnnounceIndex(0)
+    }
+  }, [filteredAnnouncements.length, currentAnnounceIndex])
+
+  // Billboard auto-rotate
+  useEffect(() => {
+    if (!isAnnouncePlaying || filteredAnnouncements.length <= 1) return
+    const timer = setInterval(() => {
+      setCurrentAnnounceIndex((prev) => (prev + 1) % filteredAnnouncements.length)
+    }, 6000)
+    return () => clearInterval(timer)
+  }, [isAnnouncePlaying, filteredAnnouncements.length])
+
+  const nextAnnouncement = () => {
+    if (filteredAnnouncements.length === 0) return
+    setCurrentAnnounceIndex((prev) => (prev + 1) % filteredAnnouncements.length)
+  }
+
+  const prevAnnouncement = () => {
+    if (filteredAnnouncements.length === 0) return
+    setCurrentAnnounceIndex(
+      (prev) => (prev - 1 + filteredAnnouncements.length) % filteredAnnouncements.length
+    )
+  }
 
   const activeSlideData = HERO_SLIDES[currentSlide]
 
@@ -1041,195 +1213,405 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* Multi Platform Portals Preview Section (1-col on mobile, 2-col on md, 3-col on lg) */}
-          <section id="portals" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
-            <div className="text-center mb-8 sm:mb-12">
+          {/* Public Official Announcements Billboard Section (Replaced Portals section) */}
+          <section id="announcements" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
+            <div className="text-center mb-6 sm:mb-10">
               <span
                 className={`inline-flex items-center gap-1.5 rounded-sm border px-3 sm:px-3.5 py-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-2 ${isDark
                   ? 'border-sky-500/30 bg-sky-950/60 text-sky-300'
                   : 'border-blue-500/30 bg-blue-50 text-blue-800'
                   }`}
               >
-                Multi-Role Portals
+                <Megaphone className="size-3.5 text-sky-400" />
+                LMD-PESO Public Bulletin & Advisories
               </span>
               <h2 className={`text-2xl sm:text-4xl font-black tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Explore E-Paayos System Workspaces
+                Official Announcements & Advisories
               </h2>
               <p className={`text-xs sm:text-sm mt-1.5 sm:mt-2 max-w-xl mx-auto ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                Tailored web portals designed for customers, repair providers, and PESO administrators.
+                Real-time accreditation advisories, weather preparedness, and system bulletins across Marinduque.
               </p>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-6">
-              {/* Customer Portal Card */}
-              <div
-                className={`group p-4 sm:p-8 border rounded-sm flex flex-col justify-between transition-all ${isDark
-                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
-                  : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
-                  }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3 sm:mb-6">
-                    <div
-                      className={`size-9 sm:size-12 rounded-sm flex items-center justify-center ${isDark ? 'bg-sky-950 text-sky-400' : 'bg-sky-50 text-sky-700'
+              {/* Audience Filter Tabs */}
+              <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mt-4 sm:mt-6">
+                {ANNOUNCEMENT_AUDIENCE_TABS.map((tab) => {
+                  const isActive = selectedAnnounceAudience === tab.value
+                  return (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedAnnounceAudience(tab.value)
+                        setCurrentAnnounceIndex(0)
+                      }}
+                      className={`px-2.5 py-1 sm:px-4 sm:py-2 rounded-sm text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${isActive
+                        ? 'bg-gradient-to-r from-blue-700 to-sky-600 text-white shadow-md shadow-blue-700/20 scale-105'
+                        : isDark
+                          ? 'bg-[#0a1836] text-slate-300 hover:bg-slate-800 hover:text-white border border-sky-900/50'
+                          : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                         }`}
                     >
-                      <Users className="size-4.5 sm:size-6" />
-                    </div>
-                    <span className="bg-sky-600 text-white font-bold text-[9px] sm:text-[11px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-sm uppercase tracking-wider">
-                      Customer Workspace
-                    </span>
-                  </div>
-
-                  <h3 className={`text-base sm:text-xl font-bold mb-1.5 sm:mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Customer Storefront & Booking
-                    <ArrowUpRight className="size-4 sm:size-5 text-slate-400 group-hover:text-sky-400 transition-colors" />
-                  </h3>
-
-                  <p className={`text-xs sm:text-sm mb-3.5 sm:mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    Browse verified repair shops & on-call technicians, filter by municipality, book home service visits, track progress live, and direct message providers.
-                  </p>
-
-                  <div className={`space-y-1.5 sm:space-y-2.5 mb-5 sm:mb-8 text-[11px] sm:text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>Search Repair Shops & On-Call Techs</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>On-Site Home Service & Walk-In Booking</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>In-App Chat & Review Evaluations</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Button asChild className="w-full h-9 sm:h-11 rounded-sm bg-gradient-to-r from-blue-700 to-sky-600 hover:from-blue-600 hover:to-sky-500 text-white font-bold text-[11px] sm:text-xs gap-1.5 sm:gap-2 uppercase tracking-wider">
-                  <a href="#/login">
-                    Enter Customer Storefront
-                    <ArrowRight className="size-3.5 sm:size-4" />
-                  </a>
-                </Button>
-              </div>
-
-              {/* Service Provider Portal Card */}
-              <div
-                className={`group p-4 sm:p-8 border rounded-sm flex flex-col justify-between transition-all ${isDark
-                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
-                  : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
-                  }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3 sm:mb-6">
-                    <div
-                      className={`size-9 sm:size-12 rounded-sm flex items-center justify-center ${isDark ? 'bg-indigo-950 text-indigo-400' : 'bg-indigo-50 text-indigo-700'
-                        }`}
-                    >
-                      <LayoutDashboard className="size-4.5 sm:size-6" />
-                    </div>
-                    <span className="bg-indigo-600 text-white font-bold text-[9px] sm:text-[11px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-sm uppercase tracking-wider">
-                      Provider Workspace
-                    </span>
-                  </div>
-
-                  <h3 className={`text-base sm:text-xl font-bold mb-1.5 sm:mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    Technician & Repair Console
-                    <ArrowUpRight className="size-4 sm:size-5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
-                  </h3>
-
-                  <p className={`text-xs sm:text-sm mb-3.5 sm:mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    Dedicated console for repair shop owners and independent mechanics to manage service offerings, accept incoming job requests, view earnings, and dispatch technicians.
-                  </p>
-
-                  <div className={`space-y-1.5 sm:space-y-2.5 mb-5 sm:mb-8 text-[11px] sm:text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>Manage Service Listings & Pricing</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>Accept Booking Requests & Schedule Shifts</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>Revenue Analytics & Performance Reports</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  asChild
-                  className={`w-full h-9 sm:h-11 rounded-sm font-bold text-[11px] sm:text-xs gap-1.5 sm:gap-2 transition-colors uppercase tracking-wider ${isDark
-                    ? 'bg-slate-800 hover:bg-sky-600 text-sky-300 hover:text-white'
-                    : 'bg-slate-900 hover:bg-blue-700 text-white'
-                    }`}
-                >
-                  <a href="#/register">
-                    Register as Service Provider
-                    <ArrowRight className="size-3.5 sm:size-4" />
-                  </a>
-                </Button>
-              </div>
-
-              {/* LMD-PESO Admin Console Card (Spans 2-col on tablet md:, 1-col on desktop lg:) */}
-              <div
-                className={`group p-4 sm:p-8 border rounded-sm flex flex-col justify-between transition-all md:col-span-2 lg:col-span-1 ${isDark
-                  ? 'bg-slate-900/80 border-sky-900/40 hover:border-sky-500/50 shadow-xl'
-                  : 'bg-white border-slate-200 shadow-sm hover:shadow-xl'
-                  }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3 sm:mb-6">
-                    <div
-                      className={`size-9 sm:size-12 rounded-sm flex items-center justify-center ${isDark ? 'bg-amber-950 text-amber-400' : 'bg-amber-50 text-amber-700'
-                        }`}
-                    >
-                      <ShieldCheck className="size-4.5 sm:size-6" />
-                    </div>
-                    <span className="bg-amber-500 text-slate-950 font-bold text-[9px] sm:text-[11px] px-2 sm:px-3 py-0.5 sm:py-1 rounded-sm uppercase tracking-wider">
-                      LMD-PESO Admin
-                    </span>
-                  </div>
-
-                  <h3 className={`text-base sm:text-xl font-bold mb-1.5 sm:mb-3 flex items-center justify-between ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                    PESO Administration Console
-                    <ArrowUpRight className="size-4 sm:size-5 text-slate-400 group-hover:text-amber-400 transition-colors" />
-                  </h3>
-
-                  <p className={`text-xs sm:text-sm mb-3.5 sm:mb-6 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    Verification management dashboard for LMD-PESO administrators to evaluate technician credentials, audit system compliance, monitor island activity, and maintain quality assurance.
-                  </p>
-
-                  <div className={`space-y-1.5 sm:space-y-2.5 mb-5 sm:mb-8 text-[11px] sm:text-xs ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>Review & Approve Provider Applications</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>Island-Wide Activity & Audit Logs</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="size-3.5 sm:size-4 text-sky-400 shrink-0" />
-                      <span>Community Livelihood Analytics</span>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  asChild
-                  className="w-full h-9 sm:h-11 rounded-sm bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[11px] sm:text-xs gap-1.5 sm:gap-2 uppercase tracking-wider"
-                >
-                  <a href="#/login">
-                    Launch Admin Console
-                    <ArrowRight className="size-3.5 sm:size-4" />
-                  </a>
-                </Button>
+                      {tab.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
+
+            {/* Billboard Container */}
+            {announcementsLoading ? (
+              <div className="rounded-lg border-2 border-sky-500/30 bg-[#051438]/80 p-8 sm:p-14 text-center max-w-4xl mx-auto backdrop-blur-md animate-pulse">
+                <Megaphone className="size-10 text-sky-400 mx-auto mb-3 animate-bounce" />
+                <p className="text-sm font-bold uppercase tracking-wider text-sky-200 mb-1">
+                  Connecting to Official Announcement Database…
+                </p>
+                <p className="text-xs text-sky-300/70">
+                  Retrieving latest PESO advisories and broadcasts from server.
+                </p>
+              </div>
+            ) : filteredAnnouncements.length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-stretch">
+                {/* Main Electronic Billboard Frame (8 Columns on lg) */}
+                <div className="lg:col-span-8 flex flex-col">
+                  {/* Billboard Overhead Lamp Fixture & Top LED Trim */}
+                  <div className="relative rounded-t-lg bg-gradient-to-r from-slate-900 via-[#04133d] to-slate-900 p-2 sm:p-3 border-t-2 border-x-2 border-sky-500/40 shadow-2xl flex items-center justify-between gap-2 overflow-hidden">
+                    {/* Overhead Light Cone Highlights */}
+                    <div className="absolute top-0 left-1/4 w-32 h-1 bg-sky-400/80 blur-xs" />
+                    <div className="absolute top-0 right-1/4 w-32 h-1 bg-sky-400/80 blur-xs" />
+
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="relative flex h-2.5 w-2.5 shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                      </span>
+                      <p className="text-[10px] sm:text-xs font-black tracking-widest text-sky-300 uppercase truncate">
+                        LIVE MARINDUQUE BROADCAST
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsAnnouncePlaying((p) => !p)}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-sm bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[10px] font-bold uppercase transition-colors cursor-pointer border border-white/15"
+                        title={isAnnouncePlaying ? 'Pause Auto-slide' : 'Play Auto-slide'}
+                      >
+                        {isAnnouncePlaying ? (
+                          <>
+                            <Pause className="size-2.5 sm:size-3 text-sky-300" />
+                            <span className="hidden sm:inline">Auto</span>
+                          </>
+                        ) : (
+                          <>
+                            <Play className="size-2.5 sm:size-3 text-amber-300" />
+                            <span className="hidden sm:inline">Paused</span>
+                          </>
+                        )}
+                      </button>
+
+                      <span className="text-[10px] sm:text-xs font-mono font-bold text-sky-200/80 tabular-nums">
+                        {String(currentAnnounceIndex + 1).padStart(2, '0')}/{String(filteredAnnouncements.length).padStart(2, '0')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Billboard High-Tech Display Screen */}
+                  {(() => {
+                    const activeAnnounce = filteredAnnouncements[currentAnnounceIndex] || filteredAnnouncements[0]
+                    const priorityMeta = getAnnouncementPriorityMeta(activeAnnounce.priority)
+
+                    return (
+                      <div
+                        className="relative flex-1 rounded-b-lg border-x-2 border-b-2 border-sky-500/40 bg-gradient-to-br from-[#051438] via-[#081F5C] to-[#020b22] p-4 sm:p-7 sm:pb-6 shadow-[0_15px_40px_-10px_rgba(8,31,92,0.6)] flex flex-col justify-between overflow-hidden group min-h-[300px] sm:min-h-[360px]"
+                        style={{
+                          backgroundImage:
+                            'radial-gradient(rgba(56, 189, 248, 0.12) 1px, transparent 1px), linear-gradient(135deg, rgba(5,20,56,0.95), rgba(8,31,92,0.92))',
+                          backgroundSize: '20px 20px, 100% 100%',
+                        }}
+                      >
+                        {/* Ambient Glows */}
+                        <div className="pointer-events-none absolute -right-20 -top-20 size-64 rounded-full bg-sky-500/15 blur-3xl" />
+                        <div className="pointer-events-none absolute -left-20 -bottom-20 size-64 rounded-full bg-indigo-500/15 blur-3xl" />
+
+                        {/* Billboard Header Tags */}
+                        <div className="relative z-10">
+                          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-sky-500/20">
+                            <div className="flex flex-wrap items-center gap-2">
+                              {/* Priority Tag */}
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-[10px] sm:text-xs font-extrabold uppercase tracking-wider backdrop-blur-md ${priorityMeta.pillClass}`}
+                              >
+                                <span className={`size-1.5 rounded-full ${priorityMeta.pulseClass}`} />
+                                {priorityMeta.label}
+                              </span>
+
+                              {/* Audience Tag */}
+                              <Badge className="rounded-sm bg-sky-950/80 border border-sky-400/30 text-sky-200 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
+                                {audienceLabel(activeAnnounce.targetAudience)}
+                              </Badge>
+                            </div>
+
+                            {/* Date & Views */}
+                            <div className="flex items-center gap-3 text-[10px] sm:text-xs font-semibold text-sky-200/70">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="size-3 sm:size-3.5 text-sky-400" />
+                                {formatAnnouncementDate(activeAnnounce.createdAt)}
+                              </span>
+                              {activeAnnounce.viewCount !== undefined && (
+                                <span className="flex items-center gap-1">
+                                  <Eye className="size-3 sm:size-3.5 text-sky-400" />
+                                  {Number(activeAnnounce.viewCount).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Billboard Main Text Area */}
+                          <div className="mt-3.5 sm:mt-5 space-y-2.5 sm:space-y-3">
+                            <h3 className="text-lg sm:text-2xl lg:text-3xl font-black text-white leading-snug tracking-tight drop-shadow-md line-clamp-2">
+                              {activeAnnounce.title}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-slate-200/90 leading-relaxed line-clamp-4 font-normal">
+                              {activeAnnounce.content}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Billboard Bottom Controls & Action */}
+                        <div className="relative z-10 pt-4 sm:pt-6 mt-4 border-t border-sky-500/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                          {/* Author Stamp */}
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="size-7 sm:size-8 rounded-sm bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shadow-xs shrink-0">
+                              PESO
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[10px] sm:text-xs font-bold text-white truncate">
+                                {activeAnnounce.authorName || 'LMD-PESO Administrator'}
+                              </p>
+                              <p className="text-[9px] sm:text-[10px] font-medium text-sky-300/80 truncate">
+                                Official Marinduque Advisory
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons & Carousel Navigation */}
+                          <div className="flex items-center justify-between sm:justify-end gap-2">
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={prevAnnouncement}
+                                className="p-1.5 sm:p-2 rounded-sm border border-sky-400/30 bg-sky-950/60 hover:bg-sky-900 text-sky-200 transition-colors cursor-pointer"
+                                title="Previous Announcement"
+                              >
+                                <ChevronLeft className="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={nextAnnouncement}
+                                className="p-1.5 sm:p-2 rounded-sm border border-sky-400/30 bg-sky-950/60 hover:bg-sky-900 text-sky-200 transition-colors cursor-pointer"
+                                title="Next Announcement"
+                              >
+                                <ChevronRight className="size-4" />
+                              </button>
+                            </div>
+
+                            <Button
+                              type="button"
+                              onClick={() => handleOpenAnnouncement(activeAnnounce)}
+                              className="h-8 sm:h-9 px-3.5 sm:px-5 rounded-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-bold text-[10px] sm:text-xs gap-1.5 shadow-md shadow-blue-700/30 uppercase tracking-wider cursor-pointer"
+                            >
+                              <span>Read Full Bulletin</span>
+                              <ArrowUpRight className="size-3.5 shrink-0" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Subtle Animated Progress Strip at Base */}
+                        {isAnnouncePlaying && (
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-sky-950">
+                            <div
+                              key={currentAnnounceIndex}
+                              className="h-full bg-gradient-to-r from-sky-400 to-blue-500 animate-[progress_6s_linear_infinite]"
+                              style={{
+                                animationDuration: '6000ms',
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+                </div>
+
+                {/* Side Billboard Queue / Bulletin Feed (4 Columns on lg) */}
+                <div className="lg:col-span-4 flex flex-col justify-between space-y-2.5">
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-1.5">
+                      <Radio className="size-3.5 text-sky-400 animate-pulse" />
+                      <h4 className={`text-xs sm:text-sm font-extrabold uppercase tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        Bulletin Feed
+                      </h4>
+                    </div>
+                    <span className={`text-[10px] sm:text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                      {filteredAnnouncements.length} active notice{filteredAnnouncements.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  {/* List of Queue Cards */}
+                  <div className="space-y-2 flex-1 overflow-y-auto max-h-[380px] pr-1">
+                    {filteredAnnouncements.map((item, idx) => {
+                      const isSelected = idx === currentAnnounceIndex
+                      const itemPriority = getAnnouncementPriorityMeta(item.priority)
+
+                      return (
+                        <div
+                          key={item._id || idx}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            setCurrentAnnounceIndex(idx)
+                            setIsAnnouncePlaying(false)
+                          }}
+                          className={`p-3 rounded-sm border text-left cursor-pointer transition-all duration-200 ${isSelected
+                            ? 'bg-gradient-to-r from-blue-900/60 to-[#081F5C]/80 border-sky-400 shadow-md shadow-sky-500/10 scale-[1.01]'
+                            : isDark
+                              ? 'bg-slate-900/70 border-sky-900/30 hover:border-sky-500/40 hover:bg-slate-900'
+                              : 'bg-white border-slate-200 hover:border-blue-400 hover:shadow-xs'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                            <span
+                              className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-2xs ${itemPriority.badgeBg}`}
+                            >
+                              {item.priority === 'high' ? 'Urgent' : item.priority === 'normal' ? 'Official' : 'Notice'}
+                            </span>
+                            <span className={`text-[9px] sm:text-[10px] font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                              {formatAnnouncementDate(item.createdAt)}
+                            </span>
+                          </div>
+
+                          <h5 className={`text-xs font-bold line-clamp-1 ${isSelected ? 'text-white' : isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+                            {item.title}
+                          </h5>
+                          <p className={`text-[10px] sm:text-[11px] mt-1 line-clamp-2 leading-relaxed ${isSelected ? 'text-sky-100' : isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                            {item.content}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Direct Contact PESO Box */}
+                  <div
+                    className={`p-3 rounded-sm border text-left flex items-center justify-between gap-2 ${isDark
+                      ? 'bg-[#04133d]/70 border-sky-900/40 text-slate-300'
+                      : 'bg-blue-50/80 border-blue-200 text-blue-900'
+                      }`}
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wide truncate">Need Verified Assistance?</p>
+                      <p className="text-[10px] opacity-80 truncate">Connect with LMD-PESO desks in Marinduque</p>
+                    </div>
+                    <Button asChild size="sm" className="h-7 text-[10px] font-bold uppercase rounded-sm bg-sky-600 hover:bg-sky-500 text-white shrink-0">
+                      <a href="#/login">Inquire</a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`p-8 text-center border rounded-sm max-w-md mx-auto ${isDark ? 'bg-[#0a1836] border-sky-900/40 text-slate-300' : 'bg-white border-slate-200 text-slate-600'
+                  }`}
+              >
+                <Megaphone className="size-10 text-sky-400 mx-auto mb-3 opacity-80" />
+                <p className="text-sm font-bold uppercase tracking-wider mb-1">No Announcements Found</p>
+                <p className="text-xs text-slate-400 mb-4">Check back later or select "All Bulletins" tab above.</p>
+                <Button
+                  size="sm"
+                  onClick={() => setSelectedAnnounceAudience('all')}
+                  className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-sm uppercase"
+                >
+                  View All Bulletins
+                </Button>
+              </div>
+            )}
           </section>
+
+          {/* Announcement Full View Dialog Modal */}
+          <Dialog
+            open={!!viewingAnnouncementModal}
+            onOpenChange={(open) => {
+              if (!open) setViewingAnnouncementModal(null)
+            }}
+          >
+            <DialogContent className="max-w-2xl bg-white dark:bg-[#051438] text-slate-900 dark:text-white border-slate-200 dark:border-sky-500/40 shadow-2xl rounded-sm p-5 sm:p-7">
+              {viewingAnnouncementModal && (
+                <div className="space-y-4">
+                  <DialogHeader className="space-y-2 text-left">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm text-[10px] sm:text-xs font-extrabold uppercase tracking-wider ${getAnnouncementPriorityMeta(viewingAnnouncementModal.priority).pillClass
+                            }`}
+                        >
+                          {getAnnouncementPriorityMeta(viewingAnnouncementModal.priority).label}
+                        </span>
+                        <Badge className="rounded-sm bg-sky-950 border border-sky-400/30 text-sky-200 text-[10px] font-bold uppercase px-2 py-0.5">
+                          {audienceLabel(viewingAnnouncementModal.targetAudience)}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-sky-300/70 font-semibold">
+                        <Calendar className="size-3.5 text-sky-500" />
+                        {formatAnnouncementDate(viewingAnnouncementModal.createdAt)}
+                      </div>
+                    </div>
+
+                    <DialogTitle className="text-lg sm:text-2xl font-black leading-snug tracking-tight text-slate-900 dark:text-white pt-1">
+                      {viewingAnnouncementModal.title}
+                    </DialogTitle>
+
+                    <DialogDescription className="text-xs text-slate-500 dark:text-sky-200/70">
+                      Official Public Advisory released through the E-Paayos Marinduque Network.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="border-t border-slate-200 dark:border-sky-500/20 pt-4 space-y-3">
+                    <div className="p-3.5 sm:p-4 rounded-sm bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-sky-900/40">
+                      <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line font-medium">
+                        {viewingAnnouncementModal.content}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
+                      <span className="font-semibold">
+                        Author: <strong className="text-slate-900 dark:text-sky-300">{viewingAnnouncementModal.authorName || 'LMD-PESO Administrator'}</strong>
+                      </span>
+                      {viewingAnnouncementModal.viewCount !== undefined && (
+                        <span>
+                          Total Reads: <strong className="text-slate-900 dark:text-sky-300">{Number(viewingAnnouncementModal.viewCount).toLocaleString()}</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <DialogFooter className="pt-2 sm:pt-4 border-t border-slate-200 dark:border-sky-500/20 flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                      <ShieldCheck className="size-3.5 text-emerald-500" />
+                      <span>Verified PESO System Broadcast</span>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => setViewingAnnouncementModal(null)}
+                      className="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs uppercase rounded-sm px-5"
+                    >
+                      Close Notice
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {/* Platform Key Features (1-col on tiny mobile, 2-col on min-480px/tablet, 3-col on md/lg) */}
           <section id="features" className="mx-auto max-w-7xl px-3.5 sm:px-6 lg:px-8 py-10 sm:py-16 border-t border-sky-900/20">
@@ -1528,8 +1910,8 @@ export default function LandingPage() {
                     </button>
                   </li>
                   <li>
-                    <button type="button" onClick={() => scrollToSection('portals')} className="hover:text-sky-400 cursor-pointer">
-                      Portals
+                    <button type="button" onClick={() => scrollToSection('announcements')} className="hover:text-sky-400 cursor-pointer">
+                      Announcements
                     </button>
                   </li>
                 </ul>

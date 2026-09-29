@@ -25,7 +25,9 @@ function ShopInfoLayout({ variant, pageMeta, children }) {
   }
   return (
     <ShopOwnerDashboard activeSection="shop-info" pageMeta={pageMeta}>
-      {children}
+      <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
+        {children}
+      </main>
     </ShopOwnerDashboard>
   )
 }
@@ -157,8 +159,8 @@ function userToShopForm(u) {
     serviceType:
       u.role === 'oncall-mechanic-technician'
         ? INDEPENDENT_DB_TO_DISPLAY[u.serviceType] ||
-          SERVICE_DISPLAY_BY_DB[u.serviceType] ||
-          'Both (Home Service, Technician/Mechanic location Visit)'
+        SERVICE_DISPLAY_BY_DB[u.serviceType] ||
+        'Both (Home Service, Technician/Mechanic location Visit)'
         : SERVICE_DISPLAY_BY_DB[u.serviceType] || u.serviceType || 'Both (Home Service and Shop Visit)',
     yearsOfOperation: u.yearsOfOperation != null && u.yearsOfOperation !== '' ? String(u.yearsOfOperation) : '',
     numberOfEmployees: u.numberOfEmployees != null && u.numberOfEmployees !== '' ? String(u.numberOfEmployees) : '',
@@ -743,11 +745,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 />
                 <label
                   htmlFor="shop-place-photo-input"
-                  className={`group relative flex h-44 sm:h-56 w-full cursor-pointer flex-col overflow-hidden rounded-none shadow-2xs transition-all duration-300 focus-within:outline-none ${
-                    shopPhotoDisplayUrl
+                  className={`group relative flex h-44 sm:h-56 w-full cursor-pointer flex-col overflow-hidden rounded-none shadow-2xs transition-all duration-300 focus-within:outline-none ${shopPhotoDisplayUrl
                       ? 'border border-slate-300'
                       : 'border-2 border-dashed border-slate-300 bg-slate-50 hover:border-[#081F5C]'
-                  }`}
+                    }`}
                 >
                   {shopPhotoDisplayUrl ? (
                     <>
@@ -862,11 +863,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                         key={s}
                         type="button"
                         onClick={() => toggleArrayValue('repairServicesOffered', s)}
-                        className={`rounded-none border px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs cursor-pointer transition-all ${
-                          selected
+                        className={`rounded-none border px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs cursor-pointer transition-all ${selected
                             ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
                             : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 font-semibold'
-                        }`}
+                          }`}
                       >
                         {s}
                       </button>
@@ -965,11 +965,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                                 key={`open-${meridiem}`}
                                 type="button"
                                 onClick={() => setOperatingHoursPart('openPeriod', meridiem)}
-                                className={`h-8 rounded-none border px-2 text-xs cursor-pointer transition-all ${
-                                  p.openPeriod === meridiem
+                                className={`h-8 rounded-none border px-2 text-xs cursor-pointer transition-all ${p.openPeriod === meridiem
                                     ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
                                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 font-semibold'
-                                }`}
+                                  }`}
                               >
                                 {meridiem}
                               </button>
@@ -1009,11 +1008,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                                 key={`close-${meridiem}`}
                                 type="button"
                                 onClick={() => setOperatingHoursPart('closePeriod', meridiem)}
-                                className={`h-8 rounded-none border px-2 text-xs cursor-pointer transition-all ${
-                                  p.closePeriod === meridiem
+                                className={`h-8 rounded-none border px-2 text-xs cursor-pointer transition-all ${p.closePeriod === meridiem
                                     ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
                                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 font-semibold'
-                                }`}
+                                  }`}
                               >
                                 {meridiem}
                               </button>
@@ -1038,11 +1036,10 @@ export function ShopInfoInner({ variant = 'shop' }) {
                         key={d}
                         type="button"
                         onClick={() => toggleArrayValue('daysOfOperation', d)}
-                        className={`rounded-none border px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs cursor-pointer transition-all ${
-                          selected
+                        className={`rounded-none border px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs cursor-pointer transition-all ${selected
                             ? 'border-[#081F5C] bg-linear-to-r from-[#04133d] to-[#081F5C] text-white font-bold shadow-xs'
                             : 'border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 font-semibold'
-                        }`}
+                          }`}
                       >
                         {d}
                       </button>

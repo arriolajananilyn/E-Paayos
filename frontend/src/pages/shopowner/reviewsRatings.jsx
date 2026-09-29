@@ -646,7 +646,7 @@ export function ReviewRatings() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
+    <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
@@ -1172,7 +1172,7 @@ export function ReviewRatings() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   )
 }
 

@@ -50,20 +50,20 @@ const HISTORY_STAT_GRADIENT = {
   total: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
+function StatGradientCard({ label, value, icon: Icon, variant, helper, className }) {
   const gradient = HISTORY_STAT_GRADIENT[variant] ?? HISTORY_STAT_GRADIENT.total
   return (
     <div
-      className={`relative min-h-[88px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-none border border-white/15 p-3 sm:p-5 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:shadow-lg ${gradient}`}
+      className={`relative min-h-[88px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3.5 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg ${gradient} ${className || ''}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
       <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] sm:text-xs font-bold tracking-wide text-white/85 uppercase truncate">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white tabular-nums">{value}</p>
-          {helper ? <p className="mt-0.5 sm:mt-1 line-clamp-1 text-[10px] sm:text-[11px] text-white/80 font-medium">{helper}</p> : null}
+          <p className="text-[10px] sm:text-xs font-medium tracking-wide text-white/85">{label}</p>
+          <p className="mt-0.5 sm:mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
+          {helper ? <p className="mt-0.5 line-clamp-1 text-[10px] sm:text-[11px] text-white/80">{helper}</p> : null}
         </div>
-        <div className="shrink-0 rounded-none border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
+        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
           <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
         </div>
       </div>
@@ -72,17 +72,17 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-none border border-slate-300 bg-white px-3 py-2 pr-8 text-xs font-bold text-slate-700 shadow-2xs outline-none focus-visible:border-[#081F5C] focus-visible:ring-1 focus-visible:ring-[#081F5C]'
+  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
 
 function BookingSearchBar({ value, onChange }) {
   const { state: sidebarState } = useSidebar()
-  const lgWidthClass = sidebarState === 'collapsed' ? 'lg:w-[480px] lg:max-w-[500px]' : 'lg:w-[360px] lg:max-w-[360px]'
+  const lgWidthClass = sidebarState === 'collapsed' ? 'lg:w-[500px] lg:max-w-[520px]' : 'lg:w-[360px] lg:max-w-[360px]'
 
   return (
     <div className={`flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none ${lgWidthClass}`}>
       <div className="relative h-9 w-full min-w-0 shrink-0">
         <Input
-          className="h-9 w-full min-w-0 rounded-none border-slate-300 bg-white/95 pr-12 pl-4 text-xs font-medium shadow-2xs focus-visible:border-[#081F5C] focus-visible:ring-1 focus-visible:ring-[#081F5C]"
+          className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-[13px] shadow-sm sm:text-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
           placeholder="Search by name, phone, service, notes…"
           value={value}
           onChange={onChange}
@@ -91,11 +91,11 @@ function BookingSearchBar({ value, onChange }) {
         <Button
           type="button"
           size="icon-sm"
-          className="pointer-events-none absolute top-1/2 right-1 z-10 h-7 w-7 -translate-y-1/2 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-xs"
+          className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
           aria-hidden
           tabIndex={-1}
         >
-          <Search className="h-3.5 w-3.5 text-white" />
+          <Search className="h-4 w-4 text-white" />
         </Button>
       </div>
     </div>
@@ -314,20 +314,19 @@ export function OnCallMechanicServiceHistory() {
         title: 'Service History',
         description: 'Completed job records archive from Service Requests.',
       }}
-      wrapContent={false}
     >
-      <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-3.5 max-w-[1440px] mx-auto">
+      <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
         {listError ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-none border border-rose-300 bg-rose-50 px-3.5 py-2.5 text-xs font-bold text-rose-700">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             <span>{listError}</span>
-            <Button type="button" variant="outline" size="sm" onClick={() => void loadBookings()} className="rounded-none">
+            <Button type="button" variant="outline" size="sm" onClick={() => void loadBookings()}>
               Retry
             </Button>
           </div>
         ) : null}
 
         {/* Top KPI Cards */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3.5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <StatGradientCard
             variant="completed"
             label="Completed Jobs"
@@ -345,11 +344,11 @@ export function OnCallMechanicServiceHistory() {
         </div>
 
         {/* Filter Controls & Search Bar */}
-        <div className="mb-0.5 flex min-w-0 max-w-full flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-2.5 sm:flex-row sm:flex-wrap lg:flex-nowrap">
+        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:flex-1 lg:flex-nowrap">
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[240px]">
               <select
-                className={selectShell}
+                className={`${selectShell} text-neutral-900 dark:text-neutral-100`}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -357,179 +356,189 @@ export function OnCallMechanicServiceHistory() {
                 <option value="completedOldest">Sort: Oldest completion</option>
                 <option value="schedule">Sort: By preferred date</option>
               </select>
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
+              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             </div>
           </div>
 
-          <div className="w-full lg:w-auto">
-            <BookingSearchBar value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
+          <BookingSearchBar value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
 
         {/* Completed Service Cards List */}
-        <div className="space-y-3.5">
+        <div className="mt-2 min-w-0 max-w-full space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-[#081F5C] dark:text-slate-50">Completed services</p>
+              <p className="mt-0.5 text-xs leading-snug text-muted-foreground sm:text-[13px]">
+                {filtered.length} result{filtered.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={loading}
+              onClick={() => void loadBookings()}
+              className="h-9 shrink-0 gap-1.5 rounded-sm border-[#081F5C]/15 bg-white/80 px-3 text-sm text-[#081F5C] shadow-sm hover:bg-white dark:border-white/10 dark:bg-white/5 dark:text-blue-100"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <RefreshCw className="h-4 w-4" aria-hidden />}
+              Refresh
+            </Button>
+          </div>
+
           {loading ? (
-            <div className="flex min-h-[200px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white p-6 text-center">
-              <Loader2 className="mb-2 size-8 animate-spin text-[#081F5C]" aria-hidden />
-              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Loading history…</p>
-              <p className="mt-1 text-xs text-slate-500">Fetching completed service bookings.</p>
+            <div className="flex min-h-[160px] flex-col items-center justify-center rounded-sm border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm dark:border-white/15 dark:bg-[#020818]">
+              <Loader2 className="mb-2 h-8 w-8 animate-spin text-[#081F5C]/70" aria-hidden />
+              <p className="text-base font-medium text-foreground">Loading history…</p>
+              <p className="mt-1 max-w-md text-sm text-muted-foreground">Fetching completed service bookings.</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex min-h-[180px] flex-col items-center justify-center rounded-none border border-dashed border-slate-300 bg-white p-6 text-center shadow-2xs">
-              <History className="size-9 text-slate-400 mb-2" aria-hidden />
-              <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">No completed services found</p>
-              <p className="mt-1 max-w-md text-xs text-slate-500">
+            <div className="flex min-h-[140px] flex-col items-center justify-center rounded-sm border border-dashed border-[#081F5C]/20 bg-slate-50/60 px-6 text-center shadow-sm ring-1 ring-black/2 dark:border-white/15 dark:bg-[#020818] dark:ring-white/5">
+              <History className="mx-auto h-10 w-10 text-muted-foreground/45" aria-hidden />
+              <p className="mt-3 text-base font-medium text-foreground">No completed services found</p>
+              <p className="mt-1 max-w-md text-sm text-muted-foreground">
                 When you complete a job request, it will automatically record here.
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-3.5 rounded-none border-slate-300 font-bold text-xs cursor-pointer"
-                onClick={() => {
-                  window.location.hash = '#/independent/technician/service-request'
-                }}
-              >
-                Go to Service Requests
-              </Button>
             </div>
           ) : (
-            filtered.map((b) => {
-              const CategoryIcon = b.shopService ? categoryIcon(b.shopService.category) : Wrench
-              const hasPin =
-                typeof b.serviceLatitude === 'number' &&
-                Number.isFinite(b.serviceLatitude) &&
-                typeof b.serviceLongitude === 'number' &&
-                Number.isFinite(b.serviceLongitude)
-              const isHi = highlightId === b.id
+            <div className="space-y-4">
+              {filtered.map((b) => {
+                const CategoryIcon = b.shopService ? categoryIcon(b.shopService.category) : Wrench
+                const hasPin =
+                  typeof b.serviceLatitude === 'number' &&
+                  Number.isFinite(b.serviceLatitude) &&
+                  typeof b.serviceLongitude === 'number' &&
+                  Number.isFinite(b.serviceLongitude)
+                const isHi = highlightId === b.id
 
-              return (
-                <article
-                  key={b.id}
-                  data-booking-history-id={b.id}
-                  className={cn(
-                    'rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-200 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] p-3.5 sm:p-4 hover:-translate-y-0.5 space-y-3',
-                    isHi && 'border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-50/20'
-                  )}
-                >
-                  {/* Top Bar Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex size-9 shrink-0 items-center justify-center rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold text-white shadow-2xs">
-                        {initialsFromName(b.contactName)}
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-sm font-black tracking-tight text-slate-900">{b.contactName || '—'}</h3>
-                          {b.ref ? (
-                            <span className="font-mono text-[11px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
-                              Ref: #{b.ref}
-                            </span>
-                          ) : null}
+                return (
+                  <article
+                    key={b.id}
+                    data-booking-history-id={b.id}
+                    className={cn(
+                      'bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4 space-y-2.5 sm:space-y-3 rounded-none',
+                      isHi && 'border-emerald-500 ring-2 ring-emerald-500/40 bg-emerald-50/20'
+                    )}
+                  >
+                    {/* Top Bar Header */}
+                    <div className="flex flex-wrap items-start sm:items-center justify-between gap-2.5 sm:gap-3 pb-2 border-b border-slate-100">
+                      <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                        <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] text-xs font-bold text-white shadow-2xs mt-0.5 sm:mt-0">
+                          {initialsFromName(b.contactName)}
                         </div>
-                        <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
-                          <Phone className="size-3 text-[#081F5C]" />
-                          <a href={`tel:${b.contactPhone}`} className="text-[#081F5C] hover:underline font-bold">
-                            {b.contactPhone || '—'}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug">{b.contactName || '—'}</h3>
+                            {b.ref ? (
+                              <span className="text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-700 px-1.5 sm:px-2 py-0.5 rounded-none border border-slate-200 inline-flex items-center gap-1">
+                                <Tag className="size-3 text-indigo-600 shrink-0" />
+                                Ref: #{b.ref}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
+                            <Phone className="size-3 text-[#081F5C] shrink-0" />
+                            <a href={`tel:${b.contactPhone}`} className="text-[#081F5C] hover:underline font-bold truncate">
+                              {b.contactPhone || '—'}
+                            </a>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-row sm:flex-col sm:items-end items-center gap-1.5 shrink-0 self-start sm:self-center">
+                        {bookingStatusBadge()}
+                        <span className="text-[10px] sm:text-[11px] font-semibold text-slate-500 whitespace-nowrap">
+                          Finished: {formatSubmittedLine(b.updatedAt || b.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 3 Container Box Body Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3 text-xs sm:text-sm">
+                      {/* Container 1: Service Description */}
+                      <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                        <div>
+                          <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[10px] sm:text-xs flex items-center gap-1">
+                            <FileText className="size-3.5 text-[#081F5C] shrink-0" />
+                            <span>Service Requested</span>
+                          </span>
+                          <p className="text-xs sm:text-sm font-bold text-slate-900 mt-1 flex items-center gap-1.5">
+                            <CategoryIcon className="size-3.5 text-indigo-600 shrink-0" />
+                            <span>{b.shopService?.name || 'General Repair'}</span>
+                          </p>
+                          <p className="text-[11px] text-slate-600 mt-1 line-clamp-3 leading-relaxed">
+                            {b.problemDescription || 'No description provided.'}
+                          </p>
+                        </div>
+                        {b.notes?.trim() ? (
+                          <div className="bg-white p-2 border border-slate-200 text-[11px] text-slate-600 mt-1">
+                            <span className="font-bold text-slate-800">Notes:</span> {b.notes.trim()}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Container 2: Outcome & Schedule */}
+                      <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                        <div>
+                          <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[10px] sm:text-xs flex items-center gap-1">
+                            <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
+                            <span>Recorded Outcome</span>
+                          </span>
+                          <p className="text-[11px] font-bold text-emerald-900 bg-emerald-50 p-2 border border-emerald-200 mt-1">
+                            {completionOutcomeLabel(b.shopService?.category)}
+                          </p>
+                        </div>
+                        <div className="bg-white p-2 border border-slate-200 space-y-0.5 text-[11px]">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
+                          <div className="flex items-center gap-1 font-bold text-slate-800">
+                            <CalendarClock className="size-3 text-indigo-600 shrink-0" />
+                            <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Container 3: Service Mode & Location */}
+                      <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
+                        <div>
+                          <span className="font-extrabold text-slate-800 uppercase tracking-wider text-[10px] sm:text-xs flex items-center gap-1">
+                            <MapPin className="size-3 text-rose-500 shrink-0" />
+                            <span>Service Location</span>
+                          </span>
+                          <div className="mt-1 flex items-center gap-1">
+                            <Badge className="rounded-none border border-slate-300 bg-white text-slate-800 text-[10px] font-bold uppercase py-0">
+                              {b.serviceMode === 'home' ? <Home className="size-3 mr-1 text-indigo-600 shrink-0" /> : <Store className="size-3 mr-1 text-indigo-600 shrink-0" />}
+                              {b.serviceMode === 'home' ? 'Home Service' : 'In-Shop Visit'}
+                            </Badge>
+                          </div>
+                          {b.serviceMode === 'home' && b.serviceAddress ? (
+                            <p className="text-[11px] font-medium text-slate-700 mt-1.5 line-clamp-2 leading-tight">
+                              {b.serviceAddress}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] font-medium text-slate-500 mt-1.5 italic">
+                              In-shop customer repair visit.
+                            </p>
+                          )}
+                        </div>
+                        {b.serviceMode === 'home' && hasPin ? (
+                          <a
+                            href={`https://www.google.com/maps?q=${b.serviceLatitude},${b.serviceLongitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex w-full sm:w-auto items-center justify-center gap-1 px-2.5 py-1.5 sm:py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors mt-2"
+                          >
+                            <MapPin className="size-3 text-rose-600 shrink-0" />
+                            <span>Open Location Map</span>
                           </a>
-                        </p>
+                        ) : null}
                       </div>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5">
-                      {bookingStatusBadge()}
-                      <span className="text-[11px] font-semibold text-slate-500">
-                        Finished: {formatSubmittedLine(b.updatedAt || b.createdAt)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 3 Container Box Body Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {/* Container 1: Service Description */}
-                    <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                          <FileText className="size-3.5 text-[#081F5C]" />
-                          <span>Service Requested</span>
-                        </span>
-                        <p className="text-xs font-black text-slate-900 mt-1 flex items-center gap-1.5">
-                          <CategoryIcon className="size-3.5 text-indigo-600 shrink-0" />
-                          <span>{b.shopService?.name || 'General Repair'}</span>
-                        </p>
-                        <p className="text-[11px] text-slate-600 mt-1 line-clamp-3 leading-relaxed">
-                          {b.problemDescription || 'No description provided.'}
-                        </p>
-                      </div>
-                      {b.notes?.trim() ? (
-                        <div className="bg-white p-2 border border-slate-200 text-[11px] text-slate-600 mt-1">
-                          <span className="font-bold text-slate-800">Notes:</span> {b.notes.trim()}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {/* Container 2: Outcome & Schedule */}
-                    <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                          <CheckCircle2 className="size-3.5 text-emerald-600" />
-                          <span>Recorded Outcome</span>
-                        </span>
-                        <p className="text-[11px] font-bold text-emerald-900 bg-emerald-50 p-2 border border-emerald-200 mt-1">
-                          {completionOutcomeLabel(b.shopService?.category)}
-                        </p>
-                      </div>
-                      <div className="bg-white p-2 border border-slate-200 space-y-0.5 text-[11px]">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
-                        <div className="flex items-center gap-1 font-bold text-slate-800">
-                          <CalendarClock className="size-3 text-indigo-600" />
-                          <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Container 3: Service Mode & Location */}
-                    <div className="bg-slate-50/80 border border-slate-200/90 p-3 rounded-none flex flex-col justify-between space-y-1.5">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                          <MapPin className="size-3 text-rose-500" />
-                          <span>Service Location</span>
-                        </span>
-                        <div className="mt-1 flex items-center gap-1">
-                          <Badge className="rounded-none border border-slate-300 bg-white text-slate-800 text-[10px] font-bold uppercase py-0">
-                            {b.serviceMode === 'home' ? <Home className="size-3 mr-1 text-indigo-600" /> : <Store className="size-3 mr-1 text-indigo-600" />}
-                            {b.serviceMode === 'home' ? 'Home Service' : 'In-Shop Visit'}
-                          </Badge>
-                        </div>
-                        {b.serviceMode === 'home' && b.serviceAddress ? (
-                          <p className="text-[11px] font-medium text-slate-700 mt-1.5 line-clamp-2 leading-tight">
-                            {b.serviceAddress}
-                          </p>
-                        ) : (
-                          <p className="text-[11px] font-medium text-slate-500 mt-1.5 italic">
-                            In-shop customer repair visit.
-                          </p>
-                        )}
-                      </div>
-                      {b.serviceMode === 'home' && hasPin ? (
-                        <a
-                          href={`https://www.google.com/maps?q=${b.serviceLatitude},${b.serviceLongitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 sm:py-1 bg-white hover:bg-slate-100 text-[#081F5C] text-[11px] font-bold rounded-none border border-slate-300 shadow-2xs transition-colors w-full sm:w-auto"
-                        >
-                          <MapPin className="size-3.5 text-rose-600 shrink-0" />
-                          <span>Open Location Map</span>
-                        </a>
-                      ) : null}
-                    </div>
-                  </div>
-                </article>
-              )
-            })
+                  </article>
+                )
+              })}
+            </div>
           )}
         </div>
-      </div>
+      </main>
     </OnCallMechanicLayout>
   )
 }

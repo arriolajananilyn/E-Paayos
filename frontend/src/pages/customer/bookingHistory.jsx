@@ -890,7 +890,7 @@ export default function CustomerBookingHistory() {
                       <button
                         type="button"
                         onClick={() => {
-                          window.location.hash = '#/customer/reviews-ratings'
+                          window.location.hash = `#/customer/reviews-ratings?tab=to-review&bookingId=${encodeURIComponent(b.id)}`
                         }}
                         className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
                       >

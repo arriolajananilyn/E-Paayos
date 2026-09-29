@@ -20,8 +20,8 @@ const announcementSchema = new mongoose.Schema(
       default: "draft",
     },
     scheduledDate: { type: Date },
-    author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    authorName: { type: String, default: "" },
+    author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false, default: null },
+    authorName: { type: String, default: "LMD-PESO Administrator" },
     viewCount: { type: Number, default: 0 },
   },
   { timestamps: true }

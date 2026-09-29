@@ -18,7 +18,9 @@ function NotificationPage() {
         description: 'Stay updated with booking requests and service status.',
       }}
     >
-      <ShopOwnerNotificationBody />
+      <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
+        <ShopOwnerNotificationBody />
+      </main>
     </ShopOwnerDashboard>
   )
 }

@@ -307,7 +307,6 @@ const emptyForm = {
   description: '',
   location: '__',
   status: true, // switch
-  technicianIds: [],
   laborRatingMin: '',
   laborRatingMax: '',
 }
@@ -360,7 +359,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
     [variant],
   )
 
-  /** Always you for independent listings (even if `technicianIds` not yet backfilled). */
+  /** Always you for independent listings. */
   const selfEmployee = variant === 'independent' ? readProviderSelfEmployee() : null
 
   const [categoryFilter, setCategoryFilter] = useState('__')
@@ -405,12 +404,8 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
           const err = await svcRes.json().catch(() => ({}))
           throw new Error(err?.message || 'Could not load services.')
         }
-        if (!empRes.ok) {
-          const err = await empRes.json().catch(() => ({}))
-          throw new Error(err?.message || 'Could not load employees.')
-        }
         const svcData = await svcRes.json()
-        const empData = await empRes.json()
+        const empData = empRes.ok ? await empRes.json().catch(() => []) : []
         const regData = regRes.ok ? await regRes.json().catch(() => []) : []
         const manual = (empData || []).map(mapEmployeeFromApi).filter(Boolean)
         const registered = Array.isArray(regData) ? regData.map(mapRegisteredMechanicForPicker).filter(Boolean) : []
@@ -472,11 +467,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
 
   const openCreate = () => {
     setEditingId(null)
-    const selfId = variant === 'independent' ? readProviderSelfEmployee()?.id : null
-    setForm({
-      ...emptyForm,
-      technicianIds: selfId ? [selfId] : [],
-    })
+    setForm(emptyForm)
     setFormOpen(true)
   }
 
@@ -491,7 +482,6 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
       description: service.description ?? '',
       location: service.location ?? '__',
       status: service.status === 'active',
-      technicianIds: service.technicianIds ?? [],
       laborRatingMin:
         service.laborRatingMin != null && service.laborRatingMin !== ''
           ? String(service.laborRatingMin)
@@ -517,9 +507,6 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
     }
 
     const computedCategory = form.category === 'Others' ? form.otherCategory.trim() : form.category
-    const selfId = readProviderSelfEmployee()?.id
-    const technicianIds =
-      variant === 'independent' ? (selfId ? [selfId] : []) : form.technicianIds
     const minLabor = Number(String(form.laborRatingMin || '').trim())
     const maxLabor = Number(String(form.laborRatingMax || '').trim())
     const payload = {
@@ -530,7 +517,6 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
       location: form.location,
       requirements: '',
       status: form.status ? 'active' : 'inactive',
-      technicianIds,
       laborRatingMin: minLabor,
       laborRatingMax: maxLabor,
     }
@@ -617,7 +603,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
 
   return (
     <>
-      <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden">
+      <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
         {listError ? (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             <span>{listError}</span>
@@ -867,51 +853,32 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                       </div>
                     </div>
 
-                    {/* Column 3: Qualified Staff Container */}
+                    {/* Column 3: Service Details & Availability */}
                     <div className="bg-slate-50/80 p-3 sm:p-3.5 border border-slate-200 space-y-2 rounded-none flex flex-col justify-between">
                       <div>
                         <span className="font-extrabold text-slate-800 uppercase tracking-wider text-xs flex items-center gap-1.5 pb-1">
-                          <Users className="size-4 text-indigo-600" />
-                          <span>{variant === 'independent' ? 'Assigned Provider' : 'Qualified Staff'}</span>
+                          <Home className="size-4 text-indigo-600" />
+                          <span>Service Details</span>
                         </span>
-                        <div className="flex items-center gap-2 pt-1">
-                          {variant === 'independent' ? (
-                            selfEmployee ? (
-                              <div className="inline-flex items-center gap-2">
-                                <span className="inline-flex size-6 items-center justify-center rounded-none bg-indigo-600 text-[10px] font-bold text-white">
-                                  {initialsFromName(selfEmployee.name)}
-                                </span>
-                                <span className="truncate text-xs font-semibold text-slate-800">
-                                  {selfEmployee.name}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-slate-500">Self Account</span>
-                            )
-                          ) : service.technicianIds?.length ? (
-                            <div className="flex items-center gap-2">
-                              <div className="flex -space-x-1 overflow-hidden">
-                                {service.technicianIds.slice(0, 3).map((id) => {
-                                  const t = employees.find((x) => x.id === id)
-                                  const label = t?.name ?? 'Unknown'
-                                  return (
-                                    <span
-                                      key={id}
-                                      title={label}
-                                      className="inline-flex size-6 items-center justify-center rounded-none bg-indigo-600 text-[10px] font-bold text-white border border-white"
-                                    >
-                                      {initialsFromName(label)}
-                                    </span>
-                                  )
-                                })}
-                              </div>
-                              <span className="text-xs font-semibold text-slate-700">
-                                {service.technicianIds.length} {service.technicianIds.length === 1 ? 'staff' : 'staff members'}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400 font-medium">Unassigned</span>
-                          )}
+                        <div className="space-y-1 pt-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500 font-medium">Type:</span>
+                            <span className="font-bold text-slate-800">
+                              {serviceLocations.find((x) => x.value === service.location)?.label ?? 'Standard'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500 font-medium">Status:</span>
+                            <span className={cn("font-bold", service.status === 'active' ? "text-emerald-700" : "text-slate-500")}>
+                              {service.status === 'active' ? 'Active · Bookable' : 'Disabled'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500 font-medium">Bookings:</span>
+                            <span className="font-bold text-indigo-700">
+                              {service.bookings || 0} recorded
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -959,7 +926,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Create / Edit Service Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -1130,105 +1097,6 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                 </div>
                 <Switch checked={form.status} onCheckedChange={(checked) => setForm((f) => ({ ...f, status: checked }))} />
               </div>
-
-              {variant !== 'independent' ? (
-                <div className="space-y-2 pt-1">
-                  <div>
-                    <p className="text-xs font-extrabold uppercase tracking-wider text-slate-900">Qualified Mechanics / Technicians</p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Assign mechanics who registered under your shop or manual staff entries.
-                    </p>
-                  </div>
-                  <div className="w-full min-w-0">
-                    {employees.length === 0 ? (
-                      <p className="rounded-none border border-dashed border-slate-300 bg-slate-50 p-4 text-xs font-medium text-slate-500">
-                        No staff listed yet. Technicians who sign up and select your shop appear here automatically.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-2.5">
-                        {employees.map((t) => {
-                          const checked = form.technicianIds.includes(t.id)
-                          const checkboxDisabled = t.assignDisabled && !checked
-                          const onNavy = checked
-                          return (
-                            <label
-                              key={`${t.source}-${t.id}`}
-                              className={cn(
-                                "flex min-w-0 w-full cursor-pointer items-stretch gap-3 rounded-none border p-3 transition-all duration-200",
-                                checkboxDisabled && "opacity-60 cursor-not-allowed",
-                                onNavy
-                                  ? "bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 border-indigo-700 text-white shadow-md"
-                                  : "bg-white border-slate-200 text-slate-900 hover:border-indigo-300 shadow-2xs"
-                              )}
-                            >
-                              <div className="flex shrink-0 items-start pt-0.5">
-                                <Checkbox
-                                  checked={checked}
-                                  disabled={checkboxDisabled}
-                                  onCheckedChange={(next) => {
-                                    if (t.assignDisabled && next) return
-                                    setForm((f) => {
-                                      const set = new Set(f.technicianIds)
-                                      if (next) set.add(t.id)
-                                      else set.delete(t.id)
-                                      return { ...f, technicianIds: [...set] }
-                                    })
-                                  }}
-                                  className="mt-1 rounded-none border-slate-400"
-                                />
-                              </div>
-                              <div className="flex min-w-0 flex-1 gap-3">
-                                <div
-                                  className={cn(
-                                    "flex size-10 shrink-0 items-center justify-center rounded-none text-xs font-black ring-1",
-                                    onNavy
-                                      ? "bg-indigo-600 text-white ring-indigo-400"
-                                      : "bg-indigo-50 text-indigo-700 ring-indigo-200"
-                                  )}
-                                >
-                                  {initialsFromName(t.name)}
-                                </div>
-                                <div className="min-w-0 flex-1 space-y-1 text-xs">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className={cn("font-bold text-sm", onNavy ? "text-white" : "text-slate-900")}>
-                                      {t.name}
-                                    </span>
-                                    {t.source === 'self' ? (
-                                      <Badge variant="outline" className="rounded-none border-indigo-200 bg-indigo-50 text-[10px] font-bold text-indigo-900">
-                                        You (provider)
-                                      </Badge>
-                                    ) : t.source === 'registered' ? (
-                                      <Badge variant="outline" className="rounded-none border-emerald-200 bg-emerald-50 text-[10px] font-bold text-emerald-900 uppercase">
-                                        Registered
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="rounded-none border-slate-200 bg-slate-100 text-[10px] font-bold text-slate-700">
-                                        Manual entry
-                                      </Badge>
-                                    )}
-                                    {t.source === 'registered' && t.rosterStatus ? rosterStatusPickerBadge(t.rosterStatus, onNavy) : null}
-                                  </div>
-
-                                  <p className={cn("font-medium", onNavy ? "text-indigo-200" : "text-indigo-600")}>
-                                    <Wrench className="mr-1 inline-block size-3.5 -translate-y-px" aria-hidden />
-                                    {t.jobTitle || 'Technician'}
-                                  </p>
-
-                                  {t.technicalSkillsText ? (
-                                    <p className={cn("text-[11px] leading-snug", onNavy ? "text-slate-300" : "text-slate-600")}>
-                                      <span className="font-bold">Skills:</span> {t.technicalSkillsText}
-                                    </p>
-                                  ) : null}
-                                </div>
-                              </div>
-                            </label>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : null}
             </div>
           </div>
 
@@ -1310,66 +1178,13 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                   ) : null}
                 </div>
 
-                <div className="space-y-2">
+                <div className="rounded-none border border-slate-200 bg-slate-50/80 p-4 space-y-2 text-xs">
                   <p className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                    {variant === 'independent' ? 'Assigned Provider' : 'Assigned Mechanics / Technicians'}
+                    Mechanic & Technician Assignment
                   </p>
-                  {variant === 'independent' ? (
-                    <div className="rounded-none border border-slate-200 bg-slate-50/80 p-4 text-xs font-medium text-slate-700">
-                      You perform this service as the On-call Mechanic/Technician for this listing.
-                    </div>
-                  ) : (
-                    <div className="grid gap-2.5">
-                      {(viewing.technicianIds ?? []).length ? (
-                        (viewing.technicianIds ?? []).map((id) => {
-                          const t = employees.find((x) => x.id === id)
-                          const name = t?.name ?? 'Unknown technician'
-                          return (
-                            <div
-                              key={id}
-                              className="flex items-center gap-3 rounded-none bg-white p-3.5 border border-slate-200 shadow-2xs"
-                            >
-                              <div className="flex size-10 shrink-0 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-black">
-                                {initialsFromName(name)}
-                              </div>
-                              <div className="min-w-0 flex-1 space-y-1 text-xs">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <p className="font-bold text-slate-900">{name}</p>
-                                  {t?.source === 'self' ? (
-                                    <Badge variant="outline" className="rounded-none border-indigo-200 bg-indigo-50 text-[10px] font-bold text-indigo-900">
-                                      You (provider)
-                                    </Badge>
-                                  ) : null}
-                                  {t?.source === 'registered' ? (
-                                    <Badge variant="outline" className="rounded-none border-emerald-200 bg-emerald-50 text-[10px] font-bold text-emerald-900 uppercase">
-                                      Registered
-                                    </Badge>
-                                  ) : null}
-                                  {t?.source === 'manual' ? (
-                                    <Badge variant="outline" className="rounded-none border-slate-200 bg-slate-100 text-[10px] font-bold text-slate-700">
-                                      Manual
-                                    </Badge>
-                                  ) : null}
-                                  {t?.source === 'registered' && t.rosterStatus ? rosterStatusPickerBadge(t.rosterStatus) : null}
-                                </div>
-                                {t?.jobTitle && <p className="text-indigo-600 font-medium">{t.jobTitle}</p>}
-                                {t?.email && (
-                                  <p className="flex items-center gap-1 text-slate-600 font-mono">
-                                    <Mail className="size-3 text-slate-400" />
-                                    <span>{t.email}</span>
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        })
-                      ) : (
-                        <div className="rounded-none border border-dashed border-slate-300 bg-slate-50 p-4 text-xs font-medium text-slate-500">
-                          No technicians assigned yet.
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <p className="text-slate-600 leading-relaxed">
+                    Mechanics and technicians are assigned directly per booking request when you review and confirm requests under <strong className="text-slate-800">Service Requests</strong>.
+                  </p>
                 </div>
               </div>
 

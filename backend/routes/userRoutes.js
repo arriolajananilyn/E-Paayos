@@ -5,6 +5,7 @@ import {
   loginUser,
   getMe,
   patchMyPaymentMethods,
+  patchMyWarrantySettings,
   updateShopOwnerShopInfo,
   listShopOwnersForRegistration,
   listUsersForAdmin,
@@ -12,6 +13,7 @@ import {
   approveUserForAdmin,
   rejectUserForAdmin,
 } from "../controllers/userController.js"
+import { listPublicAnnouncements, incrementAnnouncementView } from "../controllers/announcementController.js"
 import { protect, adminOnly } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
@@ -22,6 +24,8 @@ const registerUpload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 })
 
+router.get("/announcements/public", listPublicAnnouncements)
+router.post("/announcements/:id/view", incrementAnnouncementView)
 router.get("/register/shop-owners", listShopOwnersForRegistration)
 
 router.post(
@@ -36,6 +40,7 @@ router.post(
 router.post("/login", loginUser)
 router.get("/me", protect, getMe)
 router.patch("/me/payment-methods", protect, patchMyPaymentMethods)
+router.patch("/me/warranty-settings", protect, patchMyWarrantySettings)
 router.patch("/me/shop", protect, updateShopOwnerShopInfo)
 router.get("/admin/list", protect, adminOnly, listUsersForAdmin)
 router.patch("/admin/:id/approve", protect, adminOnly, approveUserForAdmin)

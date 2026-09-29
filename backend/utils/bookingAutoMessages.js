@@ -56,8 +56,11 @@ export function formatStatusUpdateToCustomer({ newStatus, bookingRefId, shopName
   if (newStatus === "working") {
     return `[Booking ${ref}] Your booking is now in progress (working).`
   }
+  if (newStatus === "fixed") {
+    return `[Booking ${ref}] Your service request has been fixed! Please proceed to payment.`
+  }
   if (newStatus === "completed") {
-    return `[Booking ${ref}] Your booking is marked completed. Thank you!`
+    return `[Booking ${ref}] Your booking is marked completed and paid. Thank you!`
   }
   return `[Booking ${ref}] Status updated to ${newStatus}.`
 }
@@ -236,3 +239,107 @@ export function buildPaymentProofAttachments(paymentProofUrl) {
     },
   ]
 }
+
+/** Maps start of job picture proof URLs to Message attachment objects so images show in customer Messages UI. */
+export function buildStartJobProofAttachments(proofPhotos) {
+  if (!Array.isArray(proofPhotos)) return []
+  return proofPhotos
+    .map((u) => (typeof u === "string" ? u.trim() : ""))
+    .filter(Boolean)
+    .slice(0, 6)
+    .map((url, i) => ({
+      url,
+      mimetype: guessImageMimeFromUrl(url),
+      originalName: `Start of job proof ${i + 1}`,
+      size: 0,
+    }))
+}
+
+export function buildWarrantyProofAttachments(proofPhotos) {
+  if (!Array.isArray(proofPhotos)) return []
+  return proofPhotos
+    .map((u) => (typeof u === "string" ? u.trim() : ""))
+    .filter(Boolean)
+    .slice(0, 6)
+    .map((url, i) => ({
+      url,
+      mimetype: guessImageMimeFromUrl(url),
+      originalName: `Warranty proof photo ${i + 1}`,
+      size: 0,
+    }))
+}
+
+export function formatWarrantyClaimCustomerToProvider({
+  booking,
+  claimType,
+  reason,
+  details,
+  requestedAmount,
+  isLaborCovered,
+  refundPaymentMethod,
+  refundAccountName,
+  refundAccountNumber,
+}) {
+  const ref = bookingRef(booking._id)
+  const isRework = claimType === "labor_rework"
+  const lines = [
+    `[Warranty Claim - Booking ${ref}] Customer filed a ${isRework ? "Free Warranty Rework Request" : "Warranty Refund Claim"}`,
+    `Claim type: ${isRework ? "Free Warranty Rework (₱0 Labor Covered)" : "Service Fee Refund"}`,
+    `Reason: ${reason || "Recurring defect / warranty claim"}`,
+    `Labor warranty status: ${isLaborCovered ? "Active (100% Free Labor Guarantee applies)" : "Expired / Special claim"}`,
+  ]
+  if (!isRework && requestedAmount > 0) {
+    lines.push(`Requested refund amount: ${formatPhpAmount(requestedAmount)}`)
+  }
+  if (refundPaymentMethod) {
+    lines.push(
+      `Disbursement details: ${refundPaymentMethod.toUpperCase()} — ${refundAccountName || "—"} (${refundAccountNumber || "—"})`
+    )
+  }
+  lines.push("")
+  lines.push(`Issue description: ${details || "—"}`)
+  return lines.join("\n")
+}
+
+export function formatWarrantyClaimResponseToCustomer({
+  booking,
+  action,
+  approvedAmount,
+  rejectionReason,
+  resolutionNotes,
+  shopName,
+}) {
+  const ref = bookingRef(booking._id)
+  const label = shopName || "The service provider"
+  const isLaborRework = booking?.warrantyClaim?.claimType === 'labor_rework' || !booking?.warrantyClaim?.claimType
+
+  if (action === "approved") {
+    const note = resolutionNotes ? `\nInstructions: ${resolutionNotes}` : ""
+    if (isLaborRework) {
+      return `[Warranty Refix - Booking ${ref}] ${label} approved your Refix / Re-repair request.${note}`
+    }
+    const amtStr = approvedAmount > 0 ? ` (Amount: ${formatPhpAmount(approvedAmount)})` : ""
+    return `[Warranty Claim - Booking ${ref}] ${label} approved your warranty refund request${amtStr}.${note}`
+  }
+  if (action === "working" || action === "in_progress") {
+    return `[Warranty Refix - Booking ${ref}] ${label} has started working on your re-repair under warranty.`
+  }
+  if (action === "fixed") {
+    return `[Warranty Refix - Booking ${ref}] ${label} finished the re-repair! Your item is now fixed and ready for retrieval/testing.`
+  }
+  if (action === "resolved" || action === "completed") {
+    const note = resolutionNotes ? `\nResolution note: ${resolutionNotes}` : ""
+    if (isLaborRework) {
+      return `[Warranty Refix - Booking ${ref}] ${label} marked the warranty re-repair as completed & released.${note}`
+    }
+    const amtStr = approvedAmount > 0 ? ` (Amount: ${formatPhpAmount(approvedAmount)})` : ""
+    return `[Warranty Claim - Booking ${ref}] ${label} processed and resolved your warranty claim${amtStr}.${note}`
+  }
+  if (action === "rejected") {
+    const reason = rejectionReason ? `\nReason: ${rejectionReason}` : ""
+    return `[Warranty Claim - Booking ${ref}] Your warranty claim / refix request was declined by ${label}.${reason}`
+  }
+  return `[Warranty Claim - Booking ${ref}] Claim status updated to ${action}.`
+}
+
+

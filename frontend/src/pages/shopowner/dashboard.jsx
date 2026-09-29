@@ -22,6 +22,7 @@ import {
 import { TooltipProvider } from "../../components/ui/tooltip"
 import {
   AlertTriangle,
+  BarChart3,
   Bell,
   Building2,
   CheckCircle,
@@ -403,65 +404,65 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
     () =>
       variant === "independent"
         ? [
-            {
-              label: "Service Requests",
-              desc: "Review and update booking status",
-              icon: ClipboardList,
-              tone: "blue",
-              href: "#/independent/technician/service-request",
-            },
-            {
-              label: "Services Catalog",
-              desc: "Manage your listings and availability",
-              icon: Store,
-              tone: "emerald",
-              href: "#/independent/technician/services",
-            },
-            {
-              label: "Business Info",
-              desc: "Business profile and service area",
-              icon: Building2,
-              tone: "purple",
-              href: "#/independent/technician/business-info",
-            },
-            {
-              label: "Customer Messages",
-              desc: "Chat with customers & send updates",
-              icon: MessageSquare,
-              tone: "orange",
-              href: "#/independent/technician/messages",
-            },
-          ]
+          {
+            label: "Service Requests",
+            desc: "Review and update booking status",
+            icon: ClipboardList,
+            tone: "blue",
+            href: "#/independent/technician/service-request",
+          },
+          {
+            label: "Services Catalog",
+            desc: "Manage your listings and availability",
+            icon: Store,
+            tone: "emerald",
+            href: "#/independent/technician/services",
+          },
+          {
+            label: "Business Info",
+            desc: "Business profile and service area",
+            icon: Building2,
+            tone: "purple",
+            href: "#/independent/technician/business-info",
+          },
+          {
+            label: "Customer Messages",
+            desc: "Chat with customers & send updates",
+            icon: MessageSquare,
+            tone: "orange",
+            href: "#/independent/technician/messages",
+          },
+        ]
         : [
-            {
-              label: "Service Requests",
-              desc: "Review and update booking status",
-              icon: ClipboardList,
-              tone: "blue",
-              href: "#/provider/service-request",
-            },
-            {
-              label: "Services Catalog",
-              desc: "Manage listings, prices, and staff",
-              icon: Store,
-              tone: "emerald",
-              href: "#/provider/services",
-            },
-            {
-              label: "Shop Info",
-              desc: "Business profile and contact details",
-              icon: Building2,
-              tone: "purple",
-              href: "#/provider/shop-info",
-            },
-            {
-              label: "Customer Messages",
-              desc: "Chat with customers & send updates",
-              icon: MessageSquare,
-              tone: "orange",
-              href: "#/provider/messages",
-            },
-          ],
+          {
+            label: "Service Requests",
+            desc: "Review and update booking status",
+            icon: ClipboardList,
+            tone: "blue",
+            href: "#/provider/service-request",
+          },
+          {
+            label: "Services Catalog",
+            desc: "Manage listings, prices, and staff",
+            icon: Store,
+            tone: "emerald",
+            href: "#/provider/services",
+          },
+          {
+            label: "Shop Info",
+            desc: "Business profile and contact details",
+            icon: Building2,
+            tone: "purple",
+            href: "#/provider/shop-info",
+          },
+          {
+            label: "Customer Messages",
+            desc: "Chat with customers & send updates",
+            icon: MessageSquare,
+            tone: "orange",
+            href: "#/provider/messages",
+          },
+        ],
     [variant]
   )
 
@@ -480,7 +481,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
   }
 
   return (
-    <div className="space-y-4">
+    <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
       {/* Load Error Banner */}
       {loadError ? (
         <div className="rounded-sm border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
@@ -867,7 +868,7 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   )
 }
 
@@ -927,6 +928,7 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
   const isNotificationActive = activeSection === "notification"
   const isAccountSettingsActive = activeSection === "account-settings"
   const isReviewsRatingsActive = activeSection === "reviews-ratings"
+  const isReportsAnalyticsActive = activeSection === "reports-analytics"
   const isManageEmployeeActive = activeSection === "manage-employee"
   const isTrackEmployeeActive = activeSection === "track-employee"
   const isEmployeesGroupActive = isManageEmployeeActive || isTrackEmployeeActive
@@ -1178,6 +1180,17 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
                         <span className="whitespace-nowrap">Reviews & Ratings</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isReportsAnalyticsActive}
+                        tooltip="Reports & Analytics"
+                        onClick={() => { window.location.hash = "#/provider/reports-analytics" }}
+                        className="h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
+                      >
+                        <BarChart3 className="size-[18px] opacity-90" />
+                        <span className="whitespace-nowrap">Reports & Analytics</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -1214,11 +1227,10 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
                   type="button"
                   aria-label="Notification center"
                   onClick={() => { window.location.hash = "#/provider/notification" }}
-                  className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${
-                    isNotificationActive
-                      ? "bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-300"
-                      : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
+                  className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${isNotificationActive
+                    ? "bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-300"
+                    : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
                 >
                   <NotificationBellIndicator unreadCount={shopHeaderUnread}>
                     <Bell className="size-4.5 sm:size-5" />
@@ -1294,7 +1306,7 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
               className={
                 isMessagesActive
                   ? "scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden overflow-x-hidden px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-2 md:px-6 md:pb-6 md:pt-3"
-                  : "scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:py-4 sm:pl-4 sm:pr-1 md:py-6 md:pl-6 md:pr-2"
+                  : "scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:py-4 sm:px-4 md:py-6 md:px-6"
               }
             >
               {children != null ? children : activeSection === "dashboard" ? <ShopOwnerDashboardHome variant="shop" /> : null}

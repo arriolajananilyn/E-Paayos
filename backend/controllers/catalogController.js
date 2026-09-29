@@ -7,7 +7,7 @@ import { formatReadableShopAddress } from "../utils/psgcResolve.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 
 const shopOwnerSelect =
-  "fullName shopName profileImage selfieImage shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress shopLandmark shopPlacePhoto accountApprovalStatus role operatingHours laborRatingMin laborRatingMax createdAt"
+  "fullName shopName profileImage selfieImage shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress shopLandmark shopPlacePhoto accountApprovalStatus role operatingHours daysOfOperation repairServicesOffered businessType yearsOfOperation numberOfEmployees shopDescription laborRatingMin laborRatingMax warrantySettings createdAt"
 
 function normalizeBuffer(raw) {
   if (!raw) return null
@@ -43,48 +43,42 @@ function formatShopAddressRaw(owner) {
   return detail || line || "—"
 }
 
-async function buildTechnicianNameMap(shopOwnerId, technicianIds) {
-  const ids = Array.isArray(technicianIds) ? technicianIds : []
-  const oid = shopOwnerId instanceof mongoose.Types.ObjectId ? shopOwnerId : new mongoose.Types.ObjectId(shopOwnerId)
-  const objectIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id)).map((id) => new mongoose.Types.ObjectId(id))
-  if (!objectIds.length) return new Map()
+async function getShopStaffSummary(owner) {
+  if (!owner?._id) return { staffCount: 0, staffNames: [] }
+  if (owner.role === "oncall-mechanic-technician") {
+    const name = (owner.fullName && String(owner.fullName).trim()) || (owner.shopName && String(owner.shopName).trim()) || "On-call Specialist"
+    return { staffCount: 1, staffNames: [name] }
+  }
 
+  const oid = owner._id instanceof mongoose.Types.ObjectId ? owner._id : new mongoose.Types.ObjectId(owner._id)
   const [emps, users] = await Promise.all([
-    ShopEmployee.find({ _id: { $in: objectIds }, shopOwner: oid }).select("name").lean(),
+    ShopEmployee.find({ shopOwner: oid, status: { $ne: "inactive" } }).select("name").lean(),
     User.find({
-      _id: { $in: objectIds },
-      role: "mechanic-technician",
       employedByShopOwner: oid,
+      role: "mechanic-technician",
+      accountApprovalStatus: { $ne: "rejected" },
     })
       .select("fullName")
       .lean(),
   ])
 
-  const map = new Map()
-  for (const e of emps) {
-    map.set(String(e._id), (e.name && String(e.name).trim()) || "Staff")
+  const staffNames = [
+    ...emps.map((e) => (e.name && String(e.name).trim())).filter(Boolean),
+    ...users.map((u) => (u.fullName && String(u.fullName).trim())).filter(Boolean),
+  ]
+
+  const uniqueNames = [...new Set(staffNames)]
+  return {
+    staffCount: uniqueNames.length,
+    staffNames: uniqueNames,
   }
-  for (const u of users) {
-    map.set(String(u._id), (u.fullName && String(u.fullName).trim()) || "Mechanic")
-  }
-  return map
 }
 
-function orderedStaffNames(technicianIds, nameMap) {
-  const out = []
-  const seen = new Set()
-  for (const id of technicianIds || []) {
-    const key = String(id)
-    if (seen.has(key)) continue
-    seen.add(key)
-    const n = nameMap.get(key)
-    if (n) out.push(n)
-  }
-  return out
-}
-
-function mapServiceToCustomerDto(svc, owner, nameMap, shopAddressReadable) {
+function mapServiceToCustomerDto(svc, owner, shopAddressReadable, shopStaffInfo) {
   const ownerDoc = owner && typeof owner === "object" ? owner : null
+  const staffNames = shopStaffInfo?.staffNames || []
+  const staffCount = shopStaffInfo?.staffCount ?? staffNames.length
+
   return {
     id: String(svc._id),
     serviceName: svc.name || "",
@@ -119,10 +113,18 @@ function mapServiceToCustomerDto(svc, owner, nameMap, shopAddressReadable) {
     completedJobs: Math.max(0, Number(svc.bookingsCount) || 0),
     description: svc.description || "",
     requirements: typeof svc.requirements === "string" ? svc.requirements.trim() : "",
-    staff: orderedStaffNames(svc.technicianIds, nameMap),
+    staff: staffNames,
+    shopStaffCount: staffCount,
     shopOwnerId: ownerDoc?._id != null ? String(ownerDoc._id) : "",
     shopOperatingHours:
       typeof ownerDoc?.operatingHours === "string" ? ownerDoc.operatingHours.trim() : "",
+    daysOfOperation: Array.isArray(ownerDoc?.daysOfOperation) ? ownerDoc.daysOfOperation : [],
+    businessType: ownerDoc?.businessType || "",
+    repairServicesOffered: Array.isArray(ownerDoc?.repairServicesOffered) ? ownerDoc.repairServicesOffered : [],
+    yearsOfOperation: ownerDoc?.yearsOfOperation != null && Number.isFinite(Number(ownerDoc.yearsOfOperation)) ? Number(ownerDoc.yearsOfOperation) : null,
+    numberOfEmployees: ownerDoc?.numberOfEmployees != null && Number.isFinite(Number(ownerDoc.numberOfEmployees)) ? Number(ownerDoc.numberOfEmployees) : null,
+    shopDescription: typeof ownerDoc?.shopDescription === "string" ? ownerDoc.shopDescription.trim() : "",
+    warrantySettings: ownerDoc?.warrantySettings || null,
     laborRatingMin: (() => {
       if (svc.laborRatingMin != null && Number.isFinite(Number(svc.laborRatingMin))) {
         return Number(svc.laborRatingMin)
@@ -154,17 +156,8 @@ function mapServiceToCustomerDto(svc, owner, nameMap, shopAddressReadable) {
 
 async function enrichServicesForOwner(services, owner, shopAddressReadable) {
   if (!owner?._id) return []
-  const allIds = new Set()
-  for (const s of services) {
-    for (const id of s.technicianIds || []) {
-      allIds.add(String(id))
-    }
-  }
-  const nameMap = await buildTechnicianNameMap(
-    owner._id,
-    [...allIds].filter((id) => mongoose.Types.ObjectId.isValid(id)).map((id) => new mongoose.Types.ObjectId(id)),
-  )
-  return services.map((s) => mapServiceToCustomerDto(s, owner, nameMap, shopAddressReadable))
+  const shopStaffInfo = await getShopStaffSummary(owner)
+  return services.map((s) => mapServiceToCustomerDto(s, owner, shopAddressReadable, shopStaffInfo))
 }
 
 /**

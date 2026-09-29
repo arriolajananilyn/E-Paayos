@@ -713,6 +713,67 @@ export const patchMyPaymentMethods = asyncHandler(async (req, res) => {
   return res.json({ acceptedPaymentMethods: user.acceptedPaymentMethods || [] })
 })
 
+function normalizeWarrantyItemArray(raw, maxCount = 20) {
+  if (!Array.isArray(raw)) return []
+  const out = []
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue
+    const text = typeof item.text === "string" ? item.text.trim() : ""
+    if (!text) continue
+    const id = typeof item.id === "string" && item.id.trim() ? item.id.trim() : String(Date.now() + Math.random())
+    const active = typeof item.active === "boolean" ? item.active : true
+    out.push({ id, text: text.slice(0, 300), active })
+    if (out.length >= maxCount) break
+  }
+  return out
+}
+
+function normalizeWarrantySettings(raw) {
+  if (!raw || typeof raw !== "object") return null
+  const laborWarrantyEnabled = typeof raw.laborWarrantyEnabled === "boolean" ? raw.laborWarrantyEnabled : true
+  const partsWarrantyEnabled = typeof raw.partsWarrantyEnabled === "boolean" ? raw.partsWarrantyEnabled : true
+  const laborWarrantyDays = Number.isFinite(Number(raw.laborWarrantyDays))
+    ? Math.max(0, Math.min(3650, Math.round(Number(raw.laborWarrantyDays))))
+    : 30
+  const partsWarrantyDays = Number.isFinite(Number(raw.partsWarrantyDays))
+    ? Math.max(0, Math.min(3650, Math.round(Number(raw.partsWarrantyDays))))
+    : 90
+  const warrantyPolicyTerms =
+    typeof raw.warrantyPolicyTerms === "string" ? raw.warrantyPolicyTerms.trim().slice(0, 3000) : ""
+  const coveredItems = normalizeWarrantyItemArray(raw.coveredItems)
+  const voidConditions = normalizeWarrantyItemArray(raw.voidConditions)
+
+  return {
+    laborWarrantyEnabled,
+    laborWarrantyDays,
+    partsWarrantyEnabled,
+    partsWarrantyDays,
+    warrantyPolicyTerms,
+    coveredItems,
+    voidConditions,
+  }
+}
+
+export const patchMyWarrantySettings = asyncHandler(async (req, res) => {
+  if (!isServiceProviderRole(req.user?.role)) {
+    res.status(403)
+    throw new Error("Only service providers can update warranty settings")
+  }
+  const settings = normalizeWarrantySettings(req.body?.warrantySettings || req.body)
+  if (!settings) {
+    res.status(400)
+    throw new Error("Invalid warranty settings payload")
+  }
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+  user.warrantySettings = settings
+  await user.save()
+  return res.json({ warrantySettings: user.warrantySettings })
+})
+
 /** Admin dashboard: list platform users (excludes other admin accounts). */
 export const listUsersForAdmin = asyncHandler(async (_req, res) => {
   const users = await User.find({ role: { $ne: "admin" } })

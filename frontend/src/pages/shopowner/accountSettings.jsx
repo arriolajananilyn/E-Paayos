@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  AlertTriangle,
   Award,
+  BadgeCheck,
   Bell,
   Camera,
   Check,
   CheckCircle2,
+  Clock,
   Copy,
   CreditCard,
   Eye,
   EyeOff,
+  FileCheck,
+  FileText,
   HelpCircle,
   Info,
   Lock,
@@ -16,12 +21,17 @@ import {
   Phone,
   Plus,
   QrCode,
+  RefreshCw,
+  RotateCcw,
   Shield,
+  ShieldAlert,
   ShieldCheck,
+  Sliders,
   Store,
   Trash2,
   User,
   Wallet,
+  Wrench,
 } from 'lucide-react'
 import ShopOwnerDashboard from './dashboard.jsx'
 
@@ -31,6 +41,7 @@ const SECTIONS = {
   PROFILE: 'profile',
   PASSWORD: 'password',
   PAYMENTS: 'payments',
+  WARRANTY: 'warranty',
   NOTIFICATIONS: 'notifications',
   PRIVACY: 'privacy',
   SUPPORT: 'support',
@@ -40,10 +51,105 @@ const TABS = [
   { id: SECTIONS.PROFILE, label: 'Profile Information', shortLabel: 'Profile', icon: User },
   { id: SECTIONS.PASSWORD, label: 'Security & Password', shortLabel: 'Security', icon: Lock },
   { id: SECTIONS.PAYMENTS, label: 'Payment Methods', shortLabel: 'Payments', icon: Wallet, countKey: 'payments' },
+  { id: SECTIONS.WARRANTY, label: 'Warranty Management', shortLabel: 'Warranty', icon: ShieldCheck },
   { id: SECTIONS.NOTIFICATIONS, label: 'Notifications', shortLabel: 'Notifications', icon: Bell },
   { id: SECTIONS.PRIVACY, label: 'Privacy & Safety', shortLabel: 'Privacy', icon: Shield },
   { id: SECTIONS.SUPPORT, label: 'Help Center', shortLabel: 'Support', icon: HelpCircle },
 ]
+
+const WARRANTY_PERIOD_OPTIONS = [
+  { value: 7, label: '7 Days' },
+  { value: 15, label: '15 Days' },
+  { value: 30, label: '30 Days (1 Month)' },
+  { value: 60, label: '60 Days (2 Months)' },
+  { value: 90, label: '90 Days (3 Months)' },
+  { value: 180, label: '180 Days (6 Months)' },
+  { value: 365, label: '365 Days (1 Year)' },
+]
+
+const DEFAULT_COVERED_ITEMS = [
+  { id: 'cov-1', text: 'Workmanship & repair assembly errors', enabled: true },
+  { id: 'cov-2', text: 'Manufacturer-defective replacement components', enabled: true },
+  { id: 'cov-3', text: 'Recurring symptoms from serviced repair scope', enabled: true },
+  { id: 'cov-4', text: 'Diagnostic realignment & tuning adjustments', enabled: true },
+]
+
+const DEFAULT_VOID_CONDITIONS = [
+  { id: 'void-1', text: 'Accidental drops, physical impact, or external collision', enabled: true },
+  { id: 'void-2', text: 'Liquid intrusion, chemical spill, or corrosion', enabled: true },
+  { id: 'void-3', text: 'Broken warranty seals or unauthorized tampering', enabled: true },
+  { id: 'void-4', text: 'Third-party disassembly or unauthorized modifications', enabled: true },
+]
+
+function normalizeWarrantyList(rawList, defaultList) {
+  if (Array.isArray(rawList)) {
+    const list = rawList
+      .filter((item) => item && typeof item === 'object')
+      .map((item, idx) => ({
+        id: typeof item.id === 'string' && item.id ? item.id : `item-${Date.now()}-${idx}`,
+        text: typeof item.text === 'string' ? item.text.trim() : '',
+        enabled: typeof item.enabled === 'boolean' ? item.enabled : true,
+      }))
+      .filter((item) => item.text.length > 0)
+    return list.length > 0 ? list : defaultList.map((d) => ({ ...d }))
+  }
+  if (rawList && typeof rawList === 'object') {
+    const items = []
+    if (typeof rawList.workmanshipErrors === 'boolean') {
+      items.push({ id: 'cov-1', text: 'Workmanship & repair assembly errors', enabled: rawList.workmanshipErrors })
+    }
+    if (typeof rawList.defectiveParts === 'boolean') {
+      items.push({ id: 'cov-2', text: 'Manufacturer-defective replacement components', enabled: rawList.defectiveParts })
+    }
+    if (typeof rawList.recurringIssues === 'boolean') {
+      items.push({ id: 'cov-3', text: 'Recurring symptoms from serviced repair scope', enabled: rawList.recurringIssues })
+    }
+    if (typeof rawList.calibrationIssues === 'boolean') {
+      items.push({ id: 'cov-4', text: 'Diagnostic realignment & tuning adjustments', enabled: rawList.calibrationIssues })
+    }
+    if (typeof rawList.physicalDamage === 'boolean') {
+      items.push({ id: 'void-1', text: 'Accidental drops, physical impact, or external collision', enabled: rawList.physicalDamage })
+    }
+    if (typeof rawList.waterLiquidDamage === 'boolean') {
+      items.push({ id: 'void-2', text: 'Liquid intrusion, chemical spill, or corrosion', enabled: rawList.waterLiquidDamage })
+    }
+    if (typeof rawList.tamperedSeals === 'boolean') {
+      items.push({ id: 'void-3', text: 'Broken warranty seals or unauthorized tampering', enabled: rawList.tamperedSeals })
+    }
+    if (typeof rawList.unauthorizedModification === 'boolean') {
+      items.push({ id: 'void-4', text: 'Third-party disassembly or unauthorized modifications', enabled: rawList.unauthorizedModification })
+    }
+    if (items.length > 0) return items
+  }
+  return defaultList.map((d) => ({ ...d }))
+}
+
+const DEFAULT_WARRANTY_SETTINGS = {
+  laborWarrantyEnabled: true,
+  laborWarrantyDays: 30,
+  partsWarrantyEnabled: true,
+  partsWarrantyDays: 30,
+  warrantyPolicyTerms:
+    'All repair services performed include standard workmanship warranty. Replacement parts are protected against manufacturer defects under normal operating conditions. Warranty is invalidated by physical impact, water intrusion, or unauthorized disassembly.',
+  coveredItems: DEFAULT_COVERED_ITEMS,
+  voidConditions: DEFAULT_VOID_CONDITIONS,
+}
+
+function normalizeWarrantySettings(raw) {
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_WARRANTY_SETTINGS }
+  return {
+    laborWarrantyEnabled: typeof raw.laborWarrantyEnabled === 'boolean' ? raw.laborWarrantyEnabled : true,
+    laborWarrantyDays: Number(raw.laborWarrantyDays) || 30,
+    partsWarrantyEnabled: typeof raw.partsWarrantyEnabled === 'boolean' ? raw.partsWarrantyEnabled : true,
+    partsWarrantyDays: Number(raw.partsWarrantyDays) || 30,
+    warrantyPolicyTerms:
+      typeof raw.warrantyPolicyTerms === 'string' && raw.warrantyPolicyTerms.trim()
+        ? raw.warrantyPolicyTerms
+        : DEFAULT_WARRANTY_SETTINGS.warrantyPolicyTerms,
+    coveredItems: normalizeWarrantyList(raw.coveredItems, DEFAULT_COVERED_ITEMS),
+    voidConditions: normalizeWarrantyList(raw.voidConditions, DEFAULT_VOID_CONDITIONS),
+  }
+}
 
 const PAYMENT_METHOD_TYPES = [
   { value: 'gcash', label: 'GCash', detailsLabel: 'GCash number', placeholder: '09XX XXX XXXX', color: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -139,6 +245,14 @@ export default function ShopOwnerAccountSettings() {
     qrImage: '',
   })
 
+  const [warrantySettings, setWarrantySettings] = useState(() =>
+    normalizeWarrantySettings(readStoredUser()?.warrantySettings),
+  )
+  const [warrantyNotice, setWarrantyNotice] = useState({ type: '', message: '' })
+  const [isSavingWarranty, setIsSavingWarranty] = useState(false)
+  const [newCoveredItemInput, setNewCoveredItemInput] = useState('')
+  const [newVoidConditionInput, setNewVoidConditionInput] = useState('')
+
   const [profileNotice, setProfileNotice] = useState({ type: '', message: '' })
   const [passwordNotice, setPasswordNotice] = useState({ type: '', message: '' })
   const [paymentNotice, setPaymentNotice] = useState({ type: '', message: '' })
@@ -154,9 +268,10 @@ export default function ShopOwnerAccountSettings() {
     setProfileForm({
       fullName: nextUser?.fullName || '',
       email: nextUser?.email || '',
-      phone: nextUser?.phone || '',
+      phone: (nextUser?.phone || '').replace(/\D/g, '').slice(0, 11),
     })
     setPaymentMethods(localMethods)
+    setWarrantySettings(normalizeWarrantySettings(nextUser?.warrantySettings))
 
     const hydrateFromServer = async () => {
       const token = localStorage.getItem('token')
@@ -193,9 +308,12 @@ export default function ShopOwnerAccountSettings() {
         setProfileForm({
           fullName: mergedUser?.fullName || '',
           email: mergedUser?.email || '',
-          phone: mergedUser?.phone || '',
+          phone: (mergedUser?.phone || '').replace(/\D/g, '').slice(0, 11),
         })
         setPaymentMethods(normalizePaymentMethods(mergedUser?.acceptedPaymentMethods))
+        if (mergedUser?.warrantySettings) {
+          setWarrantySettings(normalizeWarrantySettings(mergedUser.warrantySettings))
+        }
       } catch {
         // keep local fallback
       }
@@ -227,6 +345,133 @@ export default function ShopOwnerAccountSettings() {
     }, 5000)
     return () => clearTimeout(timer)
   }, [passwordNotice.message])
+
+  useEffect(() => {
+    if (!warrantyNotice.message) return undefined
+    const timer = setTimeout(() => {
+      setWarrantyNotice({ type: '', message: '' })
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [warrantyNotice.message])
+
+  const handleSaveWarranty = async (e) => {
+    if (e) e.preventDefault()
+    setWarrantyNotice({ type: '', message: '' })
+    setIsSavingWarranty(true)
+    try {
+      const current = readStoredUser() || {}
+      const merged = {
+        ...current,
+        warrantySettings,
+      }
+      localStorage.setItem('user', JSON.stringify(merged))
+      setUser(merged)
+
+      const token = localStorage.getItem('token')
+      if (token) {
+        const res = await fetch(`${API_URL}/api/users/me/warranty-settings`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ warrantySettings }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          throw new Error(data?.message || 'Failed to sync warranty settings with server.')
+        }
+        if (data?.warrantySettings) {
+          const synced = normalizeWarrantySettings(data.warrantySettings)
+          setWarrantySettings(synced)
+          merged.warrantySettings = synced
+          localStorage.setItem('user', JSON.stringify(merged))
+        }
+      }
+
+      setWarrantyNotice({
+        type: 'success',
+        message: 'Warranty policies & guarantee configurations saved successfully.',
+      })
+    } catch (err) {
+      setWarrantyNotice({
+        type: 'error',
+        message: err?.message || 'Failed to save warranty settings.',
+      })
+    } finally {
+      setIsSavingWarranty(false)
+    }
+  }
+
+  const handleResetWarrantyToDefault = () => {
+    setWarrantySettings({ ...DEFAULT_WARRANTY_SETTINGS })
+    setWarrantyNotice({
+      type: 'success',
+      message: 'Warranty settings restored to standard platform default template.',
+    })
+  }
+
+  const handleAddCoveredItem = () => {
+    const text = newCoveredItemInput.trim()
+    if (!text) return
+    const newItem = {
+      id: `cov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      text,
+      enabled: true,
+    }
+    setWarrantySettings((prev) => ({
+      ...prev,
+      coveredItems: [...prev.coveredItems, newItem],
+    }))
+    setNewCoveredItemInput('')
+  }
+
+  const handleRemoveCoveredItem = (id) => {
+    setWarrantySettings((prev) => ({
+      ...prev,
+      coveredItems: prev.coveredItems.filter((item) => item.id !== id),
+    }))
+  }
+
+  const handleToggleCoveredItem = (id) => {
+    setWarrantySettings((prev) => ({
+      ...prev,
+      coveredItems: prev.coveredItems.map((item) =>
+        item.id === id ? { ...item, enabled: !item.enabled } : item,
+      ),
+    }))
+  }
+
+  const handleAddVoidCondition = () => {
+    const text = newVoidConditionInput.trim()
+    if (!text) return
+    const newItem = {
+      id: `void-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      text,
+      enabled: true,
+    }
+    setWarrantySettings((prev) => ({
+      ...prev,
+      voidConditions: [...prev.voidConditions, newItem],
+    }))
+    setNewVoidConditionInput('')
+  }
+
+  const handleRemoveVoidCondition = (id) => {
+    setWarrantySettings((prev) => ({
+      ...prev,
+      voidConditions: prev.voidConditions.filter((item) => item.id !== id),
+    }))
+  }
+
+  const handleToggleVoidCondition = (id) => {
+    setWarrantySettings((prev) => ({
+      ...prev,
+      voidConditions: prev.voidConditions.map((item) =>
+        item.id === id ? { ...item, enabled: !item.enabled } : item,
+      ),
+    }))
+  }
 
   const persistAcceptedPaymentMethods = async (methods) => {
     const current = readStoredUser() || {}
@@ -477,7 +722,7 @@ export default function ShopOwnerAccountSettings() {
         description: 'Manage your profile, security, shop payment options, and preferences.',
       }}
     >
-      <div className="flex flex-col gap-4 pb-8 max-w-7xl mx-auto w-full">
+      <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden pb-8">
         {/* ── HERO PROFILE CARD ─────────────────────────────────────────────── */}
         <div className="overflow-hidden rounded-md border border-slate-200/90 bg-white shadow-xs">
           {/* Brand Navy Mesh Banner */}
@@ -573,7 +818,7 @@ export default function ShopOwnerAccountSettings() {
               </div>
 
               {/* Right Side Quick Stat Buttons */}
-              <div className="grid grid-cols-3 gap-1.5 sm:flex sm:items-center sm:gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:flex sm:items-center sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setActive(SECTIONS.PAYMENTS)}
@@ -584,6 +829,20 @@ export default function ShopOwnerAccountSettings() {
                     <span className="text-xs sm:text-sm font-bold text-slate-900">{paymentMethods.length}</span>
                   </div>
                   <span className="text-[9px] sm:text-[10px] font-semibold text-[#081F5C]">Payments</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActive(SECTIONS.WARRANTY)}
+                  className="flex flex-col items-center justify-center rounded-sm bg-gradient-to-br from-amber-50 to-amber-100/70 px-2 sm:px-3 py-1 sm:py-1.5 border border-amber-200/80 cursor-pointer transition-all hover:scale-105"
+                >
+                  <div className="flex items-center gap-1">
+                    <ShieldCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-700" />
+                    <span className="text-xs sm:text-sm font-bold text-slate-900">
+                      {warrantySettings.laborWarrantyEnabled ? `${warrantySettings.laborWarrantyDays}d` : 'Off'}
+                    </span>
+                  </div>
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-amber-800">Warranty</span>
                 </button>
 
                 <button
@@ -637,11 +896,10 @@ export default function ShopOwnerAccountSettings() {
                       key={tab.id}
                       type="button"
                       onClick={() => setActive(tab.id)}
-                      className={`flex shrink-0 items-center justify-between gap-2 rounded-sm px-3 py-2 text-xs sm:text-sm font-semibold transition-all lg:w-full cursor-pointer text-left whitespace-nowrap ${
-                        isActive
-                          ? 'bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-sm'
-                          : 'bg-white text-slate-700 hover:bg-blue-50/70 hover:text-[#081F5C]'
-                      }`}
+                      className={`flex shrink-0 items-center justify-between gap-2 rounded-sm px-3 py-2 text-xs sm:text-sm font-semibold transition-all lg:w-full cursor-pointer text-left whitespace-nowrap ${isActive
+                        ? 'bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-sm'
+                        : 'bg-white text-slate-700 hover:bg-blue-50/70 hover:text-[#081F5C]'
+                        }`}
                     >
                       <div className="flex items-center gap-2 truncate">
                         <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
@@ -651,9 +909,8 @@ export default function ShopOwnerAccountSettings() {
 
                       {badgeCount !== undefined && (
                         <span
-                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${
-                            isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                          }`}
+                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                            }`}
                         >
                           {badgeCount}
                         </span>
@@ -684,11 +941,10 @@ export default function ShopOwnerAccountSettings() {
 
                 {profileNotice.message && (
                   <div
-                    className={`flex items-center gap-2 rounded-sm border px-3.5 py-2.5 text-xs sm:text-sm ${
-                      profileNotice.type === 'success'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-red-200 bg-red-50 text-red-800'
-                    }`}
+                    className={`flex items-center gap-2 rounded-sm border px-3.5 py-2.5 text-xs sm:text-sm ${profileNotice.type === 'success'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : 'border-red-200 bg-red-50 text-red-800'
+                      }`}
                   >
                     {profileNotice.type === 'success' ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -733,12 +989,17 @@ export default function ShopOwnerAccountSettings() {
                       <label className="mb-1 block text-xs font-semibold text-slate-700">Phone Number</label>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         value={profileForm.phone}
-                        onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 11)
+                          setProfileForm((prev) => ({ ...prev, phone: val }))
+                        }}
                         className="w-full rounded-sm border border-slate-300 px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
                         placeholder="09XXXXXXXXX"
                       />
-                      <p className="mt-1 text-[11px] text-slate-400">Used for customer booking notifications & calls.</p>
+                      <p className="mt-1 text-[11px] text-slate-400">Used for customer booking notifications & calls (max 11 digits).</p>
                     </div>
                   </div>
 
@@ -772,11 +1033,10 @@ export default function ShopOwnerAccountSettings() {
 
                 {passwordNotice.message && (
                   <div
-                    className={`flex items-center gap-2 rounded-sm border px-3.5 py-2.5 text-xs sm:text-sm ${
-                      passwordNotice.type === 'success'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-red-200 bg-red-50 text-red-800'
-                    }`}
+                    className={`flex items-center gap-2 rounded-sm border px-3.5 py-2.5 text-xs sm:text-sm ${passwordNotice.type === 'success'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : 'border-red-200 bg-red-50 text-red-800'
+                      }`}
                   >
                     {passwordNotice.type === 'success' ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -880,11 +1140,10 @@ export default function ShopOwnerAccountSettings() {
 
                 {paymentNotice.message && (
                   <div
-                    className={`flex items-center gap-2 rounded-sm border px-3.5 py-2.5 text-xs sm:text-sm ${
-                      paymentNotice.type === 'success'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-red-200 bg-red-50 text-red-800'
-                    }`}
+                    className={`flex items-center gap-2 rounded-sm border px-3.5 py-2.5 text-xs sm:text-sm ${paymentNotice.type === 'success'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : 'border-red-200 bg-red-50 text-red-800'
+                      }`}
                   >
                     {paymentNotice.type === 'success' ? (
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
@@ -1036,9 +1295,16 @@ export default function ShopOwnerAccountSettings() {
                       {PAYMENT_DETAILS_REQUIRED.has(paymentForm.type) && <span className="text-red-500"> *</span>}
                     </label>
                     <input
-                      type="text"
+                      type={PAYMENT_DETAILS_REQUIRED.has(paymentForm.type) ? 'tel' : 'text'}
+                      inputMode={PAYMENT_DETAILS_REQUIRED.has(paymentForm.type) ? 'numeric' : 'text'}
+                      maxLength={PAYMENT_DETAILS_REQUIRED.has(paymentForm.type) ? 11 : undefined}
                       value={paymentForm.details}
-                      onChange={(e) => setPaymentForm((prev) => ({ ...prev, details: e.target.value }))}
+                      onChange={(e) => {
+                        const val = PAYMENT_DETAILS_REQUIRED.has(paymentForm.type)
+                          ? e.target.value.replace(/\D/g, '').slice(0, 11)
+                          : e.target.value
+                        setPaymentForm((prev) => ({ ...prev, details: val }))
+                      }}
                       className="w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
                       placeholder={paymentTypeMeta(paymentForm.type).placeholder}
                     />
@@ -1103,6 +1369,406 @@ export default function ShopOwnerAccountSettings() {
                     >
                       <Plus className="h-4 w-4" />
                       Add Payment Option
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* 3.5 WARRANTY MANAGEMENT SECTION */}
+            {active === SECTIONS.WARRANTY && (
+              <div className="rounded-md border border-slate-200/90 bg-white p-4 sm:p-6 shadow-xs space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900">Warranty &amp; Service Guarantee</h3>
+                    <p className="text-xs sm:text-sm text-slate-500">
+                      Configure your shop warranty durations, coverage inclusions, void conditions, and customer terms.
+                    </p>
+                  </div>
+                  <div className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 text-amber-700">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                </div>
+
+                {warrantyNotice.message && (
+                  <div
+                    className={`flex items-center gap-2 rounded-sm border px-3.5 py-2.5 text-xs sm:text-sm ${
+                      warrantyNotice.type === 'success'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                        : 'border-red-200 bg-red-50 text-red-800'
+                    }`}
+                  >
+                    {warrantyNotice.type === 'success' ? (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                    ) : (
+                      <Info className="h-4 w-4 shrink-0 text-red-600" />
+                    )}
+                    <span>{warrantyNotice.message}</span>
+                  </div>
+                )}
+
+                {/* Quick Status Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-sm border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Labor Guarantee</span>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                          warrantySettings.laborWarrantyEnabled
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {warrantySettings.laborWarrantyEnabled ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-lg font-black text-slate-900">
+                      {warrantySettings.laborWarrantyEnabled ? `${warrantySettings.laborWarrantyDays} Days` : 'No Warranty'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">Workmanship &amp; repair labor protection</p>
+                  </div>
+
+                  <div className="rounded-sm border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Parts Guarantee</span>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full ${
+                          warrantySettings.partsWarrantyEnabled
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                            : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {warrantySettings.partsWarrantyEnabled ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-lg font-black text-slate-900">
+                      {warrantySettings.partsWarrantyEnabled ? `${warrantySettings.partsWarrantyDays} Days` : 'No Warranty'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">Replaced components &amp; factory defects</p>
+                  </div>
+
+                  <div className="rounded-sm border border-slate-200 bg-slate-50/70 p-3.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Claim Response</span>
+                      <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                        Fast-Track
+                      </span>
+                    </div>
+                    <p className="text-lg font-black text-slate-900">24 – 48 Hours</p>
+                    <p className="text-[11px] text-slate-500">Standard inspection &amp; resolution window</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleSaveWarranty} className="space-y-5">
+                  {/* Coverage Duration Settings */}
+                  <div className="rounded-md border border-slate-200/90 bg-slate-50/50 p-4 sm:p-5 space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <Sliders className="h-4 w-4 text-[#081F5C]" />
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide">
+                          Warranty Durations &amp; Toggles
+                        </h4>
+                      </div>
+                      <span className="text-[11px] text-slate-500 font-medium">Customer-facing guarantee</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Labor Warranty Card */}
+                      <div className="rounded-sm border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                              <Wrench className="h-3.5 w-3.5 text-[#081F5C]" />
+                              Workmanship &amp; Labor Warranty
+                            </label>
+                            <p className="text-[11px] text-slate-500">Guarantees service quality and repair durability.</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={warrantySettings.laborWarrantyEnabled}
+                              onChange={(e) =>
+                                setWarrantySettings((prev) => ({ ...prev, laborWarrantyEnabled: e.target.checked }))
+                              }
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#081F5C]"></div>
+                          </label>
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-700">Duration Period</label>
+                          <select
+                            disabled={!warrantySettings.laborWarrantyEnabled}
+                            value={warrantySettings.laborWarrantyDays}
+                            onChange={(e) =>
+                              setWarrantySettings((prev) => ({ ...prev, laborWarrantyDays: Number(e.target.value) }))
+                            }
+                            className="w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                          >
+                            {WARRANTY_PERIOD_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Parts Warranty Card */}
+                      <div className="rounded-sm border border-slate-200 bg-white p-3.5 sm:p-4 space-y-3 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <label className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                              <BadgeCheck className="h-3.5 w-3.5 text-[#081F5C]" />
+                              Replaced Parts Warranty
+                            </label>
+                            <p className="text-[11px] text-slate-500">Covers defects in new components supplied by shop.</p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={warrantySettings.partsWarrantyEnabled}
+                              onChange={(e) =>
+                                setWarrantySettings((prev) => ({ ...prev, partsWarrantyEnabled: e.target.checked }))
+                              }
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#081F5C]"></div>
+                          </label>
+                        </div>
+
+                        <div>
+                          <label className="mb-1 block text-xs font-semibold text-slate-700">Duration Period</label>
+                          <select
+                            disabled={!warrantySettings.partsWarrantyEnabled}
+                            value={warrantySettings.partsWarrantyDays}
+                            onChange={(e) =>
+                              setWarrantySettings((prev) => ({ ...prev, partsWarrantyDays: Number(e.target.value) }))
+                            }
+                            className="w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                          >
+                            {WARRANTY_PERIOD_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Coverage Scope & Exclusions Checklist */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Covered Items Card */}
+                    <div className="rounded-md border border-slate-200/90 bg-white p-4 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <div className="flex items-center gap-1.5 text-emerald-800">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">Covered Under Warranty</h4>
+                          </div>
+                          <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            {warrantySettings.coveredItems.filter((i) => i.enabled).length} Active
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1 text-xs text-slate-700">
+                          {warrantySettings.coveredItems.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic py-2">No covered items added yet. Add one below.</p>
+                          ) : (
+                            warrantySettings.coveredItems.map((item) => (
+                              <div
+                                key={item.id}
+                                className="group flex items-center justify-between gap-2 p-1.5 rounded-sm hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
+                              >
+                                <label className="flex items-start gap-2 cursor-pointer select-none flex-1 min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.enabled}
+                                    onChange={() => handleToggleCoveredItem(item.id)}
+                                    className="mt-0.5 h-4 w-4 accent-[#081F5C] rounded cursor-pointer shrink-0"
+                                  />
+                                  <span className={`text-xs break-words ${item.enabled ? 'text-slate-800 font-medium' : 'text-slate-400 line-through'}`}>
+                                    {item.text}
+                                  </span>
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCoveredItem(item.id)}
+                                  title="Remove item"
+                                  className="opacity-60 hover:opacity-100 text-slate-400 hover:text-red-600 p-1 transition cursor-pointer shrink-0"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Add New Covered Item Input Form */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={newCoveredItemInput}
+                            onChange={(e) => setNewCoveredItemInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleAddCoveredItem()
+                              }
+                            }}
+                            placeholder="Add new covered warranty item..."
+                            className="flex-1 rounded-sm border border-slate-300 bg-slate-50/50 px-2.5 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C]"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddCoveredItem}
+                            disabled={!newCoveredItemInput.trim()}
+                            className="inline-flex items-center gap-1 rounded-sm bg-[#081F5C] hover:bg-[#04133d] disabled:opacity-50 disabled:cursor-not-allowed text-white px-2.5 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer shrink-0"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Void / Non-Covered Conditions Card */}
+                    <div className="rounded-md border border-slate-200/90 bg-white p-4 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <div className="flex items-center gap-1.5 text-amber-800">
+                            <ShieldAlert className="h-4 w-4 text-amber-600" />
+                            <h4 className="text-xs sm:text-sm font-bold text-slate-900">Warranty Voiding Conditions</h4>
+                          </div>
+                          <span className="text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                            {warrantySettings.voidConditions.filter((i) => i.enabled).length} Active
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1 text-xs text-slate-700">
+                          {warrantySettings.voidConditions.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic py-2">No void conditions added yet. Add one below.</p>
+                          ) : (
+                            warrantySettings.voidConditions.map((item) => (
+                              <div
+                                key={item.id}
+                                className="group flex items-center justify-between gap-2 p-1.5 rounded-sm hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
+                              >
+                                <label className="flex items-start gap-2 cursor-pointer select-none flex-1 min-w-0">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.enabled}
+                                    onChange={() => handleToggleVoidCondition(item.id)}
+                                    className="mt-0.5 h-4 w-4 accent-amber-600 rounded cursor-pointer shrink-0"
+                                  />
+                                  <span className={`text-xs break-words ${item.enabled ? 'text-slate-800 font-medium' : 'text-slate-400 line-through'}`}>
+                                    {item.text}
+                                  </span>
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveVoidCondition(item.id)}
+                                  title="Remove condition"
+                                  className="opacity-60 hover:opacity-100 text-slate-400 hover:text-red-600 p-1 transition cursor-pointer shrink-0"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Add New Void Condition Input Form */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={newVoidConditionInput}
+                            onChange={(e) => setNewVoidConditionInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleAddVoidCondition()
+                              }
+                            }}
+                            placeholder="Add new void condition..."
+                            className="flex-1 rounded-sm border border-slate-300 bg-slate-50/50 px-2.5 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-amber-600 focus:ring-1 focus:ring-amber-600"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddVoidCondition}
+                            disabled={!newVoidConditionInput.trim()}
+                            className="inline-flex items-center gap-1 rounded-sm bg-amber-700 hover:bg-amber-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-2.5 py-1.5 text-xs font-semibold shadow-2xs transition cursor-pointer shrink-0"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Add</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Customer-Facing Warranty Policy Terms */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-[#081F5C]" />
+                        Official Warranty Policy &amp; Terms
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleResetWarrantyToDefault}
+                        className="inline-flex items-center gap-1 text-[11px] text-[#081F5C] hover:underline cursor-pointer font-semibold"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Reset to Default Template
+                      </button>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={warrantySettings.warrantyPolicyTerms}
+                      onChange={(e) =>
+                        setWarrantySettings((prev) => ({ ...prev, warrantyPolicyTerms: e.target.value }))
+                      }
+                      className="w-full rounded-sm border border-slate-300 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
+                      placeholder="Enter specific warranty policies, guarantee terms, and customer guidelines..."
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      This policy statement is presented to customers during booking confirmation and on completed service receipts.
+                    </p>
+                  </div>
+
+                  {/* Claim Resolution Flow Information */}
+                  <div className="rounded-md border border-blue-100 bg-blue-50/70 p-3.5 sm:p-4 text-xs text-blue-950 space-y-2">
+                    <div className="flex items-center gap-1.5 font-bold text-[#081F5C]">
+                      <Info className="h-4 w-4 shrink-0" />
+                      <span>How Warranty Claims Work on E-Paayos:</span>
+                    </div>
+                    <ol className="list-decimal pl-5 space-y-1 text-slate-700 text-[11px] sm:text-xs">
+                      <li>Customer submits a warranty inspection claim under their completed booking history.</li>
+                      <li>Your shop receives a priority warranty alert and reviews the issue within 24–48 hours.</li>
+                      <li>Upon inspection and verification, eligible repairs or part replacements are fulfilled at zero additional labor cost.</li>
+                    </ol>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
+                    <span className="text-xs text-slate-500 hidden sm:inline">
+                      All changes are saved and applied to future customer bookings.
+                    </span>
+                    <button
+                      type="submit"
+                      disabled={isSavingWarranty}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-sm bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-6 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                    >
+                      <Check className="h-4 w-4" />
+                      {isSavingWarranty ? 'Saving Policy...' : 'Save Warranty Settings'}
                     </button>
                   </div>
                 </form>
@@ -1278,7 +1944,7 @@ export default function ShopOwnerAccountSettings() {
             )}
           </div>
         </div>
-      </div>
+      </main>
     </ShopOwnerDashboard>
   )
 }

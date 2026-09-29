@@ -130,7 +130,13 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
   const displayedStaff =
     isOnCallProviderService && String(item.shopOwner || '').trim()
       ? [String(item.shopOwner).trim()]
-      : item.staff ?? []
+      : Array.isArray(item.staff)
+        ? item.staff
+        : []
+  const totalShopStaffCount =
+    Number.isFinite(Number(item.shopStaffCount)) && Number(item.shopStaffCount) >= 0
+      ? Number(item.shopStaffCount)
+      : displayedStaff.length
   const shopThumb =
     resolveCatalogShopPhotoUrl(item.shopPlacePhoto) ||
     resolveCatalogShopPhotoUrl(item.shopOwnerProfileImage) ||
@@ -234,18 +240,20 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
         <div className="pt-2 border-t border-slate-100">
           <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-900">{staffRoleHeading(item.category)}</p>
           <div className="mt-1.5 sm:mt-2 flex items-center gap-1.5 sm:gap-2">
-            <div className="inline-flex items-center gap-1 sm:gap-1.5">
-              {displayedStaff.slice(0, 4).map((name) => (
-                <span
-                  key={name}
-                  title={name}
-                  className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-none border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[9px] sm:text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
-                >
-                  {initialsFromName(name)}
-                </span>
-              ))}
-            </div>
-            <span className="text-[10px] sm:text-xs font-medium text-slate-500 truncate">{staffAssignedLabel(item.category, displayedStaff.length)}</span>
+            {displayedStaff.length > 0 ? (
+              <div className="inline-flex items-center gap-1 sm:gap-1.5">
+                {displayedStaff.slice(0, 4).map((name) => (
+                  <span
+                    key={name}
+                    title={name}
+                    className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-none border border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-[9px] sm:text-[10px] font-bold text-white shadow-2xs ring-1 ring-black/5"
+                  >
+                    {initialsFromName(name)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <span className="text-[10px] sm:text-xs font-medium text-slate-600 truncate">{staffAssignedLabel(item.category, totalShopStaffCount, isOnCallProviderService)}</span>
           </div>
         </div>
       </CardContent>
@@ -278,17 +286,24 @@ function locationFilterLabelPlaceholder(item) {
 /** Vehicle category: mechanics. Gadget, appliance, and others: technicians. */
 export function staffRoleHeading(category) {
   const normalized = String(category ?? '').toLowerCase()
-  if (normalized === 'vehicle') return 'Mechanics'
-  return 'Technicians'
+  if (normalized === 'vehicle') return 'Shop Mechanics'
+  return 'Shop Technicians'
 }
 
-export function staffAssignedLabel(category, count) {
+export function staffAssignedLabel(category, count, isOnCall = false) {
   const n = Math.max(0, Number(count) || 0)
   const normalized = String(category ?? '').toLowerCase()
-  if (normalized === 'vehicle') {
-    return `${n} ${n === 1 ? 'mechanic' : 'mechanics'} assigned`
+  const isVehicle = normalized === 'vehicle'
+  const singular = isVehicle ? 'mechanic' : 'technician'
+  const plural = isVehicle ? 'mechanics' : 'technicians'
+
+  if (isOnCall) {
+    return `1 on-call ${singular}`
   }
-  return `${n} ${n === 1 ? 'technician' : 'technicians'} assigned`
+  if (n === 0) {
+    return `0 ${plural} in shop`
+  }
+  return `${n} ${n === 1 ? singular : plural} in shop`
 }
 
 /** gap-4 between duplicate segments (must match stride math in marquee). */

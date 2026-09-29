@@ -1,23 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertCircle,
+  Bike,
+  Calendar,
   Camera,
   Check,
   CheckCircle2,
   Clock,
+  DollarSign,
   Edit3,
   Eye,
+  ImageIcon,
   Loader2,
+  MapPin,
   MessageSquare,
   Search,
   SlidersHorizontal,
+  Smartphone,
   Star,
   Store,
+  Tag,
   ThumbsUp,
   Trash2,
+  User,
+  WashingMachine,
+  Wrench,
   X
 } from 'lucide-react'
 
+import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../components/ui/dialog'
 import { Input } from '../../components/ui/input'
@@ -65,6 +76,31 @@ function resolveMediaSrc(src) {
   return value
 }
 
+function formatPhp(amount) {
+  const n = Number(amount || 0)
+  try {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(n)
+  } catch {
+    return `₱${Math.round(n).toLocaleString('en-PH')}`
+  }
+}
+
+function categoryIcon(category) {
+  const normalized = String(category ?? '').toLowerCase()
+  if (normalized === 'vehicle') return Bike
+  if (normalized === 'gadget') return Smartphone
+  if (normalized === 'appliance') return WashingMachine
+  return Wrench
+}
+
+function categoryBadgeClass(category) {
+  const normalized = String(category ?? '').toLowerCase()
+  if (normalized === 'vehicle') return 'bg-sky-100 text-sky-800 border-sky-300'
+  if (normalized === 'gadget') return 'bg-violet-100 text-violet-800 border-violet-300'
+  if (normalized === 'appliance') return 'bg-emerald-100 text-emerald-800 border-emerald-300'
+  return 'bg-slate-100 text-slate-800 border-slate-300'
+}
+
 function StarRating({ rating = 0, interactive = false, size = 'size-4', onRatingChange }) {
   const current = Math.max(0, Math.min(5, Number(rating) || 0))
   return (
@@ -92,13 +128,13 @@ function StarRating({ rating = 0, interactive = false, size = 'size-4', onRating
   )
 }
 
-function ImageWithFallback({ src, alt, className, fallbackIcon: FallbackIcon = Store }) {
+function ImageWithFallback({ src, alt, className, fallbackIcon: FallbackIcon = Wrench }) {
   const [error, setError] = useState(false)
   const resolved = resolveMediaSrc(src)
 
   if (error || !resolved) {
     return (
-      <div className={cn('flex items-center justify-center bg-blue-50/80 border border-blue-100 text-[#081F5C]', className)}>
+      <div className={cn('flex items-center justify-center bg-indigo-50/80 border border-indigo-100 text-indigo-700', className)}>
         <FallbackIcon className="size-5" />
       </div>
     )
@@ -107,7 +143,7 @@ function ImageWithFallback({ src, alt, className, fallbackIcon: FallbackIcon = S
   return (
     <img
       src={resolved}
-      alt={alt || 'Shop'}
+      alt={alt || 'Service'}
       className={className}
       onError={() => setError(true)}
     />
@@ -116,7 +152,7 @@ function ImageWithFallback({ src, alt, className, fallbackIcon: FallbackIcon = S
 
 function LoadingState({ message = 'Loading...' }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-none bg-white p-8 text-center border border-slate-200 shadow-xs">
+    <div className="flex flex-col items-center justify-center rounded-none bg-white p-8 text-center border border-slate-200 shadow-2xs">
       <Loader2 className="size-8 animate-spin text-[#081F5C] mb-2" />
       <p className="text-xs font-semibold text-slate-600">{message}</p>
     </div>
@@ -125,7 +161,7 @@ function LoadingState({ message = 'Loading...' }) {
 
 function ErrorState({ message = 'An error occurred', onRetry }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-none bg-white p-8 text-center border border-slate-200 shadow-xs">
+    <div className="flex flex-col items-center justify-center rounded-none bg-white p-8 text-center border border-slate-200 shadow-2xs">
       <AlertCircle className="size-8 text-red-500 mb-2" />
       <p className="text-xs font-semibold text-rose-600 mb-3">{message}</p>
       {onRetry && (
@@ -138,18 +174,33 @@ function ErrorState({ message = 'An error occurred', onRetry }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 sm:px-3.5 pr-8 sm:pr-9 text-xs sm:text-sm font-semibold text-slate-800 shadow-[0_2px_5px_rgba(15,23,42,0.14)] focus:border-[#081F5C] focus:outline-none focus:ring-1 focus:ring-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300 cursor-pointer'
+  'h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 sm:px-3.5 pr-8 sm:pr-9 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs focus:border-[#081F5C] focus:outline-none focus:ring-1 focus:ring-[#081F5C] transition-all hover:border-slate-300 cursor-pointer'
+
+function getInitialTab() {
+  try {
+    const hash = window.location.hash || ''
+    const query = hash.split('?')[1] || ''
+    const params = new URLSearchParams(query)
+    const tab = params.get('tab')
+    if (tab === 'to-review' || tab === 'to-rate' || tab === 'to_review') return 'to-review'
+    if (tab === 'published') return 'published'
+    if (tab === 'replied') return 'replied'
+  } catch {
+    // ignore
+  }
+  return 'to-review'
+}
 
 export default function CustomerReviewsRatings() {
   const [user] = useState(readCustomerUserSession)
   const navigate = useNavigate()
 
-  // Tab State
-  const [activeTab, setActiveTab] = useState('published') // "published" | "to-review" | "replied"
+  // Tab State: "published" | "to-review" | "replied" (defaults to to-review if param or completed bookings)
+  const [activeTab, setActiveTab] = useState(getInitialTab)
 
-  // Main data arrays
+  // Main data arrays (purely booking-based)
   const [userReviews, setUserReviews] = useState([])
-  const [groupedPendingOrders, setGroupedPendingOrders] = useState([])
+  const [pendingBookings, setPendingBookings] = useState([])
 
   // Loading & error states
   const [loading, setLoading] = useState(true)
@@ -166,14 +217,13 @@ export default function CustomerReviewsRatings() {
   const [deleteConfirmId, setDeleteConfirmId] = useState(null)
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [selectedItemForReview, setSelectedItemForReview] = useState(null)
-  const [orderItemsForReview, setOrderItemsForReview] = useState([])
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState(null)
 
   // Form states
   const [formRating, setFormRating] = useState(5)
   const [formQuality, setFormQuality] = useState(5)
   const [formService, setFormService] = useState(5)
-  const [formDelivery, setFormDelivery] = useState(5)
+  const [formDelivery, setFormDelivery] = useState(5) // Timeliness & Turnaround
   const [formTitle, setFormTitle] = useState('')
   const [formComment, setFormComment] = useState('')
   const [formUploadedImages, setFormUploadedImages] = useState([])
@@ -181,7 +231,7 @@ export default function CustomerReviewsRatings() {
   const [formIsAnonymous, setFormIsAnonymous] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const cardShadow = 'shadow-[0_3px_8px_rgba(15,23,42,0.14)] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:border-[#081F5C] transition-all'
+  const cardShadow = 'shadow-sm hover:shadow-md hover:border-indigo-300 transition-all'
 
   const loadAllData = useCallback(async () => {
     setLoading(true)
@@ -193,52 +243,50 @@ export default function CustomerReviewsRatings() {
       const raw = Array.isArray(data?.bookings) ? data.bookings : []
 
       // 1. Pending reviews (Completed bookings not yet rated)
-      const pending = raw.filter(
-        (b) => String(b.status).toLowerCase() === 'completed' && !Number(b.customerReviewRating)
-      )
-
-      const groupsMap = {}
-      pending.forEach((b) => {
-        const oid = b.ref || b.orderId || b.id
-        if (!groupsMap[oid]) {
-          groupsMap[oid] = {
-            orderId: oid,
-            deliveryDate: b.updatedAt
-              ? new Date(b.updatedAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
-              : 'Recently',
-            items: [],
-          }
-        }
-        groupsMap[oid].items.push({
-          id: b.id,
-          orderItemId: b.id,
-          orderId: oid,
-          productName: b.serviceName || b.productName || 'Service Request',
-          productImage: (Array.isArray(b.issuePhotos) && b.issuePhotos[0]) || b.productImage || '',
-          shopImage: b.shopImage || b.shopPlacePhoto || b.sellerImage || (Array.isArray(b.issuePhotos) && b.issuePhotos[0]) || '',
-          sellerName: b.shopName || b.sellerName || 'Service Provider',
+      const pending = raw
+        .filter((b) => String(b.status).toLowerCase() === 'completed' && !Number(b.customerReviewRating))
+        .map((b) => ({
+          id: String(b.id),
+          ref: String(b.ref || `BK-${String(b.id).slice(-8).toUpperCase()}`),
+          serviceName: b.serviceName || 'Repair Service',
+          shopName: b.shopName || 'Repair Shop',
+          shopServiceId: b.shopServiceId || '',
+          shopOwnerName: b.shopOwnerName || '',
           category: b.category || 'Repair Service',
-          quantity: 1,
-          bookingRaw: b,
-        })
-      })
-      setGroupedPendingOrders(Object.values(groupsMap))
+          subcategory: b.subcategory || '',
+          serviceMode: b.serviceMode || 'in-shop',
+          date: b.date || '',
+          preferredTime: b.preferredTime || '',
+          assignedTechnicianName: b.assignedTechnicianName || '',
+          assignedTechnicianJobTitle: b.assignedTechnicianJobTitle || '',
+          problemDescription: b.problemDescription || '',
+          issuePhotos: Array.isArray(b.issuePhotos) ? b.issuePhotos.filter(Boolean) : [],
+          startJobProofPhotos: Array.isArray(b.startJobProofPhotos) ? b.startJobProofPhotos.filter(Boolean) : [],
+          completionProofPhotos: Array.isArray(b.completionProofPhotos) ? b.completionProofPhotos.filter(Boolean) : [],
+          serviceFeeLaborRateAtCalc: b.serviceFeeLaborRateAtCalc,
+          serviceFeeMaterialsAmount: b.serviceFeeMaterialsAmount,
+          completedAt: b.completedAt || b.updatedAt || b.createdAt,
+          rawBooking: b,
+        }))
+      setPendingBookings(pending)
 
       // 2. Published reviews (Completed bookings with rating)
       const published = raw
         .filter((b) => Number(b.customerReviewRating) > 0)
         .map((b) => {
-          const rId = b.id
+          const rId = String(b.id)
           return {
             _id: rId,
             id: rId,
-            bookingId: b.id,
-            orderId: b.ref || b.orderId || b.id,
-            productName: b.serviceName || b.productName || 'Service Request',
-            productImage: (Array.isArray(b.issuePhotos) && b.issuePhotos[0]) || b.productImage || '',
-            shopImage: b.shopImage || b.shopPlacePhoto || b.sellerImage || (Array.isArray(b.issuePhotos) && b.issuePhotos[0]) || '',
+            bookingId: String(b.id),
+            ref: String(b.ref || `BK-${String(b.id).slice(-8).toUpperCase()}`),
+            serviceName: b.serviceName || 'Repair Service',
+            shopName: b.shopName || 'Repair Shop',
+            shopServiceId: b.shopServiceId || '',
             category: b.category || 'Repair Service',
-            sellerName: b.shopName || b.sellerName || 'Service Provider',
+            subcategory: b.subcategory || '',
+            serviceMode: b.serviceMode || 'in-shop',
+            assignedTechnicianName: b.assignedTechnicianName || '',
             rating: Number(b.customerReviewRating) || 5,
             recommend: b.customerReviewRecommend !== false,
             ratingsBreakdown: b.ratingsBreakdown || {
@@ -252,12 +300,10 @@ export default function CustomerReviewsRatings() {
               ? b.customerReviewMedia.map((m) => (typeof m === 'string' ? m : m.url)).filter(Boolean)
               : [],
             createdAt: b.customerReviewedAt || b.updatedAt || b.createdAt,
-            date: b.customerReviewedAt
-              ? new Date(b.customerReviewedAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
-              : '',
+            completedAt: b.completedAt || b.updatedAt,
             adminReply: (b.shopResponse || b.adminReply)
               ? {
-                sellerName: b.shopName || b.sellerName || 'Service Provider',
+                shopName: b.shopName || 'Shop Provider',
                 message: typeof b.shopResponse === 'string' ? b.shopResponse : (b.adminReply?.message || ''),
                 repliedAt: b.providerReviewRespondedAt || b.adminReply?.repliedAt || new Date().toISOString(),
               }
@@ -265,7 +311,7 @@ export default function CustomerReviewsRatings() {
             userVotedHelpful: false,
             helpfulCount: Number(b.helpfulCount) || 0,
             customer: {
-              isAnonymous: false,
+              isAnonymous: b.customerReviewIsAnonymous || false,
             },
           }
         })
@@ -283,7 +329,7 @@ export default function CustomerReviewsRatings() {
 
   const repliedCount = userReviews.filter((r) => !!r.adminReply).length
 
-  // Dynamically compute available categories from actual page data
+  // Dynamically compute available categories
   const availableCategories = useMemo(() => {
     const set = new Set()
     userReviews.forEach((review) => {
@@ -295,7 +341,7 @@ export default function CustomerReviewsRatings() {
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [userReviews])
 
-  // Dynamically compute available ratings from actual page data
+  // Dynamically compute available ratings
   const availableRatings = useMemo(() => {
     const set = new Set()
     userReviews.forEach((review) => {
@@ -324,9 +370,9 @@ export default function CustomerReviewsRatings() {
     const term = searchTerm.toLowerCase()
     filteredPublishedReviews = filteredPublishedReviews.filter(
       (r) =>
-        (r.productName || '').toLowerCase().includes(term) ||
-        (r.sellerName || '').toLowerCase().includes(term) ||
-        (r.orderId || '').toLowerCase().includes(term) ||
+        (r.serviceName || '').toLowerCase().includes(term) ||
+        (r.shopName || '').toLowerCase().includes(term) ||
+        (r.ref || '').toLowerCase().includes(term) ||
         (r.comment || '').toLowerCase().includes(term)
     )
   }
@@ -341,9 +387,8 @@ export default function CustomerReviewsRatings() {
     filteredPublishedReviews.sort((a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0))
   }
 
-  const handleOpenWriteModal = (item, orderItems = []) => {
-    setSelectedItemForReview(item)
-    setOrderItemsForReview(orderItems)
+  const handleOpenWriteModal = useCallback((booking) => {
+    setSelectedBookingForReview(booking)
     setIsEditMode(false)
     setFormRating(5)
     setFormQuality(5)
@@ -351,24 +396,71 @@ export default function CustomerReviewsRatings() {
     setFormDelivery(5)
     setFormTitle('')
     setFormComment('')
-    setFormUploadedImages(item.shopImage || item.productImage ? [item.shopImage || item.productImage] : [])
+    setFormUploadedImages(
+      Array.isArray(booking.completionProofPhotos) && booking.completionProofPhotos.length > 0
+        ? [booking.completionProofPhotos[0]]
+        : Array.isArray(booking.issuePhotos) && booking.issuePhotos.length > 0
+        ? [booking.issuePhotos[0]]
+        : []
+    )
     setFormRecommend(true)
     setFormIsAnonymous(false)
     setIsWriteModalOpen(true)
-  }
+  }, [])
+
+  // Auto-open review modal if bookingId is specified in URL query
+  useEffect(() => {
+    if (!pendingBookings.length) return
+    const hash = window.location.hash || ''
+    const query = hash.split('?')[1] || ''
+    const params = new URLSearchParams(query)
+    const targetBookingId = params.get('bookingId')
+    if (targetBookingId) {
+      const match = pendingBookings.find((b) => b.id === targetBookingId || b.ref === targetBookingId)
+      if (match) {
+        setActiveTab('to-review')
+        handleOpenWriteModal(match)
+      }
+    }
+  }, [pendingBookings, handleOpenWriteModal])
+
+  // Listen to live hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash || ''
+      const query = hash.split('?')[1] || ''
+      const params = new URLSearchParams(query)
+      const tab = params.get('tab')
+      if (tab === 'to-review' || tab === 'to-rate' || tab === 'to_review') {
+        setActiveTab('to-review')
+      } else if (tab === 'published') {
+        setActiveTab('published')
+      } else if (tab === 'replied') {
+        setActiveTab('replied')
+      }
+      const targetBookingId = params.get('bookingId')
+      if (targetBookingId && pendingBookings.length) {
+        const match = pendingBookings.find((b) => b.id === targetBookingId || b.ref === targetBookingId)
+        if (match) {
+          handleOpenWriteModal(match)
+        }
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [pendingBookings, handleOpenWriteModal])
 
   const handleOpenEditModal = (review) => {
     setIsEditMode(true)
-    setSelectedItemForReview({
+    setSelectedBookingForReview({
       id: review.bookingId || review.id,
-      orderId: review.orderId,
-      productName: review.productName,
-      productImage: review.productImage,
-      shopImage: review.shopImage,
-      sellerName: review.sellerName,
+      ref: review.ref,
+      serviceName: review.serviceName,
+      shopName: review.shopName,
       category: review.category,
+      subcategory: review.subcategory,
+      serviceMode: review.serviceMode,
     })
-    setOrderItemsForReview([])
     setFormRating(review.rating || 5)
     setFormQuality(review.ratingsBreakdown?.quality || review.rating || 5)
     setFormService(review.ratingsBreakdown?.service || review.rating || 5)
@@ -406,7 +498,7 @@ export default function CustomerReviewsRatings() {
 
   const handleSubmitReview = async (e) => {
     e.preventDefault()
-    if (!selectedItemForReview?.id) return
+    if (!selectedBookingForReview?.id) return
     if (!formTitle.trim() || !formComment.trim()) {
       alert('Please provide a headline title and detailed feedback.')
       return
@@ -414,7 +506,7 @@ export default function CustomerReviewsRatings() {
 
     setIsSubmitting(true)
     try {
-      const res = await fetch(`${API_URL}/api/catalog/bookings/${encodeURIComponent(selectedItemForReview.id)}/review`, {
+      const res = await fetch(`${API_URL}/api/catalog/bookings/${encodeURIComponent(selectedBookingForReview.id)}/review`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
@@ -499,10 +591,10 @@ export default function CustomerReviewsRatings() {
               )}
             >
               <Clock className="size-3.5 sm:size-4" />
-              To Review ({groupedPendingOrders.length})
-              {groupedPendingOrders.length > 0 && (
+              To Rate & Review ({pendingBookings.length})
+              {pendingBookings.length > 0 && (
                 <span className="ml-1 inline-flex size-4.5 sm:size-5 items-center justify-center rounded-none bg-[#081F5C] text-[10px] font-bold text-white">
-                  {groupedPendingOrders.length}
+                  {pendingBookings.length}
                 </span>
               )}
             </button>
@@ -518,26 +610,26 @@ export default function CustomerReviewsRatings() {
               )}
             >
               <MessageSquare className="size-3.5 sm:size-4" />
-              Seller Responses ({repliedCount})
+              Shop Responses ({repliedCount})
             </button>
           </div>
 
           <div className="text-[11px] sm:text-xs text-slate-500 font-medium">
             Showing{" "}
             <strong className="text-slate-800">
-              {activeTab === "to-review" ? groupedPendingOrders.length : filteredPublishedReviews.length}
+              {activeTab === "to-review" ? pendingBookings.length : filteredPublishedReviews.length}
             </strong>{" "}
-            {activeTab === "to-review" ? "order(s) to review" : "published items"}
+            {activeTab === "to-review" ? "service booking(s) to rate" : "published reviews"}
           </div>
         </div>
 
-        {/* Filters (1 Row on mobile) & Search Bar (Below filters on mobile) */}
+        {/* Filters & Search Bar */}
         {activeTab !== "to-review" && (
           <section className="space-y-2 sm:space-y-3">
             <div className="flex min-w-0 w-full max-w-full flex-col gap-2 sm:gap-3 lg:flex-row lg:items-center lg:justify-between">
-              {/* Filter Dropdowns (Single 1-Row Horizontal Strip on Mobile) */}
+              {/* Filter Dropdowns */}
               <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden -mx-1 px-1 min-w-0 w-full flex-nowrap shrink-0 lg:shrink lg:flex-1">
-                <div className="relative min-w-[125px] sm:min-w-[140px] sm:max-w-[180px] shrink-0">
+                <div className="relative min-w-[130px] sm:min-w-[150px] sm:max-w-[180px] shrink-0">
                   <select
                     className={`${selectShell} ${selectedCategory === '' ? 'text-slate-400 font-medium' : 'text-slate-900 font-semibold'}`}
                     value={selectedCategory}
@@ -608,12 +700,12 @@ export default function CustomerReviewsRatings() {
                 )}
               </div>
 
-              {/* Search Bar (Full Width Below Filters on Mobile, Side-by-Side on Desktop) */}
+              {/* Search Bar */}
               <div className="relative min-w-0 w-full max-w-full lg:max-w-md lg:flex-1">
                 <div className="relative w-full min-w-0 max-w-full">
                   <Input
-                    className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-11 sm:pr-12 pl-3 sm:pl-4 text-xs sm:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300"
-                    placeholder="Search reviews..."
+                    className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-11 sm:pr-12 pl-3 sm:pl-4 text-xs sm:text-sm shadow-2xs focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:border-slate-300"
+                    placeholder="Search reviews by service, shop, or ref..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     aria-label="Search reviews"
@@ -621,7 +713,7 @@ export default function CustomerReviewsRatings() {
                   <Button
                     type="button"
                     size="icon-sm"
-                    className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all cursor-pointer"
+                    className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-[#081F5C] p-0 shadow-2xs hover:bg-[#04133d] transition-all cursor-pointer"
                     aria-label="Search"
                   >
                     <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
@@ -632,116 +724,138 @@ export default function CustomerReviewsRatings() {
           </section>
         )}
 
-        {/* ── TAB: TO REVIEW (ORDER-BASED CARDS) ───────────────────────────────── */}
+        {/* ── TAB: TO RATE & REVIEW (BOOKING-BASED CARDS) ────────────────────── */}
         {activeTab === "to-review" && (
           <div className="space-y-3">
             {loading ? (
-              <LoadingState message="Loading items to review..." />
+              <LoadingState message="Loading completed bookings to review..." />
             ) : error ? (
               <ErrorState message={error} onRetry={loadAllData} />
-            ) : groupedPendingOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-none bg-white p-8 text-center border border-slate-200 shadow-xs">
-                <div className="flex size-14 items-center justify-center rounded-none bg-slate-100 text-[#081F5C] mb-3">
+            ) : pendingBookings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-none bg-white p-8 text-center border border-slate-200 shadow-2xs">
+                <div className="flex size-14 items-center justify-center rounded-none bg-emerald-50 text-emerald-600 mb-3 border border-emerald-200">
                   <CheckCircle2 className="size-7" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900">All Caught Up!</h3>
+                <h3 className="text-base font-bold text-slate-900">All Completed Bookings Rated!</h3>
                 <p className="mt-1 max-w-md text-xs text-slate-500 font-medium">
-                  You have reviewed all your delivered purchases. Check back after your next order!
+                  You have reviewed all your finished repair bookings. Keep track of current repair progress in My Bookings!
                 </p>
                 <Button
                   onClick={() => navigate("/customer/my-bookings")}
-                  className="mt-4 bg-[#081F5C] text-white hover:bg-[#04133d] rounded-none text-xs cursor-pointer shadow-xs"
+                  className="mt-4 bg-[#081F5C] text-white hover:bg-[#04133d] rounded-none text-xs cursor-pointer shadow-2xs"
                 >
-                  View Completed Orders
+                  Go to My Bookings
                 </Button>
               </div>
             ) : (
-              groupedPendingOrders.map((orderGroup) => (
-                <div
-                  key={orderGroup.orderId}
-                  className={cn(
-                    "flex flex-col gap-3 rounded-none bg-white p-3.5 sm:p-4 border border-slate-200 transition-all",
-                    cardShadow
-                  )}
-                >
-                  {/* Order Header Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-slate-100 pb-2.5">
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="font-mono text-[11px] sm:text-xs font-bold text-[#081F5C] bg-slate-100 px-2 sm:px-2.5 py-0.5 border border-slate-200 rounded-none">
-                        Order #{orderGroup.orderId}
-                      </span>
-                      <span className="text-slate-300">•</span>
-                      <span className="text-[11px] sm:text-xs font-semibold text-slate-600">
-                        Delivered {orderGroup.deliveryDate}
-                      </span>
-                      <span className="text-[11px] sm:text-xs text-slate-500 font-medium">
-                        ({orderGroup.items.length} item{orderGroup.items.length > 1 ? "s" : ""})
-                      </span>
+              pendingBookings.map((b) => {
+                const CategoryIcon = categoryIcon(b.category)
+                const completionDate = b.completedAt
+                  ? new Date(b.completedAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
+                  : 'Recently'
+
+                return (
+                  <div
+                    key={b.id}
+                    className={cn(
+                      "flex flex-col gap-3 rounded-none bg-white p-3.5 sm:p-4 border border-slate-200 transition-all",
+                      cardShadow
+                    )}
+                  >
+                    {/* Booking Header Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 border-b border-slate-100 pb-2.5">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="font-mono text-[11px] sm:text-xs font-bold text-[#081F5C] bg-slate-100 px-2 sm:px-2.5 py-0.5 border border-slate-200 rounded-none inline-flex items-center gap-1">
+                          <Tag className="size-3 text-indigo-600" />
+                          Ref: {b.ref}
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-[11px] sm:text-xs font-semibold text-slate-600 flex items-center gap-1">
+                          <CheckCircle2 className="size-3 text-emerald-600" />
+                          Service Completed on {completionDate}
+                        </span>
+                      </div>
+
+                      <Badge variant="outline" className={cn("rounded-none text-[10px] font-bold uppercase", categoryBadgeClass(b.category))}>
+                        {b.category || 'Repair Service'}
+                      </Badge>
                     </div>
-                  </div>
 
-                  {/* Products list inside this order */}
-                  <div className="divide-y divide-slate-100">
-                    {orderGroup.items.map((item) => (
-                      <div
-                        key={item.id || item.orderItemId}
-                        className="py-3 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                      >
-                        <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
-                          <ImageWithFallback
-                            src={item.shopImage || item.productImage}
-                            alt={item.sellerName || item.productName}
-                            className="size-13 sm:size-14 shrink-0 rounded-none object-cover border border-slate-200"
-                            fallbackIcon={Store}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                              <h4 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2 sm:line-clamp-1">
-                                {item.productName}
-                              </h4>
-                              {(item.quantity || 1) > 1 && (
-                                <span className="inline-flex items-center px-1.5 py-0.2 rounded-none text-[10px] font-extrabold bg-blue-50 text-[#081F5C] border border-blue-200">
-                                  Qty: {item.quantity}
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <Store className="size-3 text-slate-400" />
-                                <span className="font-medium text-slate-700">{item.sellerName}</span>
-                              </span>
-                              <span className="rounded-none bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 border border-slate-200">
-                                {item.category}
-                              </span>
-                            </div>
-                          </div>
+                    {/* Booking Service & Shop Details */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 min-w-0">
+                        <div className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <CategoryIcon className="size-6 sm:size-7" />
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-2">
+                            {b.serviceName}{b.subcategory ? ` • ${b.subcategory}` : ''}
+                          </h4>
+                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] sm:text-xs text-slate-500">
+                            <span className="flex items-center gap-1 text-slate-700 font-medium">
+                              <Store className="size-3 text-indigo-600" />
+                              <span>{b.shopName}</span>
+                            </span>
+                            <span className="text-slate-300">•</span>
+                            <span className="font-medium text-slate-600">
+                              Mode: <strong className="text-slate-800">{b.serviceMode === 'home' ? 'Home Service' : 'In-Shop'}</strong>
+                            </span>
+                            {b.assignedTechnicianName && (
+                              <>
+                                <span className="text-slate-300">•</span>
+                                <span className="text-slate-600">
+                                  Staff: <strong className="text-slate-800">{b.assignedTechnicianName}</strong>
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          {(b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null) && (
+                            <div className="mt-1 text-[11px] font-semibold text-indigo-700 flex items-center gap-1">
+                              <DollarSign className="size-3" />
+                              <span>Total Fee: {formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        {b.shopServiceId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.location.hash = `#/customer/view-shop/${encodeURIComponent(b.shopServiceId)}`
+                            }}
+                            className="inline-flex items-center justify-center gap-1 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
+                          >
+                            <Store className="size-3.5 text-slate-500" />
+                            <span>View Shop</span>
+                          </button>
+                        )}
                         <Button
-                          onClick={() => handleOpenWriteModal(item, orderGroup.items)}
-                          className="w-full sm:w-auto bg-[#081F5C] text-white hover:bg-[#04133d] shadow-xs shrink-0 self-stretch sm:self-center rounded-none text-xs py-2 sm:py-1.5 px-3 cursor-pointer justify-center"
+                          onClick={() => handleOpenWriteModal(b)}
+                          className="w-full sm:w-auto bg-[#081F5C] text-white hover:bg-[#04133d] shadow-2xs shrink-0 self-stretch sm:self-center rounded-none text-xs py-2 sm:py-1.5 px-3.5 font-bold cursor-pointer justify-center"
                         >
-                          <Edit3 className="mr-1.5 size-3.5" />
-                          Rate Product
+                          <Star className="mr-1.5 size-3.5 text-amber-400 fill-amber-400" />
+                          Rate & Review Service
                         </Button>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         )}
 
-        {/* ── TAB: PUBLISHED & REPLIED ────────────────────────────────────────── */}
+        {/* ── TAB: PUBLISHED & REPLIED REVIEWS ────────────────────────────────── */}
         {activeTab !== "to-review" && (
           <div className="space-y-3">
             {loading ? (
-              <LoadingState message="Loading your reviews..." />
+              <LoadingState message="Loading your published reviews..." />
             ) : error ? (
               <ErrorState message={error} onRetry={loadAllData} />
             ) : filteredPublishedReviews.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-none bg-white p-6 sm:p-8 text-center border border-slate-200 shadow-xs">
+              <div className="flex flex-col items-center justify-center rounded-none bg-white p-6 sm:p-8 text-center border border-slate-200 shadow-2xs">
                 <div className="flex size-12 sm:size-14 items-center justify-center rounded-none bg-slate-100 text-slate-400 mb-3">
                   <Star className="size-6 sm:size-7" />
                 </div>
@@ -749,7 +863,7 @@ export default function CustomerReviewsRatings() {
                 <p className="mt-1 max-w-md text-xs text-slate-500 font-medium">
                   {searchTerm || selectedRating || selectedCategory
                     ? "No reviews match your filter criteria. Try clearing search or filters."
-                    : "You haven't written any published reviews yet."}
+                    : "You haven't submitted any reviews for completed services yet."}
                 </p>
                 {(searchTerm || selectedRating || selectedCategory) && (
                   <Button
@@ -774,7 +888,8 @@ export default function CustomerReviewsRatings() {
                     month: "long",
                     day: "numeric",
                   })
-                  : review.date || ""
+                  : ""
+                const CategoryIcon = categoryIcon(review.category)
 
                 return (
                   <div
@@ -784,38 +899,35 @@ export default function CustomerReviewsRatings() {
                       cardShadow
                     )}
                   >
-                    {/* Product Info Header */}
+                    {/* Booking Service Header */}
                     <div className="flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-start sm:items-center gap-3 min-w-0">
-                        <ImageWithFallback
-                          src={review.shopImage || review.productImage}
-                          alt={review.sellerName || review.productName}
-                          className="size-13 sm:size-14 shrink-0 rounded-none object-cover border border-slate-200"
-                          fallbackIcon={Store}
-                        />
+                        <div className="flex size-12 sm:size-13 shrink-0 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <CategoryIcon className="size-5 sm:size-6" />
+                        </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                            <span className="rounded-none bg-blue-50 px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-[#081F5C]">
-                              {review.category}
+                            <span className={cn("rounded-none px-2 py-0.5 text-[10px] sm:text-xs font-bold uppercase border", categoryBadgeClass(review.category))}>
+                              {review.category || 'Repair Service'}
                             </span>
-                            <span className="font-mono text-[11px] sm:text-xs text-slate-400">
-                              Order #{review.orderId}
+                            <span className="font-mono text-[11px] sm:text-xs font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 border border-slate-200">
+                              Ref: {review.ref}
                             </span>
                           </div>
                           <h4 className="mt-0.5 text-xs sm:text-base font-bold text-slate-900 line-clamp-2 sm:line-clamp-1">
-                            {review.productName}
+                            {review.serviceName}
                           </h4>
                           <div className="mt-0.5 flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500">
-                            <Store className="size-3 sm:size-3.5 text-slate-400" />
-                            <span>Sold by <strong className="text-slate-700">{review.sellerName}</strong></span>
+                            <Store className="size-3 sm:size-3.5 text-indigo-600" />
+                            <span>Repair Shop: <strong className="text-slate-800">{review.shopName}</strong></span>
                           </div>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between sm:flex-col sm:items-end gap-1 text-[11px] sm:text-xs border-t border-slate-50 pt-2 sm:border-0 sm:pt-0">
-                        <span className="text-slate-400">{reviewDate}</span>
-                        <span className="inline-flex items-center gap-1 rounded-none bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
-                          <CheckCircle2 className="size-3 text-emerald-600" /> Verified
+                        <span className="text-slate-500 font-medium">{reviewDate}</span>
+                        <span className="inline-flex items-center gap-1 rounded-none bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 font-bold text-[10px]">
+                          <CheckCircle2 className="size-3 text-emerald-600" /> Verified Booking
                         </span>
                       </div>
                     </div>
@@ -824,12 +936,12 @@ export default function CustomerReviewsRatings() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/80 p-2.5 sm:p-3.5 border border-slate-100 rounded-none">
                       <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xl sm:text-2xl font-extrabold text-slate-900">{review.rating}.0</span>
+                          <span className="text-xl sm:text-2xl font-black text-slate-900">{review.rating}.0</span>
                           <StarRating rating={review.rating} size="size-4 sm:size-5" />
                         </div>
                         {review.recommend && (
-                          <span className="inline-flex items-center gap-1 rounded-none bg-emerald-100 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-emerald-800">
-                            <Check className="size-3 sm:size-3.5" /> Recommends this product
+                          <span className="inline-flex items-center gap-1 rounded-none bg-emerald-100 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-bold text-emerald-900 border border-emerald-300">
+                            <Check className="size-3 sm:size-3.5 text-emerald-700" /> Recommends this repair service
                           </span>
                         )}
                       </div>
@@ -837,15 +949,15 @@ export default function CustomerReviewsRatings() {
                       {review.ratingsBreakdown && (
                         <div className="flex flex-wrap gap-2.5 sm:gap-4 text-[11px] sm:text-xs text-slate-600 border-t border-slate-200/60 pt-2 sm:border-0 sm:pt-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-slate-400">Quality:</span>
+                            <span className="text-slate-400">Repair Quality:</span>
                             <strong className="text-slate-800">{review.ratingsBreakdown.quality}/5</strong>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-slate-400">Service:</span>
+                            <span className="text-slate-400">Communication:</span>
                             <strong className="text-slate-800">{review.ratingsBreakdown.service}/5</strong>
                           </div>
                           <div className="flex items-center gap-1">
-                            <span className="text-slate-400">Delivery:</span>
+                            <span className="text-slate-400">Timeliness:</span>
                             <strong className="text-slate-800">{review.ratingsBreakdown.delivery}/5</strong>
                           </div>
                         </div>
@@ -855,7 +967,7 @@ export default function CustomerReviewsRatings() {
                     {/* Review Content */}
                     <div>
                       <h5 className="text-xs sm:text-base font-bold text-slate-900">{review.title}</h5>
-                      <p className="mt-1 sm:mt-2 text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-line">
+                      <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm leading-relaxed text-slate-700 whitespace-pre-line">
                         {review.comment}
                       </p>
                     </div>
@@ -884,17 +996,17 @@ export default function CustomerReviewsRatings() {
                       </div>
                     )}
 
-                    {/* Admin / Seller Reply */}
+                    {/* Shop Owner Response */}
                     {review.adminReply && (
-                      <div className="rounded-none bg-slate-50 p-3 sm:p-4 border-l-3 sm:border-l-4 border-[#081F5C] text-xs sm:text-sm text-slate-800">
+                      <div className="rounded-none bg-indigo-50/60 p-3 sm:p-4 border-l-3 sm:border-l-4 border-indigo-600 text-xs sm:text-sm text-slate-800">
                         <div className="flex flex-wrap items-center justify-between gap-1 mb-1 sm:mb-1.5">
                           <div className="flex items-center gap-1.5 sm:gap-2">
-                            <Store className="size-3.5 sm:size-4 text-[#081F5C]" />
-                            <span className="font-bold text-[#081F5C] text-xs sm:text-sm">
-                              Store Response from {review.sellerName}
+                            <Store className="size-3.5 sm:size-4 text-indigo-700" />
+                            <span className="font-bold text-indigo-950 text-xs sm:text-sm">
+                              Response from {review.adminReply.shopName || review.shopName}
                             </span>
                           </div>
-                          <span className="text-[10px] sm:text-xs text-slate-400">
+                          <span className="text-[10px] sm:text-xs text-slate-500">
                             {new Date(review.adminReply.repliedAt).toLocaleDateString("en-PH", {
                               year: "numeric",
                               month: "short",
@@ -916,30 +1028,30 @@ export default function CustomerReviewsRatings() {
                           className={cn(
                             "flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 transition-colors font-medium border rounded-none cursor-pointer text-xs",
                             review.userVotedHelpful
-                              ? "bg-blue-50 border-blue-300 text-[#081F5C]"
+                              ? "bg-indigo-50 border-indigo-300 text-indigo-900 font-bold"
                               : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                           )}
                         >
-                          <ThumbsUp className={cn("size-3.5", review.userVotedHelpful && "fill-[#081F5C]")} />
+                          <ThumbsUp className={cn("size-3.5", review.userVotedHelpful && "fill-indigo-600 text-indigo-600")} />
                           <span>Helpful ({review.helpfulCount || 0})</span>
                         </button>
 
                         {review.customer?.isAnonymous && (
-                          <span className="text-slate-400 italic text-[11px] sm:text-xs">Anonymous</span>
+                          <span className="text-slate-400 italic text-[11px] sm:text-xs">Posted Anonymously</span>
                         )}
                       </div>
 
                       <div className="flex items-center gap-1 sm:gap-2">
                         <button
                           onClick={() => handleOpenEditModal(review)}
-                          className="flex items-center gap-1 px-2 sm:px-2.5 py-1 text-slate-600 hover:text-[#081F5C] hover:underline font-medium cursor-pointer text-xs"
+                          className="flex items-center gap-1 px-2 sm:px-2.5 py-1 text-slate-600 hover:text-indigo-700 hover:underline font-bold cursor-pointer text-xs"
                         >
                           <Edit3 className="size-3.5" /> Edit
                         </button>
                         <span className="text-slate-200">|</span>
                         <button
                           onClick={() => setDeleteConfirmId(reviewId)}
-                          className="flex items-center gap-1 px-2 sm:px-2.5 py-1 text-red-600 hover:text-red-700 hover:underline font-medium cursor-pointer text-xs"
+                          className="flex items-center gap-1 px-2 sm:px-2.5 py-1 text-red-600 hover:text-red-700 hover:underline font-bold cursor-pointer text-xs"
                         >
                           <Trash2 className="size-3.5" /> Delete
                         </button>
@@ -959,83 +1071,57 @@ export default function CustomerReviewsRatings() {
           >
             <DialogHeader className="border-b border-slate-100 pb-3 sm:pb-4">
               <div className="flex items-center gap-2.5">
-                <span className="flex size-8 sm:size-9 items-center justify-center rounded-none bg-blue-50 text-[#081F5C] shrink-0">
-                  <Edit3 className="size-4 sm:size-5" />
+                <span className="flex size-8 sm:size-9 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                  <Star className="size-4 sm:size-5 fill-indigo-600" />
                 </span>
                 <div>
-                  <DialogTitle className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900">
-                    {isEditMode ? "Edit Your Product & Seller Review" : "Write a Product & Seller Review"}
+                  <DialogTitle className="text-lg sm:text-2xl font-black tracking-tight text-slate-900">
+                    {isEditMode ? "Edit Your Service Review" : "Write a Service Review"}
                   </DialogTitle>
                   <DialogDescription className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-                    Share your verified feedback for{" "}
-                    <strong className="text-slate-800">{selectedItemForReview?.productName}</strong>{" "}
-                    (Order #{selectedItemForReview?.orderId})
+                    Share your verified experience for{" "}
+                    <strong className="text-slate-800">{selectedBookingForReview?.serviceName}</strong>{" "}
+                    at <strong className="text-slate-800">{selectedBookingForReview?.shopName}</strong> (Ref: {selectedBookingForReview?.ref})
                   </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
 
-            {selectedItemForReview && (
+            {selectedBookingForReview && (
               <form onSubmit={handleSubmitReview} className="mt-4 sm:mt-5 space-y-4 sm:space-y-6">
-                {/* Product Selector for Multi-Item Orders */}
-                {orderItemsForReview.length > 1 && (
-                  <div className="bg-slate-50 p-3 sm:p-3.5 border border-slate-200 rounded-none space-y-2">
-                    <label className="block text-[11px] sm:text-xs font-bold text-slate-700 uppercase">Select Product to Rate in this Order</label>
-                    <div className="flex flex-wrap gap-2">
-                      {orderItemsForReview.map((item, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => {
-                            setSelectedItemForReview(item)
-                            setFormUploadedImages(item.productImage ? [item.productImage] : [])
-                          }}
-                          className={cn(
-                            "flex items-center gap-2 px-2.5 sm:px-3 py-1.5 border text-xs font-medium transition-all text-left cursor-pointer rounded-none",
-                            (selectedItemForReview?.id === item.id || selectedItemForReview?.orderItemId === item.orderItemId)
-                              ? "border-[#081F5C] bg-white text-[#081F5C] ring-1 ring-[#081F5C]/30 font-semibold shadow-xs"
-                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
-                          )}
-                        >
-                          {item.productImage && (
-                            <ImageWithFallback src={item.productImage} alt={item.productName} className="size-6 sm:size-7 object-cover border border-slate-200 shrink-0 rounded-none" />
-                          )}
-                          <div className="line-clamp-1 text-xs">{item.productName}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Product Summary */}
+                {/* Booking Service Summary Banner */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-slate-50 p-3 sm:p-4 border border-slate-200 rounded-none">
                   <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
-                    <ImageWithFallback
-                      src={selectedItemForReview.productImage}
-                      alt={selectedItemForReview.productName}
-                      className="size-14 sm:size-16 shrink-0 object-cover border border-slate-200 rounded-none"
-                    />
+                    <div className="flex size-12 sm:size-14 shrink-0 items-center justify-center rounded-none bg-indigo-100 text-indigo-700 border border-indigo-200">
+                      <Wrench className="size-6 sm:size-7" />
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <span className="rounded-none bg-blue-100 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-[#081F5C] uppercase tracking-wider">
-                        {selectedItemForReview.category || "Verified Purchase"}
-                      </span>
-                      <h5 className="font-bold text-slate-900 text-xs sm:text-base mt-1 line-clamp-2 sm:line-clamp-1">
-                        {selectedItemForReview.productName}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={cn("rounded-none px-2 py-0.5 text-[10px] sm:text-[11px] font-bold uppercase border", categoryBadgeClass(selectedBookingForReview.category))}>
+                          {selectedBookingForReview.category || "Repair Service"}
+                        </span>
+                        <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 border border-slate-200 text-slate-700">
+                          Ref: {selectedBookingForReview.ref}
+                        </span>
+                      </div>
+                      <h5 className="font-bold text-slate-900 text-xs sm:text-base mt-1 line-clamp-2">
+                        {selectedBookingForReview.serviceName}
                       </h5>
-                      <div className="mt-1 flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500">
-                        <Store className="size-3.5 text-slate-400" />
-                        <span>Sold by <strong className="text-slate-700">{selectedItemForReview.sellerName}</strong></span>
+                      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500">
+                        <Store className="size-3.5 text-indigo-600" />
+                        <span>Repair Shop: <strong className="text-slate-800">{selectedBookingForReview.shopName}</strong></span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="shrink-0 bg-white px-2.5 sm:px-3 py-1 sm:py-1.5 border border-slate-200 text-[11px] sm:text-xs font-mono text-slate-600 rounded-none self-start sm:self-auto">
-                    Order ID: <span className="font-bold text-slate-800">{selectedItemForReview.orderId}</span>
+                  <div className="shrink-0 bg-white px-2.5 sm:px-3 py-1 sm:py-1.5 border border-slate-200 text-[11px] sm:text-xs font-semibold text-emerald-800 rounded-none self-start sm:self-auto flex items-center gap-1">
+                    <CheckCircle2 className="size-3.5 text-emerald-600" />
+                    <span>Completed Booking</span>
                   </div>
                 </div>
 
                 {/* Overall Rating */}
-                <div className="bg-gradient-to-r from-amber-50/80 via-amber-50/40 to-slate-50 p-3.5 sm:p-5 border border-amber-200/80 rounded-none">
+                <div className="bg-gradient-to-r from-amber-50/90 via-amber-50/40 to-slate-50 p-3.5 sm:p-5 border border-amber-200 rounded-none">
                   <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-2">
                     Overall Satisfaction Rating <span className="text-red-500">*</span>
                   </label>
@@ -1046,27 +1132,27 @@ export default function CustomerReviewsRatings() {
                       size="size-7 sm:size-9"
                       onRatingChange={(v) => setFormRating(v)}
                     />
-                    <span className="inline-flex items-center gap-1.5 rounded-none bg-amber-100/90 px-3 py-0.5 sm:px-3.5 sm:py-1 text-xs sm:text-sm font-bold text-amber-900 border border-amber-300/60 self-start sm:self-auto">
+                    <span className="inline-flex items-center gap-1.5 rounded-none bg-amber-100/90 px-3 py-0.5 sm:px-3.5 sm:py-1 text-xs sm:text-sm font-bold text-amber-900 border border-amber-300/80 self-start sm:self-auto">
                       <Star className="size-3.5 sm:size-4 fill-amber-500 text-amber-500" />
-                      {formRating === 5 && "5.0 / 5.0 - Outstanding!"}
-                      {formRating === 4 && "4.0 / 5.0 - Good Quality"}
-                      {formRating === 3 && "3.0 / 5.0 - Average"}
+                      {formRating === 5 && "5.0 / 5.0 - Outstanding Repair Quality!"}
+                      {formRating === 4 && "4.0 / 5.0 - Great Service & Result"}
+                      {formRating === 3 && "3.0 / 5.0 - Average Experience"}
                       {formRating === 2 && "2.0 / 5.0 - Below Expectation"}
-                      {formRating === 1 && "1.0 / 5.0 - Very Poor"}
+                      {formRating === 1 && "1.0 / 5.0 - Very Unsatisfied"}
                     </span>
                   </div>
                 </div>
 
-                {/* Sub-ratings */}
+                {/* Sub-ratings Breakdown */}
                 <div>
                   <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-2">
-                    Detailed Rating Breakdown
+                    Service Experience Breakdown
                   </label>
                   <div className="grid grid-cols-1 gap-2.5 sm:gap-4 sm:grid-cols-3">
                     {[
-                      { label: "Product Quality", value: formQuality, setter: setFormQuality },
-                      { label: "Seller Service", value: formService, setter: setFormService },
-                      { label: "Delivery Speed", value: formDelivery, setter: setFormDelivery },
+                      { label: "Repair Quality & Fix", value: formQuality, setter: setFormQuality },
+                      { label: "Communication & Staff", value: formService, setter: setFormService },
+                      { label: "Timeliness & Turnaround", value: formDelivery, setter: setFormDelivery },
                     ].map(({ label, value, setter }) => (
                       <div
                         key={label}
@@ -1091,12 +1177,12 @@ export default function CustomerReviewsRatings() {
                 <div className="grid grid-cols-1 gap-3.5 sm:gap-5">
                   <div>
                     <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1 sm:mb-1.5">
-                      Review Headline / Title <span className="text-red-500">*</span>
+                      Review Headline / Summary <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Excellent service, fast turn-around!"
+                      placeholder="e.g. Excellent technician, fast turnaround and device working perfectly!"
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
                       className="w-full rounded-none border border-slate-300 bg-white px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#081F5C] focus:outline-none focus:ring-1 focus:ring-[#081F5C]"
@@ -1106,9 +1192,9 @@ export default function CustomerReviewsRatings() {
                   <div>
                     <div className="flex items-center justify-between mb-1 sm:mb-1.5">
                       <label className="block text-xs sm:text-sm font-bold text-slate-900">
-                        Detailed Review Feedback <span className="text-red-500">*</span>
+                        Detailed Service Feedback <span className="text-red-500">*</span>
                       </label>
-                      <span className={cn("text-[11px] sm:text-xs font-medium", formComment.length >= 15 ? "text-[#081F5C]" : "text-slate-400")}>
+                      <span className={cn("text-[11px] sm:text-xs font-medium", formComment.length >= 15 ? "text-[#081F5C] font-bold" : "text-slate-400")}>
                         {formComment.length} characters (min 15)
                       </span>
                     </div>
@@ -1116,7 +1202,7 @@ export default function CustomerReviewsRatings() {
                       rows={4}
                       required
                       minLength={15}
-                      placeholder="Share your experience regarding repair quality, communication, timeliness, or overall service..."
+                      placeholder="Share your experience regarding workmanship, technician communication, timeliness, and repair outcome..."
                       value={formComment}
                       onChange={(e) => setFormComment(e.target.value)}
                       className="w-full rounded-none border border-slate-300 bg-white p-3 sm:p-4 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#081F5C] focus:outline-none focus:ring-1 focus:ring-[#081F5C]"
@@ -1128,7 +1214,7 @@ export default function CustomerReviewsRatings() {
                 <div>
                   <div className="flex items-center justify-between mb-1.5 sm:mb-2">
                     <label className="block text-xs sm:text-sm font-bold text-slate-900">
-                      Add Photos
+                      Add Repair Photos / Proof (Optional)
                     </label>
                   </div>
 
@@ -1177,7 +1263,7 @@ export default function CustomerReviewsRatings() {
                       className="size-4 text-[#081F5C] focus:ring-[#081F5C]"
                     />
                     <span className="font-semibold text-slate-800 text-xs sm:text-sm">
-                      I recommend this service & shop
+                      I recommend this repair shop & service
                     </span>
                   </label>
 
@@ -1208,7 +1294,7 @@ export default function CustomerReviewsRatings() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="bg-[#081F5C] text-white hover:bg-[#04133d] px-6 font-semibold shadow-md rounded-none cursor-pointer text-xs sm:text-sm py-2"
+                    className="bg-[#081F5C] text-white hover:bg-[#04133d] px-6 font-bold shadow-md rounded-none cursor-pointer text-xs sm:text-sm py-2"
                   >
                     {isSubmitting ? (
                       <span className="flex items-center justify-center gap-2">
@@ -1217,7 +1303,7 @@ export default function CustomerReviewsRatings() {
                     ) : isEditMode ? (
                       "Update Review"
                     ) : (
-                      "Submit Review"
+                      "Submit Service Review"
                     )}
                   </Button>
                 </div>
@@ -1255,7 +1341,7 @@ export default function CustomerReviewsRatings() {
                 <AlertCircle className="size-5" /> Delete Review
               </DialogTitle>
               <DialogDescription className="text-sm text-slate-600 mt-2 font-medium">
-                Are you sure you want to permanently delete this review? This action cannot be undone.
+                Are you sure you want to permanently delete this service review? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <div className="mt-6 flex justify-end gap-3">
@@ -1264,7 +1350,7 @@ export default function CustomerReviewsRatings() {
               </Button>
               <Button
                 onClick={() => handleDeleteReview(deleteConfirmId)}
-                className="bg-red-600 text-[#081F5C] hover:bg-red-700 text-white rounded-none cursor-pointer"
+                className="bg-red-600 hover:bg-red-700 text-white rounded-none cursor-pointer"
               >
                 Delete Review
               </Button>

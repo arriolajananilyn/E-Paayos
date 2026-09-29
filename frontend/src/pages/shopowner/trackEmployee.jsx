@@ -205,17 +205,17 @@ export function TrackEmployeePage() {
         },
         activeJob: activeJob
           ? {
-              ref: activeJob.ref || activeJob.id,
-              serviceName: activeJob.shopService?.name || 'Service Request',
-              customerName: activeJob.contactName || activeJob.customer?.fullName || 'Customer',
-              customerPhone: activeJob.contactPhone || activeJob.customer?.phone || '—',
-              address: activeJob.serviceAddress || (activeJob.serviceMode === 'home' ? 'Home Service' : 'In-Shop'),
-              preferredDate: activeJob.preferredDate ? new Date(activeJob.preferredDate).toLocaleDateString() : 'Today',
-              preferredTime: activeJob.preferredTime || 'Standard Hours',
-              serviceMode: activeJob.serviceMode || 'in-shop',
-              status: activeJob.status,
-              problemDescription: activeJob.problemDescription || '',
-            }
+            ref: activeJob.ref || activeJob.id,
+            serviceName: activeJob.shopService?.name || 'Service Request',
+            customerName: activeJob.contactName || activeJob.customer?.fullName || 'Customer',
+            customerPhone: activeJob.contactPhone || activeJob.customer?.phone || '—',
+            address: activeJob.serviceAddress || (activeJob.serviceMode === 'home' ? 'Home Service' : 'In-Shop'),
+            preferredDate: activeJob.preferredDate ? new Date(activeJob.preferredDate).toLocaleDateString() : 'Today',
+            preferredTime: activeJob.preferredTime || 'Standard Hours',
+            serviceMode: activeJob.serviceMode || 'in-shop',
+            status: activeJob.status,
+            problemDescription: activeJob.problemDescription || '',
+          }
           : null,
         recentJob: recentJob ? { ref: recentJob.ref || recentJob.id } : null,
       }
@@ -271,7 +271,7 @@ export function TrackEmployeePage() {
         description: 'Live real-time GPS tracking and activity dispatch for your mechanics and technicians.',
       }}
     >
-      <main className="w-full space-y-3 sm:space-y-4 max-w-[1440px] mx-auto min-w-0 overflow-x-hidden">
+      <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
         {/* Header Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3 border-b border-slate-200 pb-3">
           <div>

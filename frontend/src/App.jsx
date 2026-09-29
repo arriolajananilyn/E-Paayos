@@ -5,6 +5,8 @@ import LandingPage from './pages/landingpage.jsx'
 import Login from './pages/auth/login.jsx'
 import CustomerDashboard from './pages/customer/dashboard.jsx'
 import CustomerMyBookings from './pages/customer/myBookings.jsx'
+import CustomerBookingDetails from './pages/customer/bookingdetails.jsx'
+import CustomerTrackRefix from './pages/customer/trackRefix.jsx'
 import CustomerBookingHistory from './pages/customer/bookingHistory.jsx'
 import CustomerMessages from './pages/customer/messages.jsx'
 import CustomerNotification from './pages/customer/notification.jsx'
@@ -15,6 +17,7 @@ import CustomerServiceDetails from './pages/customer/serviceDetails.jsx'
 import CustomerViewShop from './pages/customer/viewshop.jsx'
 import AdminDashboard from './pages/admin/dashboard.jsx'
 import AdminNotification from './pages/admin/notification.jsx'
+import AdminReportsAnalyticsPage from './pages/admin/reportsAnalytics.jsx'
 import ShopOwnerDashboard from './pages/shopowner/dashboard.jsx'
 import ManageEmployeePage from './pages/shopowner/manageEmployee.jsx'
 import TrackEmployeePage from './pages/shopowner/trackEmployee.jsx'
@@ -26,6 +29,7 @@ import ReviewsRatingsPage from './pages/shopowner/reviewsRatings.jsx'
 import NotificationPage from './pages/shopowner/notification.jsx'
 import AccountSettingsPage from './pages/shopowner/accountSettings.jsx'
 import ShopInfoPage from './pages/shopowner/shopInfo.jsx'
+import ReportsAnalyticsPage from './pages/shopowner/reportsAnalytics.jsx'
 import MechanicTechnicianDashboard from './pages/mechanic/technician/dashboard.jsx'
 import MechanicTechnicianAssignedRequest from './pages/mechanic/technician/assignedRequest.jsx'
 import MechanicTechnicianServiceHistory from './pages/mechanic/technician/serviceHistory.jsx'
@@ -39,6 +43,7 @@ import OnCallMechanicServiceRequest from './pages/oncallmechanic/technician/serv
 import OnCallMechanicServiceHistory from './pages/oncallmechanic/technician/serviceHistory.jsx'
 import OnCallMechanicMessages from './pages/oncallmechanic/technician/messages.jsx'
 import OnCallMechanicRatingReviews from './pages/oncallmechanic/technician/ratingReviews.jsx'
+import OnCallMechanicReportsAnalyticsPage from './pages/oncallmechanic/technician/reportsAnalytics.jsx'
 import OnCallMechanicNotification from './pages/oncallmechanic/technician/notification.jsx'
 import OnCallMechanicAccountSettings from './pages/oncallmechanic/technician/accountSettings.jsx'
 
@@ -67,6 +72,16 @@ function App() {
       const serviceId = decodeURIComponent(raw.split('?')[0] || '')
       return <CustomerServiceDetails serviceId={serviceId} />
     }
+    if (cleanRoute.startsWith('#/customer/booking-details/')) {
+      const raw = route.slice('#/customer/booking-details/'.length)
+      const bookingId = decodeURIComponent(raw.split('?')[0] || '')
+      return <CustomerBookingDetails bookingId={bookingId} />
+    }
+    if (cleanRoute.startsWith('#/customer/track-refix/')) {
+      const raw = route.slice('#/customer/track-refix/'.length)
+      const bookingId = decodeURIComponent(raw.split('?')[0] || '')
+      return <CustomerTrackRefix bookingId={bookingId} />
+    }
     switch (cleanRoute) {
       case '#/':
       case '':
@@ -79,6 +94,10 @@ function App() {
         return <CustomerDashboard />
       case '#/customer/my-bookings':
         return <CustomerMyBookings />
+      case '#/customer/booking-details':
+        return <CustomerBookingDetails />
+      case '#/customer/track-refix':
+        return <CustomerTrackRefix />
       case '#/customer/booking-history':
         return <CustomerBookingHistory />
       case '#/customer/messages':
@@ -93,6 +112,8 @@ function App() {
         return <CustomerFindServices />
       case '#/admin/dashboard':
         return <AdminDashboard />
+      case '#/admin/reports-analytics':
+        return <AdminReportsAnalyticsPage />
       case '#/admin/notification':
         return <AdminNotification />
       case '#/provider/dashboard':
@@ -113,6 +134,8 @@ function App() {
         return <MessagesPage />
       case '#/provider/reviews-ratings':
         return <ReviewsRatingsPage />
+      case '#/provider/reports-analytics':
+        return <ReportsAnalyticsPage />
       case '#/provider/notification':
         return <NotificationPage />
       case '#/provider/account-settings':
@@ -144,6 +167,9 @@ function App() {
         return <OnCallMechanicMessages />
       case '#/independent/technician/ratings-reviews':
         return <OnCallMechanicRatingReviews />
+      case '#/independent/technician/reports-analytics':
+      case '#/oncallmechanic/technician/reports-analytics':
+        return <OnCallMechanicReportsAnalyticsPage />
       case '#/independent/technician/notification':
         return <OnCallMechanicNotification />
       case '#/independent/technician/account-settings':

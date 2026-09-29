@@ -440,7 +440,7 @@ function MechanicTechnicianServiceHistory() {
               id="mechanic-main-scroll"
               className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
-              <div className="w-full min-w-0 max-w-full space-y-3.5 sm:space-y-4">
+              <div className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4">
                 {listError ? (
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
                     <span>{listError}</span>
@@ -495,33 +495,37 @@ function MechanicTechnicianServiceHistory() {
                   />
                 </div>
 
-                <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[190px] sm:max-w-[260px]">
-                    <select className={`${selectShell} text-neutral-900 dark:text-neutral-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                      <option value="recent">Sort: Recently completed</option>
-                      <option value="oldest">Sort: Oldest completion</option>
-                      <option value="schedule">Sort: Preferred service date</option>
-                    </select>
-                    <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:flex-1 lg:flex-nowrap">
+                    <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[240px]">
+                      <select className={`${selectShell} text-neutral-900 dark:text-neutral-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <option value="recent">Sort: Recently completed</option>
+                        <option value="oldest">Sort: Oldest completion</option>
+                        <option value="schedule">Sort: Preferred service date</option>
+                      </select>
+                      <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                    </div>
                   </div>
 
-                  <div className="relative h-9 w-full min-w-0 shrink-0 lg:w-[320px]">
-                    <Input
-                      className="h-9 w-full rounded-none border-slate-300 bg-white/95 pr-12 pl-4 text-xs font-medium shadow-2xs focus-visible:border-[#081F5C] focus-visible:ring-1 focus-visible:ring-[#081F5C]"
-                      placeholder="Search customer, service, shop…"
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                      aria-label="Search service history"
-                    />
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      className="pointer-events-none absolute top-1/2 right-1 z-10 h-7 w-7 -translate-y-1/2 rounded-none bg-linear-to-r from-[#04133d] to-[#081F5C] p-0 shadow-xs"
-                      aria-hidden
-                      tabIndex={-1}
-                    >
-                      <Search className="h-3.5 w-3.5 text-white" />
-                    </Button>
+                  <div className="flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none lg:w-[360px] lg:max-w-[360px]">
+                    <div className="relative h-9 w-full min-w-0 shrink-0">
+                      <Input
+                        className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-[13px] shadow-sm sm:text-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+                        placeholder="Search customer, service, shop…"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        aria-label="Search service history"
+                      />
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
+                        aria-hidden
+                        tabIndex={-1}
+                      >
+                        <Search className="h-4 w-4 text-white" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -561,7 +565,7 @@ function MechanicTechnicianServiceHistory() {
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-3 sm:space-y-3.5">
+                    <div className="space-y-4">
                       {filtered.map((b) => {
                         const CategoryIcon = b.shopService ? categoryIcon(b.shopService.category) : categoryIcon(b.serviceCategory)
                         const cat = b.shopService?.category || b.serviceCategory

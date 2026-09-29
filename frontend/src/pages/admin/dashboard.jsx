@@ -5,6 +5,7 @@ import AdminUserManagement from "@/pages/admin/userManagement.jsx"
 import AdminAnnouncement from "@/pages/admin/announcement.jsx"
 import AdminTrackServices from "@/pages/admin/trackServices.jsx"
 import AdminNotification from "@/pages/admin/notification.jsx"
+import { AdminReportsAnalyticsContent } from "@/pages/admin/reportsAnalytics.jsx"
 import {
   NotificationBellIndicator,
   useAdminNotificationUnreadCount,
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
+  BarChart3,
   Bell,
   CheckCircle,
   ChevronDown,
@@ -55,6 +57,7 @@ const pageBaseNavyGradient = `linear-gradient(145deg, ${navyDeep} 0%, ${navy} 35
 
 const SECTIONS = {
   overview: { title: "Dashboard", description: "Platform overview: bookings, listings, and moderation shortcuts." },
+  reportsAnalytics: { title: "Reports & Analytics", description: "Comprehensive platform performance, revenue, and system reports." },
   announcement: { title: "Announcement", description: "Create and manage system announcements." },
   trackServices: { title: "Track services", description: "Monitor service bookings across customers, shops, and mechanics." },
   users: { title: "User management", description: "View and manage user accounts." },
@@ -841,6 +844,17 @@ function AdminSidebarNav({ section, setSection }) {
       </SidebarMenuItem>
       <SidebarMenuItem>
         <SidebarMenuButton
+          isActive={section === "reportsAnalytics"}
+          tooltip="Reports & Analytics"
+          onClick={() => handleNav("reportsAnalytics")}
+          className={sidebarMenuButtonClass}
+        >
+          <BarChart3 className="size-[18px] opacity-90" />
+          <span className="whitespace-nowrap">Reports & Analytics</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
           isActive={section === "announcement"}
           tooltip="Announcement"
           onClick={() => handleNav("announcement")}
@@ -881,8 +895,10 @@ function AdminDashboard({ initialSection = "overview" } = {}) {
     const onHash = () => {
       if (window.location.hash === "#/admin/notification") {
         setSection("notification")
+      } else if (window.location.hash === "#/admin/reports-analytics") {
+        setSection("reportsAnalytics")
       } else if (window.location.hash === "#/admin/dashboard") {
-        setSection((prev) => (prev === "notification" ? "overview" : prev))
+        setSection((prev) => (prev === "notification" || prev === "reportsAnalytics" ? "overview" : prev))
       }
     }
     window.addEventListener("hashchange", onHash)
@@ -1022,11 +1038,10 @@ function AdminDashboard({ initialSection = "overview" } = {}) {
                     setSection("notification")
                     window.location.hash = "#/admin/notification"
                   }}
-                  className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${
-                    section === "notification"
+                  className={`relative flex size-9 sm:size-10 items-center justify-center rounded-sm transition-colors cursor-pointer ${section === "notification"
                       ? "bg-blue-50 text-blue-700 dark:bg-white/10 dark:text-blue-300"
                       : "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground"
-                  }`}
+                    }`}
                 >
                   <NotificationBellIndicator unreadCount={adminUnreadCount}>
                     <Bell className="size-4.5 sm:size-5" />
@@ -1089,6 +1104,11 @@ function AdminDashboard({ initialSection = "overview" } = {}) {
               className="scrollbar-hidden flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-4 md:p-6"
             >
               {section === "overview" && <AdminDashboardOverview user={user} setSection={setSection} />}
+              {section === "reportsAnalytics" && (
+                <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
+                  <AdminReportsAnalyticsContent />
+                </div>
+              )}
               {section === "announcement" && (
                 <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
                   <AdminAnnouncement />

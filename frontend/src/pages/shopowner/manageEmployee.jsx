@@ -442,7 +442,7 @@ function ManageEmployeePage() {
         description: 'Mechanics and technicians who registered under your shop.',
       }}
     >
-      <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden">
+      <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
           <StatGradientCard variant="total" label="Total staff" value={stats.total} icon={Users} />
           <StatGradientCard variant="active" label="Active" value={stats.active} icon={CheckCircle} />
@@ -804,7 +804,7 @@ function ManageEmployeePage() {
             </Pagination>
           </div>
         )}
-      </div>
+      </main>
 
       <Dialog
         open={formOpen}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   Bike,
   Calendar,
@@ -42,15 +43,6 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../components/ui/alert-dialog.jsx'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -63,7 +55,7 @@ import { Label } from '../../components/ui/label'
 import { NativeSelect } from '../../components/ui/native-select'
 import { Textarea } from '../../components/ui/textarea'
 import CustomerLayout, { readCustomerUserSession } from '../../layout/customerlayout.jsx'
-import { resolveProfilePsgcLabels } from '../../lib/psgcResolve'
+import { resolveProfilePsgcLabels, formatReadableShopAddress } from '../../lib/psgcResolve'
 import { SERVICE_TYPES, staffAssignedLabel } from './findServices.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
@@ -327,15 +319,20 @@ export default function CustomerServiceDetails({ serviceId }) {
   const [detailError, setDetailError] = useState('')
   const [mapAddressParts, setMapAddressParts] = useState(null)
   const [mapPartsResolving, setMapPartsResolving] = useState(false)
+  const [readableShopAddress, setReadableShopAddress] = useState('')
+  const [shopAddressResolving, setShopAddressResolving] = useState(false)
   const [shopContext, setShopContext] = useState(null)
   const [serviceReviewFilter, setServiceReviewFilter] = useState('all')
   const [serviceReviews, setServiceReviews] = useState([])
 
   const [bookDialogOpen, setBookDialogOpen] = useState(false)
-  const [bookingConfirmOpen, setBookingConfirmOpen] = useState(false)
+  const [bookingStep, setBookingStep] = useState('form')
   const [bookSubmitting, setBookSubmitting] = useState(false)
   const [bookError, setBookError] = useState('')
   const [bookSuccess, setBookSuccess] = useState('')
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false)
+  const bookingModalScrollRef = useRef(null)
   const [bookForm, setBookForm] = useState({
     contactName: '',
     contactPhone: '',
@@ -474,18 +471,42 @@ export default function CustomerServiceDetails({ serviceId }) {
     return headerBookingLocationPin
   }, [mapUserLocation, headerBookingLocationPin])
 
+  const displayShopAddress = useMemo(() => {
+    if (readableShopAddress && readableShopAddress !== '—') return readableShopAddress
+    if (shopAddressResolving || mapPartsResolving) return 'Resolving address…'
+    if (mapAddressParts) {
+      const { detailedAddress, barangay, cityMunicipality, province, region } = mapAddressParts
+      const cleanBrgy = barangay && !/^\d+$/.test(barangay.trim()) ? barangay.trim() : ''
+      const cleanCity = cityMunicipality && !/^\d+$/.test(cityMunicipality.trim()) ? cityMunicipality.trim() : ''
+      const cleanProv = province && !/^\d+$/.test(province.trim()) ? province.trim() : ''
+      const cleanReg = region && !/^\d+$/.test(region.trim()) ? region.trim() : ''
+      const geoParts = [cleanBrgy, cleanCity, cleanProv, cleanReg].filter(Boolean)
+      const geoLine = geoParts.join(', ')
+      const street = detailedAddress?.trim() || ''
+      if (street && geoLine) return `${street}, ${geoLine}`
+      if (street) return street
+      if (geoLine) return geoLine
+    }
+    const raw = detail?.shopAddress?.trim() || ''
+    if (raw) {
+      const parts = raw
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => !/^\d{4,}$/.test(p))
+      if (parts.length > 0) return parts.join(', ')
+    }
+    return detail?.shopDetailedAddress?.trim() || '—'
+  }, [readableShopAddress, shopAddressResolving, mapPartsResolving, mapAddressParts, detail])
+
   const googleMapsSearchUrl = useMemo(() => {
     if (!detail) return ''
-    const parts = [
-      detail.shopName?.trim(),
-      detail.shopDetailedAddress?.trim(),
-      mapAddressParts?.barangay?.trim() || (typeof detail.shopBarangay === 'string' ? detail.shopBarangay.trim() : ''),
-      mapAddressParts?.cityMunicipality?.trim() || (typeof detail.shopCityMunicipality === 'string' ? detail.shopCityMunicipality.trim() : ''),
-      mapAddressParts?.province?.trim() || (typeof detail.shopProvince === 'string' ? detail.shopProvince.trim() : ''),
-      'Philippines',
-    ].filter(Boolean)
+    const addressStr =
+      displayShopAddress !== '—' && displayShopAddress !== 'Resolving address…'
+        ? displayShopAddress
+        : detail.shopDetailedAddress?.trim() || ''
+    const parts = [detail.shopName?.trim(), addressStr, 'Philippines'].filter(Boolean)
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parts.join(', '))}`
-  }, [detail, mapAddressParts])
+  }, [detail, displayShopAddress])
 
   const serviceReviewsList = useMemo(
     () => serviceReviews.map((rv) => ({ ...rv, images: (rv.images || []).map(resolveReviewMediaSrc).filter(Boolean) })),
@@ -626,27 +647,47 @@ export default function CustomerServiceDetails({ serviceId }) {
     if (!detail) {
       setMapAddressParts(null)
       setMapPartsResolving(false)
+      setReadableShopAddress('')
+      setShopAddressResolving(false)
       return
     }
     let cancelled = false
     setMapPartsResolving(true)
+    setShopAddressResolving(true)
       ; (async () => {
         try {
-          const labels = await resolveProfilePsgcLabels({
-            shopRegion: detail.shopRegion,
-            shopProvince: detail.shopProvince,
-            shopCityMunicipality: detail.shopCityMunicipality,
-            shopBarangay: detail.shopBarangay,
-          })
+          const [labels, line] = await Promise.all([
+            resolveProfilePsgcLabels({
+              shopRegion: detail.shopRegion,
+              shopProvince: detail.shopProvince,
+              shopCityMunicipality: detail.shopCityMunicipality,
+              shopBarangay: detail.shopBarangay,
+            }),
+            formatReadableShopAddress({
+              shopDetailedAddress: detail.shopDetailedAddress,
+              shopBarangay: detail.shopBarangay,
+              shopCityMunicipality: detail.shopCityMunicipality,
+              shopProvince: detail.shopProvince,
+              shopRegion: detail.shopRegion,
+            }),
+          ])
           if (cancelled) return
           setMapAddressParts({
             detailedAddress: detail.shopDetailedAddress?.trim() || '',
-            barangay: labels.shopBarangay || '',
-            cityMunicipality: labels.shopCityMunicipality || '',
-            province: labels.shopProvince || '',
-            region: labels.shopRegion || '',
+            barangay: labels.shopBarangay || (detail.shopBarangay && !/^\d+$/.test(String(detail.shopBarangay).trim()) ? String(detail.shopBarangay).trim() : ''),
+            cityMunicipality: labels.shopCityMunicipality || (detail.shopCityMunicipality && !/^\d+$/.test(String(detail.shopCityMunicipality).trim()) ? String(detail.shopCityMunicipality).trim() : ''),
+            province: labels.shopProvince || (detail.shopProvince && !/^\d+$/.test(String(detail.shopProvince).trim()) ? String(detail.shopProvince).trim() : ''),
+            region: labels.shopRegion || (detail.shopRegion && !/^\d+$/.test(String(detail.shopRegion).trim()) ? String(detail.shopRegion).trim() : ''),
             landmark: detail.shopLandmark?.trim() || '',
           })
+          const fallbackClean = detail.shopAddress
+            ? String(detail.shopAddress)
+                .split(',')
+                .map((p) => p.trim())
+                .filter((p) => !/^\d{4,}$/.test(p))
+                .join(', ')
+            : ''
+          setReadableShopAddress(line && line !== '—' ? line : (fallbackClean || detail.shopDetailedAddress || '—'))
         } catch {
           if (cancelled) return
           setMapAddressParts({
@@ -657,8 +698,19 @@ export default function CustomerServiceDetails({ serviceId }) {
             region: String(detail.shopRegion || '').trim(),
             landmark: detail.shopLandmark?.trim() || '',
           })
+          const fallbackClean = detail.shopAddress
+            ? String(detail.shopAddress)
+                .split(',')
+                .map((p) => p.trim())
+                .filter((p) => !/^\d{4,}$/.test(p))
+                .join(', ')
+            : ''
+          setReadableShopAddress(fallbackClean || detail.shopDetailedAddress || '—')
         } finally {
-          if (!cancelled) setMapPartsResolving(false)
+          if (!cancelled) {
+            setMapPartsResolving(false)
+            setShopAddressResolving(false)
+          }
         }
       })()
     return () => {
@@ -676,12 +728,13 @@ export default function CustomerServiceDetails({ serviceId }) {
     if (!detail || !serviceId) return
     setBookError('')
     setBookSuccess('')
-    setBookingConfirmOpen(false)
+    setBookingStep('form')
+    setTermsAccepted(false)
     setLocationCaptureError('')
     setLocationCaptureLoading(false)
     setBookForm({
       contactName: user?.fullName || user?.name || '',
-      contactPhone: user?.phone || user?.phoneNumber || '',
+      contactPhone: (user?.phone || user?.phoneNumber || '').replace(/\D/g, '').slice(0, 11),
       preferredDate: '',
       preferredTime: '',
       serviceMode: defaultServiceMode(detail.type),
@@ -762,12 +815,26 @@ export default function CustomerServiceDetails({ serviceId }) {
     const form = e.currentTarget
     if (!form.reportValidity()) return
     setBookError('')
-    setBookingConfirmOpen(true)
+    setBookingStep('confirm')
+    if (bookingModalScrollRef.current) {
+      bookingModalScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  const handleGoBackToForm = () => {
+    setBookError('')
+    setBookingStep('form')
+    if (bookingModalScrollRef.current) {
+      bookingModalScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   const performBookingSubmit = async () => {
     if (!detail || !serviceId || !isLikelyMongoId(serviceId)) return
-    setBookingConfirmOpen(false)
+    if (!termsAccepted) {
+      setBookError('Please agree to the Terms and Service Agreement before submitting your request.')
+      return
+    }
     setBookError('')
     setBookSuccess('')
     setBookSubmitting(true)
@@ -808,6 +875,9 @@ export default function CustomerServiceDetails({ serviceId }) {
         throw new Error(data?.message || 'Could not submit booking.')
       }
       setBookSuccess(data?.message || 'Booking request sent.')
+      if (bookingModalScrollRef.current) {
+        bookingModalScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      }
     } catch (err) {
       setBookError(err?.message || 'Could not submit booking.')
     } finally {
@@ -901,7 +971,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Shop Address</p>
                       <p className="font-medium text-slate-800 leading-snug text-xs mt-0.5 break-words">
-                        {detail.shopAddress?.trim() || '—'}
+                        {displayShopAddress}
                       </p>
                     </div>
                   </div>
@@ -966,7 +1036,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                           <div className="min-w-0 flex-1">
                             <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Shop Address</p>
                             <p className="font-semibold text-slate-800 leading-snug text-[11px] line-clamp-2">
-                              {detail.shopAddress?.trim() || '—'}
+                              {displayShopAddress}
                             </p>
                           </div>
                         </div>
@@ -1152,13 +1222,14 @@ export default function CustomerServiceDetails({ serviceId }) {
                 <div className="flex flex-col sm:flex-row gap-2.5 pt-3 sm:pt-3 border-t border-slate-100">
                   <Button
                     type="button"
-                    aria-label="Book this service now"
-                    title={bookingFieldsTooltip(detail.type)}
-                    className="h-11 sm:h-10 w-full sm:flex-1 gap-2 rounded-none bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 sm:px-5 text-xs sm:text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all"
-                    onClick={openBookDialog}
+                    aria-label="View Shop"
+                    className="h-11 sm:h-10 w-full sm:flex-1 gap-2 rounded-none bg-linear-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 sm:px-5 text-xs sm:text-xs font-bold uppercase tracking-wider text-white shadow-[0_2px_6px_rgba(8,31,92,0.4)] hover:shadow-[0_4px_10px_rgba(8,31,92,0.55)] hover:opacity-95 transition-all cursor-pointer"
+                    onClick={() => {
+                      window.location.hash = `#/customer/view-shop/${encodeURIComponent(serviceId)}`
+                    }}
                   >
-                    <CalendarCheck className="h-4 w-4 shrink-0" aria-hidden />
-                    <span>Book Service Now</span>
+                    <Store className="h-4 w-4 shrink-0" aria-hidden />
+                    <span>View Shop</span>
                   </Button>
                   <Button
                     type="button"
@@ -1678,7 +1749,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                   <div>
                     <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400">Address</p>
                     <p className="text-xs sm:text-sm font-medium text-white leading-relaxed mt-0.5">
-                      {detail.shopAddress?.trim() || '—'}
+                      {displayShopAddress}
                     </p>
                   </div>
                   {detail.shopLandmark?.trim() ? (
@@ -1815,40 +1886,133 @@ export default function CustomerServiceDetails({ serviceId }) {
           setBookDialogOpen(open)
         }}
       >
-        <DialogContent className="flex max-h-[92dvh] sm:max-h-[min(94dvh,46rem)] w-[calc(100%-1rem)] sm:max-w-2xl flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)]">
+        <DialogContent className="flex max-h-[92dvh] sm:max-h-[min(94dvh,46rem)] w-[calc(100%-1rem)] sm:max-w-2xl flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)] transition-all duration-300">
           {/* Header Banner */}
           <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-4 sm:px-5 py-3 sm:py-4 text-white shadow-md">
             <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-indigo-500/20 blur-2xl" />
             <div className="relative z-10 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-md border border-blue-400/30">
-                  <CalendarCheck className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+                <div
+                  className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-none text-white shadow-md border transition-all duration-300 ${
+                    bookSuccess
+                      ? 'bg-emerald-600 border-emerald-400/40'
+                      : bookingStep === 'confirm'
+                        ? 'bg-emerald-600 border-emerald-400/40'
+                        : 'bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] border-blue-400/30'
+                  }`}
+                >
+                  {bookSuccess ? (
+                    <CheckCircle2 className="h-5 w-5 sm:h-5.5 sm:w-5.5" />
+                  ) : bookingStep === 'confirm' ? (
+                    <ShieldCheck className="h-5 w-5 sm:h-5.5 sm:w-5.5" />
+                  ) : (
+                    <CalendarCheck className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+                  )}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-sm sm:text-base font-extrabold uppercase tracking-wider text-white leading-tight">
-                      {bookSuccess ? 'Booking Completed' : 'Service Booking Form'}
-                    </h2>
+                    <DialogTitle className="text-sm sm:text-base font-extrabold uppercase tracking-wider text-white leading-tight">
+                      {bookSuccess
+                        ? 'Booking Request Sent'
+                        : bookingStep === 'confirm'
+                          ? 'Confirm Booking Request'
+                          : 'Service Booking Form'}
+                    </DialogTitle>
                     {detail ? (
-                      <span className="rounded-none border border-blue-400/30 bg-blue-500/20 px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-blue-200 backdrop-blur-xs">
-                        {detail.category || 'Service'}
+                      <span
+                        className={`rounded-none px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all duration-300 ${
+                          bookingStep === 'confirm' && !bookSuccess
+                            ? 'border border-emerald-400/30 bg-emerald-500/20 text-emerald-300'
+                            : 'border border-blue-400/30 bg-blue-500/20 text-blue-200'
+                        }`}
+                      >
+                        {bookingStep === 'confirm' && !bookSuccess
+                          ? 'Final Review'
+                          : detail.category || 'Service'}
                       </span>
                     ) : null}
                   </div>
-                  {detail ? (
-                    <p className="mt-0.5 text-xs text-slate-300 font-medium truncate">
-                      Requesting <span className="font-bold text-white">{detail.serviceName}</span> at{' '}
-                      <span className="font-bold text-slate-200">{detail.shopName?.trim() || 'Shop'}</span>
-                    </p>
-                  ) : null}
+                  <p className="mt-0.5 text-xs text-slate-300 font-medium truncate">
+                    {bookSuccess ? (
+                      'Your repair request was submitted successfully.'
+                    ) : bookingStep === 'confirm' ? (
+                      'Review summary details before sending to provider.'
+                    ) : detail ? (
+                      <>
+                        Requesting <span className="font-bold text-white">{detail.serviceName}</span> at{' '}
+                        <span className="font-bold text-slate-200">{detail.shopName?.trim() || 'Shop'}</span>
+                      </>
+                    ) : null}
+                  </p>
                 </div>
               </div>
+
+              {!bookSuccess && (
+                <div className="hidden sm:flex items-center gap-1.5 rounded-none bg-white/10 px-2.5 py-1 border border-white/15 text-xs font-bold uppercase tracking-wider transition-all">
+                  <span
+                    className={`h-2 w-2 rounded-full transition-colors duration-300 ${
+                      bookingStep === 'form' ? 'bg-blue-400 animate-pulse' : 'bg-emerald-400'
+                    }`}
+                  />
+                  <span className="text-slate-200 text-[11px]">
+                    {bookingStep === 'form' ? 'Step 1 of 2' : 'Step 2 of 2'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-3.5 sm:gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-3.5 sm:p-6 bg-slate-50/50">
-            {detail && shouldShowProviderNote(detail.requirements) && !bookSuccess ? (
-              <div className="flex items-start gap-2.5 rounded-none border border-amber-300 bg-amber-50/90 p-3 text-xs sm:text-sm text-amber-950 font-medium shadow-2xs">
+          <div
+            ref={bookingModalScrollRef}
+            className="flex min-h-0 flex-1 flex-col gap-3.5 sm:gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-3.5 sm:p-6 bg-slate-50/50 scroll-smooth"
+          >
+            {/* Smooth Step Navigation Tabs */}
+            {!bookSuccess && (
+              <div className="flex items-center justify-between border border-slate-200 bg-white p-1 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={handleGoBackToForm}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    bookingStep === 'form'
+                      ? 'bg-gradient-to-r from-[#04133d] to-[#081F5C] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                  }`}
+                >
+                  <span
+                    className={`flex h-4.5 w-4.5 items-center justify-center text-[10px] font-bold transition-all ${
+                      bookingStep === 'form' ? 'bg-white/20 text-white' : 'bg-emerald-600 text-white'
+                    }`}
+                  >
+                    {bookingStep === 'confirm' ? '✓' : '1'}
+                  </span>
+                  <span className="truncate">1. Booking Details</span>
+                </button>
+
+                <div className="h-4 w-px bg-slate-200" />
+
+                <button
+                  type="button"
+                  disabled={bookingStep === 'form'}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                    bookingStep === 'confirm'
+                      ? 'bg-gradient-to-r from-[#04133d] to-[#081F5C] text-white shadow-xs'
+                      : 'text-slate-400 cursor-not-allowed opacity-60'
+                  }`}
+                >
+                  <span
+                    className={`flex h-4.5 w-4.5 items-center justify-center text-[10px] font-bold transition-all ${
+                      bookingStep === 'confirm' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}
+                  >
+                    2
+                  </span>
+                  <span className="truncate">2. Review &amp; Confirm</span>
+                </button>
+              </div>
+            )}
+
+            {detail && shouldShowProviderNote(detail.requirements) && !bookSuccess && bookingStep === 'form' ? (
+              <div className="flex items-start gap-2.5 rounded-none border border-amber-300 bg-amber-50/90 p-3 text-xs sm:text-sm text-amber-950 font-medium shadow-2xs animate-in fade-in-50 duration-200">
                 <Info className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
                 <div className="min-w-0 flex-1 leading-relaxed">
                   <strong className="font-bold uppercase tracking-wider text-amber-900 block text-xs">Provider Requirement Note:</strong>
@@ -1893,7 +2057,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                   </div>
                 </div>
 
-                <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 border-t border-slate-200 pt-3">
+                <DialogFooter className="m-0 mx-0 mb-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 border-t border-slate-200 bg-white px-4 sm:px-6 py-3.5 sm:py-4 pb-4">
                   <Button
                     type="button"
                     variant="outline"
@@ -1919,8 +2083,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                   </Button>
                 </DialogFooter>
               </div>
-            ) : (
-              <form onSubmit={handleBookingFormSubmit} className="space-y-4">
+            ) : bookingStep === 'form' ? (
+              <form onSubmit={handleBookingFormSubmit} className="space-y-4 animate-in fade-in-50 slide-in-from-left-2 duration-300">
                 {bookError ? (
                   <div className="flex items-center gap-2 rounded-none border border-rose-300 bg-rose-50 p-3 text-xs sm:text-sm font-bold text-rose-800 shadow-2xs" role="alert">
                     <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
@@ -1965,11 +2129,16 @@ export default function CustomerServiceDetails({ serviceId }) {
                         id="book-contact-phone"
                         name="contactPhone"
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={11}
                         autoComplete="tel"
                         required
                         value={bookForm.contactPhone}
-                        onChange={(ev) => setBookForm((f) => ({ ...f, contactPhone: ev.target.value }))}
-                        placeholder="e.g. 0917 123 4567"
+                        onChange={(ev) => {
+                          const val = ev.target.value.replace(/\D/g, '').slice(0, 11)
+                          setBookForm((f) => ({ ...f, contactPhone: val }))
+                        }}
+                        placeholder="09XXXXXXXXX"
                         className={dialogInputClass}
                       />
                     </div>
@@ -2303,8 +2472,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                   </div>
                 </div>
 
-                {/* Dialog Footer Actions */}
-                <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t border-slate-200 pt-3 bg-white p-3">
+                {/* Dialog Footer Actions for Form Step */}
+                <DialogFooter className="m-0 mx-0 mb-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t border-slate-200 bg-white px-4 sm:px-6 py-3.5 sm:py-4 pb-4">
                   <span className="text-xs font-semibold text-slate-400 hidden sm:inline-block">
                     Verify all info before proceeding to confirmation.
                   </span>
@@ -2323,165 +2492,445 @@ export default function CustomerServiceDetails({ serviceId }) {
                       disabled={bookSubmitting}
                       className="w-full sm:w-auto justify-center shrink-0 gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30 h-11 sm:h-9 cursor-pointer"
                     >
+                      <span>Review &amp; Confirm</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </DialogFooter>
+              </form>
+            ) : (
+              /* Step 2: Confirm Booking Request Review */
+              <div className="space-y-4 animate-in fade-in-50 slide-in-from-right-2 duration-300">
+                {/* Explanatory Notice */}
+                <div className="flex items-start gap-2.5 rounded-none border border-blue-200 bg-blue-50/90 p-3 sm:p-3.5 text-xs sm:text-sm text-slate-700 font-medium shadow-2xs">
+                  <Info className="h-4 w-4 sm:h-4.5 sm:w-4.5 shrink-0 text-[#081F5C] mt-0.5" />
+                  <p className="text-xs sm:text-sm leading-relaxed font-medium text-slate-700 m-0">
+                    Your booking request will be dispatched to <strong className="text-slate-900 font-bold">{detail?.shopName?.trim() || 'the service provider'}</strong> for review and scheduling confirmation.
+                  </p>
+                </div>
+
+                {detail ? (
+                  <div
+                    className="rounded-none border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4 text-slate-900"
+                    role="region"
+                    aria-label="Request summary"
+                  >
+                    {/* Service & Provider Header */}
+                    <div className="space-y-1.5 border-b border-slate-100 pb-3">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Requested Service</span>
+                      <h4 className="font-black text-slate-900 text-sm sm:text-base uppercase tracking-tight leading-snug break-words">
+                        {detail.serviceName}
+                      </h4>
+                      <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 pt-0.5">
+                        <Store className="h-3.5 w-3.5 text-[#081F5C] shrink-0" />
+                        <span>Shop: <strong className="text-slate-900">{detail.shopName?.trim() || '—'}</strong></span>
+                      </p>
+                    </div>
+
+                    {/* Grid of Contact & Schedule Info */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5 text-xs sm:text-sm">
+                      {/* Contact Info Card */}
+                      <div className="rounded-none border border-slate-100 bg-slate-50/80 p-3 sm:p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block flex items-center gap-1">
+                          <User className="h-3 w-3 text-[#081F5C]" /> Contact Person
+                        </span>
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                          {bookForm.contactName.trim() || '—'}
+                        </p>
+                        <p className="text-xs font-semibold text-slate-600 flex items-center gap-1 truncate">
+                          <Phone className="h-3 w-3 text-slate-400" />
+                          {bookForm.contactPhone.trim() || '—'}
+                        </p>
+                      </div>
+
+                      {/* Schedule Info Card */}
+                      <div className="rounded-none border border-slate-100 bg-slate-50/80 p-3 sm:p-3.5 space-y-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-[#081F5C]" /> Preferred Schedule
+                        </span>
+                        <p className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+                          {formatDateForConfirm(bookForm.preferredDate)}
+                        </p>
+                        <p className="text-xs font-extrabold text-[#081F5C] flex items-center gap-1 truncate">
+                          <Clock className="h-3 w-3 text-[#081F5C]" />
+                          {bookForm.preferredTime || '—'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Service Option Banner */}
+                    <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                      <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">
+                        Fulfillment Mode
+                      </span>
+                      <span className={`inline-flex items-center gap-1.5 font-extrabold px-3 py-1 text-xs uppercase tracking-wider border ${
+                        bookForm.serviceMode === 'home'
+                          ? 'bg-blue-50 text-[#081F5C] border-blue-300'
+                          : 'bg-slate-100 text-slate-800 border-slate-200'
+                      }`}>
+                        {bookForm.serviceMode === 'home' ? (
+                          <>
+                            <Home className="h-3.5 w-3.5 text-[#081F5C]" />
+                            <span>Home Service</span>
+                          </>
+                        ) : (
+                          <>
+                            <Store className="h-3.5 w-3.5 text-slate-700" />
+                            <span>In-Shop Visit</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Home Service Address & GPS Pin */}
+                    {bookForm.serviceMode === 'home' ? (
+                      <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-[#081F5C]" /> Service Address
+                        </span>
+                        <p className="break-words font-semibold text-slate-800 text-xs sm:text-sm leading-relaxed bg-slate-50 p-2.5 sm:p-3 border border-slate-200">
+                          {bookForm.serviceAddress.trim() || '—'}
+                        </p>
+                        {typeof bookForm.serviceLatitude === 'number' && (
+                          <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 border border-emerald-200">
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                            <span>GPS Coordinates: {bookForm.serviceLatitude.toFixed(6)}, {bookForm.serviceLongitude?.toFixed(6)}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+
+                    {/* Problem Description & Attached Photos */}
+                    {bookForm.problemDescription ? (
+                      <div className="space-y-1.5 border-t border-slate-100 pt-3">
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block flex items-center gap-1">
+                          <FileText className="h-3 w-3 text-[#081F5C]" /> Issue Description
+                        </span>
+                        <p className="break-words font-medium text-slate-700 text-xs sm:text-sm leading-relaxed bg-slate-50 p-2.5 sm:p-3 border border-slate-200 whitespace-pre-wrap">
+                          {truncateForSummary(bookForm.problemDescription, 320)}
+                        </p>
+                        {issuePhotos.length > 0 ? (
+                          <div className="pt-1.5 space-y-1.5">
+                            <span className="text-[10px] sm:text-xs font-bold text-slate-600 flex items-center gap-1">
+                              <ImageIcon className="h-3.5 w-3.5 text-[#081F5C]" />
+                              {issuePhotos.length} photo{issuePhotos.length === 1 ? '' : 's'} attached
+                            </span>
+                            <div className="flex flex-wrap gap-2.5">
+                              {issuePhotoPreviews.map((photo) => (
+                                <div key={photo.id} className="h-14 w-14 sm:h-16 sm:w-16 border border-slate-300 bg-white overflow-hidden shrink-0 shadow-2xs">
+                                  <img src={photo.url} alt={photo.name} className="h-full w-full object-cover" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {/* Additional Notes */}
+                    {bookForm.notes?.trim() ? (
+                      <div className="space-y-1 border-t border-slate-100 pt-3">
+                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                          Additional Notes
+                        </span>
+                        <p className="break-words font-medium text-slate-600 text-xs leading-relaxed bg-slate-50 p-2 border border-slate-200">
+                          {truncateForSummary(bookForm.notes, 160)}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {/* Terms and Agreement Checkbox Section */}
+                <div className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs space-y-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex items-start gap-3 cursor-pointer select-none group flex-1">
+                      <input
+                        type="checkbox"
+                        id="booking-terms-checkbox"
+                        checked={termsAccepted}
+                        onChange={(e) => {
+                          setTermsAccepted(e.target.checked)
+                          if (e.target.checked) setBookError('')
+                        }}
+                        className="mt-0.5 h-4.5 w-4.5 rounded-none border-slate-300 text-[#081F5C] focus:ring-[#081F5C] accent-[#081F5C] cursor-pointer shrink-0 transition-all"
+                      />
+                      <div className="min-w-0 flex-1 text-xs sm:text-xs text-slate-700 leading-relaxed font-medium">
+                        <span className="font-bold text-slate-900 block">Terms &amp; Service Agreement</span>
+                        <span>
+                          I have reviewed the booking details and agree to the platform&apos;s Terms of Service, cancellation policies, and accurate information disclosure guidelines.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTermsDialogOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#081F5C] hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>View Terms &amp; Policies</span>
+                    </button>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      {termsAccepted ? (
+                        <span className="text-emerald-700 flex items-center gap-1">
+                          <Check className="h-3 w-3" /> Agreed
+                        </span>
+                      ) : (
+                        <span className="text-amber-700">Required</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dialog Footer Actions for Confirm Step */}
+                <DialogFooter className="m-0 mx-0 mb-0 shrink-0 border-t border-slate-200 bg-white px-4 sm:px-5 py-3.5 sm:py-4 pb-4 sm:pb-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-[0_-2px_10px_rgba(0,0,0,0.04)]">
+                  <span className="text-xs text-slate-400 font-semibold hidden sm:inline-block">
+                    {termsAccepted ? 'Terms accepted. Ready to confirm.' : 'Please check the terms to confirm.'}
+                  </span>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={bookSubmitting}
+                      onClick={handleGoBackToForm}
+                      className="m-0 w-full sm:w-auto justify-center border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 rounded-none h-11 sm:h-9.5 cursor-pointer transition-colors shadow-2xs gap-1.5"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      <span>Go Back &amp; Edit</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={bookSubmitting || !termsAccepted}
+                      className="h-11 sm:h-9.5 w-full sm:w-auto justify-center gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] disabled:opacity-50 disabled:cursor-not-allowed px-5 sm:px-6 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30 cursor-pointer"
+                      onClick={() => {
+                        void performBookingSubmit()
+                      }}
+                    >
                       {bookSubmitting ? (
                         <>
                           <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                          <span>Submitting…</span>
+                          <span>Submitting Request…</span>
                         </>
                       ) : (
                         <>
-                          <span>Submit Booking Request</span>
-                          <ArrowRight className="h-4 w-4" />
+                          <Check className="h-4 w-4" />
+                          <span>Confirm &amp; Submit Request</span>
                         </>
                       )}
                     </Button>
                   </div>
                 </DialogFooter>
-              </form>
+              </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Alert Dialog */}
-      <AlertDialog
-        open={bookingConfirmOpen}
-        onOpenChange={(open) => {
-          if (!open && bookSubmitting) return
-          setBookingConfirmOpen(open)
-        }}
-      >
-        <AlertDialogContent size="full" className="flex max-h-[min(92dvh,40rem)] w-[calc(100%-1rem)] sm:w-[460px] max-w-md flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)]">
-          {/* Header Banner */}
-          <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-4 sm:px-5 py-3 sm:py-3.5 text-white shadow-md">
-            <div className="relative z-10 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                <div className="flex h-8 w-8 sm:h-8.5 sm:w-8.5 shrink-0 items-center justify-center rounded-none bg-emerald-600 text-white shadow-2xs">
-                  <ShieldCheck className="h-4.5 w-4.5" />
+      {/* Terms and Agreement / Policies Dialog Modal */}
+      <Dialog open={termsDialogOpen} onOpenChange={setTermsDialogOpen}>
+        <DialogContent
+          className="p-0 border border-slate-200 rounded-none max-w-lg sm:max-w-xl w-[94vw] bg-white shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+          aria-describedby="terms-policies-description"
+        >
+          {/* Header */}
+          <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-slate-200 bg-slate-50/90 shrink-0 text-left">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center bg-[#081F5C] text-white shrink-0">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <DialogTitle className="text-sm sm:text-base font-black uppercase tracking-tight text-slate-900">
+                  Terms &amp; Booking Policies
+                </DialogTitle>
+                <DialogDescription id="terms-policies-description" className="text-xs text-slate-500 font-medium mt-0.5">
+                  Review the service platform guidelines and booking policies.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* Scrollable Policy Content */}
+          <div className="p-4 sm:p-6 overflow-y-auto space-y-3.5 text-xs sm:text-sm text-slate-700 leading-relaxed max-h-[58vh]">
+            {/* Policy 1 */}
+            <div className="rounded-none border border-slate-200 bg-slate-50/50 p-3.5 space-y-1">
+              <h5 className="font-bold text-slate-900 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wide">
+                <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-white text-[10px] font-black shrink-0">1</span>
+                Accurate Information &amp; Scope of Work
+              </h5>
+              <p className="text-xs text-slate-600 leading-normal pl-7">
+                Customers are responsible for providing authentic contact details, service location, and truthful descriptions or photos of the problem. Material discrepancies may require schedule adjustments or service recalculation.
+              </p>
+            </div>
+
+            {/* Policy 2 */}
+            <div className="rounded-none border border-slate-200 bg-slate-50/50 p-3.5 space-y-1">
+              <h5 className="font-bold text-slate-900 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wide">
+                <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-white text-[10px] font-black shrink-0">2</span>
+                Service Estimates &amp; Final Assessment
+              </h5>
+              <p className="text-xs text-slate-600 leading-normal pl-7">
+                Quoted rates and estimated fees on the platform serve as initial estimates. The final cost may depend on physical inspection, necessary replacement parts, and additional labor explicitly approved by the customer.
+              </p>
+            </div>
+
+            {/* Policy 3 */}
+            <div className="rounded-none border border-slate-200 bg-slate-50/50 p-3.5 space-y-1">
+              <h5 className="font-bold text-slate-900 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wide">
+                <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-white text-[10px] font-black shrink-0">3</span>
+                Cancellation &amp; Rescheduling Policy
+              </h5>
+              <p className="text-xs text-slate-600 leading-normal pl-7">
+                Customers may cancel or request rescheduling via their account dashboard before technician dispatch. Service providers also retain the right to reschedule in the event of severe weather or emergency technician availability.
+              </p>
+            </div>
+
+            {/* Policy 4 */}
+            <div className="rounded-none border border-slate-200 bg-slate-50/50 p-3.5 space-y-1">
+              <h5 className="font-bold text-slate-900 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wide">
+                <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-white text-[10px] font-black shrink-0">4</span>
+                Home Service &amp; Safety Compliance
+              </h5>
+              <p className="text-xs text-slate-600 leading-normal pl-7">
+                For home visits, the customer must ensure a safe, accessible working space. An adult authorized representative must be present on-site during the repair or inspection period.
+              </p>
+            </div>
+
+            {/* Policy 5: Dynamic Warranty & Service Guarantee */}
+            <div className="rounded-none border border-slate-200 bg-slate-50/50 p-3.5 sm:p-4 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <h5 className="font-bold text-slate-900 flex items-center gap-2 text-xs sm:text-sm uppercase tracking-wide">
+                  <span className="flex h-5 w-5 items-center justify-center bg-[#081F5C] text-white text-[10px] font-black shrink-0">5</span>
+                  Warranty &amp; Service Guarantee ({detail?.shopName?.trim() || 'Service Provider'})
+                </h5>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-[#081F5C] px-2 py-0.5 border border-blue-200">
+                  <ShieldCheck className="h-3 w-3 text-[#081F5C]" /> Provider Policy
+                </span>
+              </div>
+
+              {/* Warranty Durations Badges */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-7">
+                <div className="p-2.5 bg-white border border-slate-200 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Labor &amp; Workmanship</span>
+                    <span className="text-xs sm:text-sm font-black text-slate-900">
+                      {detail?.warrantySettings?.laborWarrantyEnabled !== false
+                        ? `${detail?.warrantySettings?.laborWarrantyDays || 30} Days Guarantee`
+                        : 'No Labor Warranty'}
+                    </span>
+                  </div>
+                  <Wrench className="h-4 w-4 text-[#081F5C] shrink-0" />
                 </div>
-                <div className="min-w-0">
-                  <AlertDialogTitle className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-white truncate">
-                    Confirm Booking Request
-                  </AlertDialogTitle>
-                  <p className="text-[10px] sm:text-xs text-slate-300 font-medium truncate">Review summary details before sending to provider.</p>
+
+                <div className="p-2.5 bg-white border border-slate-200 flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Replaced Parts</span>
+                    <span className="text-xs sm:text-sm font-black text-slate-900">
+                      {detail?.warrantySettings?.partsWarrantyEnabled !== false
+                        ? `${detail?.warrantySettings?.partsWarrantyDays || 30} Days Guarantee`
+                        : 'No Parts Warranty'}
+                    </span>
+                  </div>
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                 </div>
               </div>
-              {detail ? (
-                <span className="hidden sm:inline-flex rounded-none border border-emerald-400/30 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-300">
-                  Final Review
-                </span>
-              ) : null}
+
+              {/* Terms Description / Notes */}
+              <p className="text-xs text-slate-600 leading-normal pl-7">
+                {detail?.warrantySettings?.warrantyPolicyTerms?.trim() ||
+                  "Warranty on labor and replaced components is provided according to the repair provider's standard terms. Customers are advised to test the repaired equipment thoroughly before final acceptance."}
+              </p>
+
+              {/* Covered Items Section */}
+              {(() => {
+                const covered = Array.isArray(detail?.warrantySettings?.coveredItems)
+                  ? detail.warrantySettings.coveredItems.filter((i) => i && (i.enabled !== false && i.active !== false))
+                  : [
+                      { id: 'c1', text: 'Workmanship & repair assembly errors' },
+                      { id: 'c2', text: 'Manufacturer-defective replacement components' },
+                      { id: 'c3', text: 'Recurring symptoms from serviced repair scope' },
+                      { id: 'c4', text: 'Diagnostic realignment & tuning adjustments' },
+                    ]
+                if (!covered.length) return null
+                return (
+                  <div className="pl-7 space-y-1.5 pt-1 border-t border-slate-200/80">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Covered Under Warranty:
+                    </span>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-slate-700">
+                      {covered.map((item, idx) => (
+                        <li key={item.id || idx} className="flex items-start gap-1.5 bg-white p-1.5 border border-slate-200">
+                          <Check className="h-3 w-3 text-emerald-600 shrink-0 mt-0.5" />
+                          <span className="leading-tight font-medium">{item.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })()}
+
+              {/* Void Conditions Section */}
+              {(() => {
+                const voidConds = Array.isArray(detail?.warrantySettings?.voidConditions)
+                  ? detail.warrantySettings.voidConditions.filter((i) => i && (i.enabled !== false && i.active !== false))
+                  : [
+                      { id: 'v1', text: 'Accidental drops, physical impact, or external collision' },
+                      { id: 'v2', text: 'Liquid intrusion, chemical spill, or corrosion' },
+                      { id: 'v3', text: 'Broken warranty seals or unauthorized tampering' },
+                      { id: 'v4', text: 'Third-party disassembly or unauthorized modifications' },
+                    ]
+                if (!voidConds.length) return null
+                return (
+                  <div className="pl-7 space-y-1.5 pt-1 border-t border-slate-200/80">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3 text-rose-600" /> Warranty Voiding Conditions:
+                    </span>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-slate-700">
+                      {voidConds.map((item, idx) => (
+                        <li key={item.id || idx} className="flex items-start gap-1.5 bg-white p-1.5 border border-slate-200">
+                          <X className="h-3 w-3 text-rose-500 shrink-0 mt-0.5" />
+                          <span className="leading-tight font-medium">{item.text}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              })()}
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col gap-3.5 sm:gap-4 overflow-x-hidden overflow-y-auto p-3.5 sm:p-5 bg-slate-50/50">
-            <AlertDialogDescription className="text-xs sm:text-sm leading-relaxed font-medium text-slate-600">
-              By confirming, your request will be sent directly to{' '}
-              <strong className="text-slate-900 break-words">{detail?.shopName?.trim() || 'the service provider'}</strong> for scheduling and review.
-            </AlertDialogDescription>
-
-            {detail ? (
-              <div
-                className="rounded-none border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs space-y-3.5 text-slate-900"
-                role="region"
-                aria-label="Request summary"
+          {/* Footer */}
+          <DialogFooter className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50/90 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+            <span className="text-[11px] text-slate-500 font-medium hidden sm:inline-block">
+              E-Paayos Customer Booking Guidelines
+            </span>
+            <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setTermsDialogOpen(false)}
+                className="w-full sm:w-auto rounded-none border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold uppercase tracking-wider h-9 cursor-pointer"
               >
-                <div className="grid grid-cols-1 gap-3 text-xs sm:text-sm">
-                  <div>
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Service</span>
-                    <span className="font-extrabold text-slate-900 leading-tight text-sm sm:text-base block break-words">{detail.serviceName}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Provider Shop</span>
-                    <span className="font-bold text-slate-800 text-xs sm:text-sm truncate block">{detail.shopName?.trim() || '—'}</span>
-                  </div>
-                  <div className="border-t border-slate-100 pt-2.5 grid grid-cols-2 gap-2.5">
-                    <div className="min-w-0">
-                      <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Contact Person</span>
-                      <span className="font-bold text-slate-800 text-xs sm:text-sm block truncate">{bookForm.contactName.trim() || '—'}</span>
-                      <span className="text-xs font-medium text-slate-500 block truncate">{bookForm.contactPhone.trim() || '—'}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Preferred Schedule</span>
-                      <span className="font-bold text-slate-900 text-xs sm:text-sm block truncate">{formatDateForConfirm(bookForm.preferredDate)}</span>
-                      <span className="text-xs sm:text-sm font-bold text-[#081F5C] block truncate">{bookForm.preferredTime || '—'}</span>
-                    </div>
-                  </div>
-                  <div className="border-t border-slate-100 pt-2.5 flex items-center justify-between gap-2">
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block shrink-0">Service Option</span>
-                    <span className="inline-flex items-center gap-1 font-bold text-slate-900 bg-slate-100 px-2.5 py-1 border border-slate-200 text-xs shrink-0">
-                      {bookForm.serviceMode === 'home' ? 'Home Service' : 'In-Shop Visit'}
-                    </span>
-                  </div>
-                </div>
+                Close
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setTermsAccepted(true)
+                  setBookError('')
+                  setTermsDialogOpen(false)
+                }}
+                className="w-full sm:w-auto rounded-none bg-[#081F5C] hover:bg-[#04133d] text-white text-xs font-bold uppercase tracking-wider h-9 gap-1.5 shadow-sm cursor-pointer"
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span>I Understand &amp; Agree</span>
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-                {/* Additional info rows */}
-                {(bookForm.serviceMode === 'home' || bookForm.problemDescription || issuePhotos.length > 0) ? (
-                  <div className="space-y-2.5 border-t border-slate-100 pt-3 text-xs sm:text-sm">
-                    {bookForm.serviceMode === 'home' ? (
-                      <div>
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Service Address</span>
-                        <span className="break-words font-semibold text-slate-800 text-xs sm:text-sm block leading-relaxed">
-                          {truncateForSummary(bookForm.serviceAddress, 180)}
-                        </span>
-                        {typeof bookForm.serviceLatitude === 'number' && (
-                          <span className="text-xs font-mono text-emerald-700 font-bold block mt-1 break-all">
-                            ✓ GPS: {bookForm.serviceLatitude.toFixed(5)}, {bookForm.serviceLongitude?.toFixed(5)}
-                          </span>
-                        )}
-                      </div>
-                    ) : null}
-
-                    {bookForm.problemDescription ? (
-                      <div>
-                        <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 block">Issue Description</span>
-                        <span className="break-words font-medium text-slate-700 text-xs sm:text-sm block leading-relaxed">
-                          {truncateForSummary(bookForm.problemDescription, 220)}
-                        </span>
-                        {issuePhotos.length > 0 ? (
-                          <span className="text-xs font-bold text-slate-800 block mt-1.5">
-                            📸 {issuePhotos.length} photo{issuePhotos.length === 1 ? '' : 's'} attached
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <AlertDialogFooter className="shrink-0 border-t border-slate-200 bg-white p-3 sm:p-3.5 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
-            <AlertDialogCancel
-              type="button"
-              disabled={bookSubmitting}
-              className="mt-0 w-full sm:w-auto justify-center border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 rounded-none h-10 sm:h-9 cursor-pointer"
-            >
-              Go Back &amp; Edit
-            </AlertDialogCancel>
-            <Button
-              type="button"
-              disabled={bookSubmitting}
-              className="h-11 sm:h-9 w-full sm:w-auto justify-center gap-2 rounded-none bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] hover:from-[#081F5C] hover:to-[#1d5ec4] px-5 text-xs font-bold uppercase tracking-wider text-white shadow-md transition-all border border-blue-400/30 cursor-pointer"
-              onClick={() => {
-                void performBookingSubmit()
-              }}
-            >
-              {bookSubmitting ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  <span>Submitting…</span>
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4" />
-                  <span>Confirm &amp; Submit Request</span>
-                </>
-              )}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </CustomerLayout>
   )
 }

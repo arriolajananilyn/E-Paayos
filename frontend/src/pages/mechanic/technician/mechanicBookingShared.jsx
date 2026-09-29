@@ -108,22 +108,31 @@ export function mapBookingFromApi(row) {
         .filter((x) => x.name)
       : [],
     serviceFeeConfirmedAt: row.serviceFeeConfirmedAt || null,
+    paymentStatus: row.paymentStatus || 'unpaid',
+    paymentMethod: row.paymentMethod || '',
+    paymentProofImage: row.paymentProofImage || '',
+    paidAt: row.paidAt || null,
+    fixedAt: row.fixedAt || null,
+    completedAt: row.completedAt || null,
+    warrantyClaim: row.warrantyClaim || null,
+    warrantySettings: row.warrantySettings || null,
+    startJobProofPhotos: Array.isArray(row.startJobProofPhotos) ? row.startJobProofPhotos.filter(Boolean) : [],
+    completionProofPhotos: Array.isArray(row.completionProofPhotos) ? row.completionProofPhotos.filter(Boolean) : [],
+    completionNotes: row.completionNotes || '',
+    assignedTechnician: row.assignedTechnician || null,
+    assignedTechnicianName: row.assignedTechnicianName || '',
+    assignedTechnicianJobTitle: row.assignedTechnicianJobTitle || '',
+    assignedTechnicianPhone: row.assignedTechnicianPhone || '',
   }
 }
 
-/** Green action while status is Working (tap to finish — not past tense). */
-export function workingFinishButtonLabel(category) {
-  const c = String(category ?? '').toLowerCase()
-  if (c === 'vehicle') return 'Fixed'
-  if (c === 'gadget' || c === 'appliance') return 'Repaired'
-  return 'Complete'
+/** Green action while status is Working (tap to finish). */
+export function workingFinishButtonLabel() {
+  return 'Mark as Fixed'
 }
 
 /** Recorded outcome after the job is done (history / completed row). */
-export function completionOutcomeLabel(category) {
-  const c = String(category ?? '').toLowerCase()
-  if (c === 'vehicle') return 'Fixed'
-  if (c === 'gadget' || c === 'appliance') return 'Repaired'
+export function completionOutcomeLabel() {
   return 'Completed'
 }
 
@@ -185,37 +194,101 @@ export function categoryBadge(category) {
   )
 }
 
-export function bookingStatusBadge(status) {
-  const s = String(status ?? '')
+export function bookingStatusBadge(status, booking = null) {
+  if (booking?.warrantyClaim && booking.warrantyClaim.status === 'pending') {
+    if (booking.warrantyClaim.claimType === 'labor_rework' || !booking.warrantyClaim.claimType) {
+      return (
+        <Badge className="border border-purple-500/35 bg-purple-500/12 px-2 py-0.5 text-xs font-medium text-purple-900 dark:border-purple-400/40 dark:bg-purple-950/40 dark:text-purple-200">
+          Refix / Re-repair Request
+        </Badge>
+      )
+    }
+    return (
+      <Badge className="border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200">
+        Warranty Claim Pending
+      </Badge>
+    )
+  }
+  if (booking?.warrantyClaim && booking.warrantyClaim.status === 'approved') {
+    return (
+      <Badge className="border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-900 dark:border-indigo-400/40 dark:bg-indigo-950/40 dark:text-indigo-200">
+        {booking.warrantyClaim.claimType === 'labor_rework' ? 'Refix Approved' : 'Refund Approved'}
+      </Badge>
+    )
+  }
+  if (booking?.warrantyClaim && (booking.warrantyClaim.status === 'working' || booking.warrantyClaim.status === 'in_progress')) {
+    return (
+      <Badge className="border border-purple-500/35 bg-purple-500/12 px-2 py-0.5 text-xs font-medium text-purple-900 dark:border-purple-400/40 dark:bg-purple-950/40 dark:text-purple-200">
+        Re-repairing
+      </Badge>
+    )
+  }
+  if (booking?.warrantyClaim && booking.warrantyClaim.status === 'fixed') {
+    return (
+      <Badge className="border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+        Refix Fixed
+      </Badge>
+    )
+  }
+  if (booking?.warrantyClaim && (booking.warrantyClaim.status === 'resolved' || booking.warrantyClaim.status === 'completed')) {
+    return (
+      <Badge className="border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-xs font-medium text-teal-800 dark:border-teal-500/40 dark:bg-teal-500/15 dark:text-teal-200">
+        Refix Completed
+      </Badge>
+    )
+  }
+  if (booking?.warrantyClaim && booking.warrantyClaim.status === 'rejected') {
+    return (
+      <Badge className="border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-xs font-medium text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-200">
+        Refix Declined
+      </Badge>
+    )
+  }
+
+  const s = String(status ?? '').toLowerCase()
   if (s === 'pending') {
     return (
       <Badge className="border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200">
-        Pending
+        Booking Submitted
       </Badge>
     )
   }
   if (s === 'confirmed') {
     return (
-      <Badge className="border border-[#081F5C]/25 bg-[#081F5C]/8 px-2 py-0.5 text-xs font-medium text-[#04133d] dark:border-[#1447a6]/40 dark:bg-[#04133d]/35 dark:text-blue-100">
-        Confirmed
+      <Badge className="border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-900 dark:border-sky-400/40 dark:bg-sky-950/40 dark:text-sky-200">
+        Booking Confirmed
       </Badge>
     )
   }
   if (s === 'working') {
+    if (booking?.serviceFeeConfirmedAt) {
+      return (
+        <Badge className="border border-indigo-500/35 bg-indigo-500/12 px-2 py-0.5 text-xs font-medium text-indigo-900 dark:border-indigo-400/40 dark:bg-indigo-950/40 dark:text-indigo-200">
+          Calculating Service Fee
+        </Badge>
+      )
+    }
     return (
       <Badge className="border border-violet-500/35 bg-violet-500/12 px-2 py-0.5 text-xs font-medium text-violet-900 dark:border-violet-400/40 dark:bg-violet-950/40 dark:text-violet-200">
         Working
       </Badge>
     )
   }
-  if (s === 'completed') {
+  if (s === 'fixed') {
     return (
       <Badge className="border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-200">
+        Fixed
+      </Badge>
+    )
+  }
+  if (s === 'completed') {
+    return (
+      <Badge className="border border-teal-500/30 bg-teal-500/10 px-2 py-0.5 text-xs font-medium text-teal-800 dark:border-teal-500/40 dark:bg-teal-500/15 dark:text-teal-200">
         Completed
       </Badge>
     )
   }
-  if (s === 'cancelled') {
+  if (s === 'cancelled' || s === 'canceled') {
     return (
       <Badge className="border border-slate-500/25 bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
         Cancelled

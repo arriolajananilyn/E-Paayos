@@ -16,6 +16,7 @@ import {
   patchShopOwnerBookingReviewResponse,
   patchShopOwnerBookingServiceFee,
   patchShopOwnerBookingStatus,
+  patchShopOwnerWarrantyClaim,
 } from "../controllers/bookingController.js"
 
 const router = express.Router()
@@ -29,6 +30,7 @@ router.get("/bookings", listShopOwnerBookings)
 router.get("/reviews-ratings", listShopOwnerReviewsRatings)
 router.patch("/bookings/:id/review-response", patchShopOwnerBookingReviewResponse)
 router.patch("/bookings/:id/service-fee", patchShopOwnerBookingServiceFee)
+router.patch("/bookings/:id/warranty-claim", patchShopOwnerWarrantyClaim)
 router.patch("/bookings/:id", patchShopOwnerBookingStatus)
 router.get("/services", getShopServices)
 router.post("/services", createShopService)
