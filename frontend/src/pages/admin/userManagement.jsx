@@ -1328,7 +1328,12 @@ export default function AdminUserManagement() {
                 </div>
               </div>
             ) : (
-              <AdminRegistrationDetailView profile={detailProfile} apiBaseUrl={API_URL} />
+              <AdminRegistrationDetailView
+                profile={detailProfile}
+                apiBaseUrl={API_URL}
+                onApprove={() => openApproveFlow(detailUser)}
+                onReject={() => openRejectFlow(detailUser)}
+              />
             )}
           </div>
 
