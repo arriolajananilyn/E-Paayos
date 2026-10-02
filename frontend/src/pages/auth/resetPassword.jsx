@@ -3,7 +3,6 @@ import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
-import { Checkbox } from '../../components/ui/checkbox'
 import {
   ArrowLeft,
   Mail,
@@ -14,20 +13,18 @@ import {
   CheckCircle2,
   KeyRound,
   Loader2,
-  X,
   UserPlus,
 } from 'lucide-react'
 import { getApiBaseUrl } from '../../lib/apiBaseUrl'
 import loginBackground from '../../assets/loginbackground.jpg'
 
-// Match landing page palette
+// Match landing page & auth palette
 const navy = '#081F5C'
 const navyMuted = '#0b2b73'
 const navyBright = '#1447a6'
 const navyGlow = '#2a63cc'
 
 const bvPeriwinkle = '#e0e7ff'
-const bvSoft = '#c7d2fe'
 const bvViolet = '#a5b4fc'
 
 const borderNavySoft = 'rgba(8, 31, 92, 0.12)'
@@ -35,16 +32,7 @@ const textBodyOnLight = 'rgba(8, 31, 92, 0.72)'
 
 const gradientNavyButton = `linear-gradient(135deg, ${navy} 0%, ${navyMuted} 42%, ${navyBright} 78%, ${navyGlow} 100%)`
 
-function Login() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
-  const [formData, setFormData] = useState({ email: '', password: '' })
-  const [errors, setErrors] = useState({})
-  const [isLoading, setIsLoading] = useState(false)
-  const [rejectionNotice, setRejectionNotice] = useState(null)
-
-  // Floating Reset Password Modal State (3-step OTP flow)
-  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false)
+function ResetPassword() {
   const [forgotStep, setForgotStep] = useState('request') // "request" | "verify_and_reset" | "success"
   const [resetEmail, setResetEmail] = useState('')
   const [otp, setOtp] = useState('')
@@ -58,6 +46,24 @@ function Login() {
   const [unregisteredError, setUnregisteredError] = useState(null)
   const [resetError, setResetError] = useState(null)
 
+  useEffect(() => {
+    // Extract token or email from URL if present
+    const hash = window.location.hash || ''
+    let extractedEmail = ''
+    if (hash.includes('?')) {
+      const queryString = hash.split('?')[1]
+      const urlParams = new URLSearchParams(queryString)
+      extractedEmail = urlParams.get('email') || ''
+    }
+    if (!extractedEmail) {
+      const searchParams = new URLSearchParams(window.location.search)
+      extractedEmail = searchParams.get('email') || ''
+    }
+    if (extractedEmail) {
+      setResetEmail(extractedEmail)
+    }
+  }, [])
+
   // Resend Countdown Timer for OTP
   useEffect(() => {
     let timer
@@ -68,132 +74,6 @@ function Login() {
     }
     return () => clearInterval(timer)
   }, [resendCountdown])
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }))
-    if (rejectionNotice) setRejectionNotice(null)
-  }
-
-  const validateForm = () => {
-    const newErrors = {}
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address'
-    }
-    if (!formData.password.trim()) {
-      newErrors.password = 'Password is required'
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters'
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!validateForm()) return
-    setRejectionNotice(null)
-    setIsLoading(true)
-    try {
-      const loginUrl = `${getApiBaseUrl()}/api/users/login`
-      const res = await fetch(loginUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, password: formData.password }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        if (res.status === 403 && err?.code === 'ACCOUNT_REJECTED') {
-          setErrors({})
-          setRejectionNotice({
-            title: 'Registration Not Approved',
-            message:
-              typeof err?.message === 'string' && err.message.trim()
-                ? err.message.trim()
-                : 'Your registration was not approved.',
-            reason:
-              typeof err?.reason === 'string' && err.reason.trim()
-                ? err.reason.trim()
-                : 'No specific reason was provided by the administrator.',
-            action:
-              typeof err?.action === 'string' && err.action.trim()
-                ? err.action.trim()
-                : 'Please submit a new registration using accurate details that match your registration information and valid ID.',
-          })
-          return
-        }
-        const msg =
-          typeof err?.message === 'string' && err.message.trim()
-            ? err.message
-            : res.status === 403
-              ? 'Access denied.'
-              : 'Invalid email or password'
-        throw new Error(msg)
-      }
-      const data = await res.json()
-      localStorage.setItem('token', data.token)
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          id: data._id != null ? String(data._id) : undefined,
-          email: data.email,
-          role: data.role,
-          fullName: data.fullName,
-        }),
-      )
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true')
-      } else {
-        localStorage.removeItem('rememberMe')
-      }
-      if (data.role === 'customer') {
-        window.location.hash = '#/customer/dashboard'
-      } else if (data.role === 'admin') {
-        window.location.hash = '#/admin/dashboard'
-      } else if (data.role === 'oncall-mechanic-technician') {
-        window.location.hash = '#/independent/technician/dashboard'
-      } else if (data.role === 'shop-owner') {
-        window.location.hash = '#/provider/dashboard'
-      } else if (data.role === 'mechanic-technician') {
-        window.location.hash = '#/mechanic/technician/dashboard'
-      } else {
-        window.location.hash = '#/'
-      }
-    } catch (error) {
-      const isNetworkError = error instanceof TypeError && /fetch/i.test(error?.message || '')
-      const errorMessage = isNetworkError
-        ? 'Cannot connect to server. Make sure backend is running and VITE_API_URL is correct.'
-        : error?.message || 'Invalid email or password'
-      const lower = errorMessage.toLowerCase()
-      const isRejection = lower.includes('not approved') || lower.includes('rejected')
-      const isPendingApproval = lower.includes('waiting for admin approval') || lower.includes('admin approval')
-      setErrors({ general: errorMessage, isRejection, isPendingApproval })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Open Forgot Password Modal
-  const handleOpenForgotPassword = () => {
-    setResetEmail(formData.email.trim())
-    setForgotStep('request')
-    setUnregisteredError(null)
-    setResetError(null)
-    setOtp('')
-    setNewPassword('')
-    setConfirmPassword('')
-    setIsForgotModalOpen(true)
-  }
-
-  // Close Forgot Password Modal
-  const handleCloseForgotPassword = () => {
-    setIsForgotModalOpen(false)
-    setUnregisteredError(null)
-    setResetError(null)
-    setOtp('')
-  }
 
   // Handle Step 1: Send OTP to Email
   const handleRequestResetOtp = async (e) => {
@@ -309,7 +189,6 @@ function Login() {
       }
 
       setForgotStep('success')
-      setFormData((prev) => ({ ...prev, email: cleanEmail, password: '' }))
     } catch (err) {
       setResetError(err.message || 'Invalid or expired verification code.')
     } finally {
@@ -346,209 +225,34 @@ function Login() {
                 type="button"
                 className="inline-flex items-center gap-1.5 text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer"
                 style={{ color: navy }}
-                onClick={() => { window.location.hash = '#/' }}
-                aria-label="Back to Home"
-                title="Back to Home"
+                onClick={() => { window.location.hash = '#/login' }}
+                aria-label="Back to Login"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="sm:inline">Back to Home</span>
+                <span className="sm:inline">Back to Sign In</span>
               </button>
             </div>
-            <CardTitle className="text-2xl sm:text-2xl font-bold tracking-tight mt-2" style={{ color: navy }}>
-              Welcome Back
-            </CardTitle>
-            <CardDescription className="text-sm" style={{ color: textBodyOnLight }}>
-              Sign in to your E‑Paayos account
+            <div className="flex items-center justify-center gap-2 mt-3 mb-1">
+              <div
+                className="size-8 rounded-none flex items-center justify-center border"
+                style={{ backgroundColor: bvPeriwinkle, borderColor: bvViolet, color: navy }}
+              >
+                <Lock className="size-4" />
+              </div>
+              <CardTitle className="text-2xl font-bold tracking-tight" style={{ color: navy }}>
+                {forgotStep === 'success' ? 'Password Updated' : 'Reset Password'}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs sm:text-sm" style={{ color: textBodyOnLight }}>
+              {forgotStep === 'request'
+                ? 'Enter your registered email to receive a 6-digit verification code.'
+                : forgotStep === 'verify_and_reset'
+                  ? 'Enter the 6-digit code sent to your email to set your new password.'
+                  : 'Your account password has been updated successfully.'}
             </CardDescription>
           </CardHeader>
+
           <CardContent className="px-6 pb-8 pt-2 sm:p-6 sm:pt-0 flex-1 sm:flex-initial flex flex-col justify-center">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {rejectionNotice && (
-                <div className="relative overflow-hidden rounded-none border border-rose-300/70 bg-linear-to-br from-rose-50 via-white to-orange-50 p-4 shadow-xs">
-                  <div className="absolute -top-10 -right-10 h-28 w-28 bg-rose-200/30 blur-2xl" aria-hidden />
-                  <div className="relative space-y-2 text-sm">
-                    <p className="text-xs font-bold tracking-wide text-rose-700 uppercase">
-                      Account Update
-                    </p>
-                    <h3 className="text-base font-bold text-rose-900">{rejectionNotice.title}</h3>
-                    <p className="text-rose-800">{rejectionNotice.message}</p>
-                    <div className="rounded-none border border-rose-200 bg-white/90 p-3">
-                      <p className="text-xs font-bold text-rose-700 uppercase">Admin message</p>
-                      <p className="mt-0.5 text-sm text-rose-900">{rejectionNotice.reason}</p>
-                    </div>
-                    <p className="text-rose-800">{rejectionNotice.action}</p>
-                    <button
-                      type="button"
-                      onClick={() => { window.location.hash = '#/register' }}
-                      className="inline-flex items-center rounded-none border border-rose-300 bg-white px-3 py-1.5 text-sm font-bold text-rose-700 transition hover:bg-rose-50 cursor-pointer"
-                    >
-                      Start New Registration
-                    </button>
-                  </div>
-                </div>
-              )}
-              {errors.general && (
-                <div
-                  className={`rounded-none border p-4 ${errors.isPendingApproval
-                      ? 'border-amber-300 bg-amber-50'
-                      : errors.isRejection
-                        ? 'border-red-300 bg-red-50'
-                        : 'border-red-200 bg-red-50'
-                    }`}
-                >
-                  <p
-                    className={`text-sm ${errors.isPendingApproval
-                        ? 'font-semibold text-amber-900'
-                        : errors.isRejection
-                          ? 'font-semibold text-red-800'
-                          : 'text-red-700'
-                      }`}
-                  >
-                    {errors.general}
-                  </p>
-                  {errors.isRejection && (
-                    <p className="mt-1.5 text-xs text-red-600">
-                      Please register with reliable information about yourself.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-sm font-medium" style={{ color: navy }}>Email *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`pl-10 h-11 sm:h-10 text-sm rounded-none ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
-                    required
-                  />
-                </div>
-                {errors.email && <p className="text-xs text-red-600">{errors.email}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-sm font-medium" style={{ color: navy }}>Password *</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    className={`pl-10 pr-10 h-11 sm:h-10 text-sm rounded-none ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password && <p className="text-xs text-red-600">{errors.password}</p>}
-              </div>
-
-              <div className="flex items-center justify-between gap-2 pt-1">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(v) => setRememberMe(Boolean(v))}
-                    className="rounded-none"
-                  />
-                  <Label htmlFor="remember" className="text-sm cursor-pointer select-none" style={{ color: textBodyOnLight }}>
-                    Remember me
-                  </Label>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleOpenForgotPassword}
-                  className="text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer"
-                  style={{ color: navy }}
-                >
-                  Forgot password?
-                </button>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-11 sm:h-10 text-sm font-semibold border-0 shadow-md hover:brightness-110 hover:shadow-lg rounded-none cursor-pointer"
-                style={{ backgroundImage: gradientNavyButton, color: '#ffffff' }}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </Button>
-
-              <div className="text-center text-sm pt-2" style={{ color: textBodyOnLight }}>
-                Don&apos;t have an account?{' '}
-                <button
-                  type="button"
-                  className="font-semibold underline hover:opacity-80 transition-opacity cursor-pointer"
-                  style={{ color: navy }}
-                  onClick={() => { window.location.hash = '#/register' }}
-                >
-                  Sign up
-                </button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* FLOATING 3-STEP OTP RESET PASSWORD MODAL OVERLAY (NO BLUR, SHARP BG)     */}
-      {/* ========================================================================= */}
-      {isForgotModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 animate-in fade-in-0 duration-150"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseForgotPassword()
-          }}
-        >
-          {/* Floating Modal Box */}
-          <div
-            className="w-full max-w-md relative p-6 sm:p-7 rounded-none border shadow-2xl animate-in zoom-in-95 duration-200 transition-all bg-white text-slate-900 border-slate-200"
-            style={{ borderColor: borderNavySoft }}
-          >
-            {/* Close Button "X" */}
-            <button
-              type="button"
-              onClick={handleCloseForgotPassword}
-              className="absolute top-4 right-4 p-1.5 rounded-none text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              title="Close modal"
-            >
-              <X className="size-4.5" />
-            </button>
-
-            {/* Modal Header */}
-            <div className="mb-5 pr-6">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div
-                  className="size-7 rounded-none flex items-center justify-center border"
-                  style={{ backgroundColor: bvPeriwinkle, borderColor: bvViolet, color: navy }}
-                >
-                  <Lock className="size-3.5" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-bold tracking-tight" style={{ color: navy }}>
-                  {forgotStep === 'success' ? 'Password Updated' : 'Reset Password'}
-                </h3>
-              </div>
-              <p className="text-xs" style={{ color: textBodyOnLight }}>
-                {forgotStep === 'request'
-                  ? 'Enter your registered email to receive a 6-digit verification code.'
-                  : forgotStep === 'verify_and_reset'
-                    ? 'Enter the 6-digit code sent to your email to set your new password.'
-                    : 'Your account password has been updated successfully.'}
-              </p>
-            </div>
-
             {/* Unregistered Email Alert Banner */}
             {unregisteredError && (
               <div className="p-3 rounded-none border text-xs space-y-1.5 mb-4 animate-in fade-in-50 duration-200 bg-rose-50 border-rose-200 text-rose-800">
@@ -562,10 +266,7 @@ function Login() {
                 <div className="pt-0.5 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => {
-                      handleCloseForgotPassword()
-                      window.location.hash = '#/register'
-                    }}
+                    onClick={() => { window.location.hash = '#/register' }}
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:underline cursor-pointer"
                   >
                     <UserPlus className="size-3" />
@@ -587,13 +288,13 @@ function Login() {
             {forgotStep === 'request' && (
               <form onSubmit={handleRequestResetOtp} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="reset-modal-email" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  <Label htmlFor="reset-page-email" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                     Registered Email Address
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                     <Input
-                      id="reset-modal-email"
+                      id="reset-page-email"
                       type="email"
                       placeholder="name@example.com"
                       value={resetEmail}
@@ -613,7 +314,7 @@ function Login() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleCloseForgotPassword}
+                    onClick={() => { window.location.hash = '#/login' }}
                     className="h-10.5 text-xs font-semibold px-4 rounded-none cursor-pointer border-slate-200 text-slate-700 hover:bg-slate-100"
                   >
                     Cancel
@@ -661,7 +362,7 @@ function Login() {
                   {/* 6-Digit OTP */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="reset-modal-otp" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                      <Label htmlFor="reset-page-otp" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                         Verification Code (from your email)
                       </Label>
                       <button
@@ -680,7 +381,7 @@ function Login() {
                     <div className="relative">
                       <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                       <Input
-                        id="reset-modal-otp"
+                        id="reset-page-otp"
                         type="text"
                         maxLength={6}
                         placeholder="123456"
@@ -698,13 +399,13 @@ function Login() {
 
                   {/* New Password */}
                   <div className="space-y-1">
-                    <Label htmlFor="reset-modal-new-pwd" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    <Label htmlFor="reset-page-new-pwd" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                       New Password (min. 6 chars)
                     </Label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                       <Input
-                        id="reset-modal-new-pwd"
+                        id="reset-page-new-pwd"
                         type={showNewPassword ? 'text' : 'password'}
                         placeholder="Enter new password"
                         value={newPassword}
@@ -728,13 +429,13 @@ function Login() {
 
                   {/* Confirm Password */}
                   <div className="space-y-1">
-                    <Label htmlFor="reset-modal-confirm-pwd" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    <Label htmlFor="reset-page-confirm-pwd" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                       Confirm Password
                     </Label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
                       <Input
-                        id="reset-modal-confirm-pwd"
+                        id="reset-page-confirm-pwd"
                         type={showConfirmPassword ? 'text' : 'password'}
                         placeholder="Retype new password"
                         value={confirmPassword}
@@ -765,7 +466,7 @@ function Login() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={handleCloseForgotPassword}
+                      onClick={() => { window.location.hash = '#/login' }}
                       className="h-10.5 text-xs font-semibold px-4 rounded-none cursor-pointer border-slate-200 text-slate-700 hover:bg-slate-100"
                     >
                       Cancel
@@ -809,7 +510,7 @@ function Login() {
                 </div>
                 <Button
                   type="button"
-                  onClick={handleCloseForgotPassword}
+                  onClick={() => { window.location.hash = '#/login' }}
                   className="w-full h-11 text-white font-bold text-xs uppercase tracking-wider rounded-none shadow-lg transition-all cursor-pointer border-0"
                   style={{ backgroundImage: gradientNavyButton }}
                 >
@@ -817,11 +518,11 @@ function Login() {
                 </Button>
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
 
-export default Login
+export default ResetPassword

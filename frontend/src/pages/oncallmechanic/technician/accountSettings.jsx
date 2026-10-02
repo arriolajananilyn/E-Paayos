@@ -637,8 +637,8 @@ export default function OnCallMechanicAccountSettings() {
       setPasswordNotice({ type: 'error', message: 'Please fill all password fields.' })
       return
     }
-    if (passwordForm.newPassword.length < 8) {
-      setPasswordNotice({ type: 'error', message: 'New password must be at least 8 characters long.' })
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordNotice({ type: 'error', message: 'New password must be at least 6 characters long.' })
       return
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -648,11 +648,36 @@ export default function OnCallMechanicAccountSettings() {
 
     setIsSavingPassword(true)
     try {
+      const token = localStorage.getItem('token') || ''
+      const res = await fetch(`${API_URL}/api/users/me/change-password`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+          confirmPassword: passwordForm.confirmPassword,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update password.')
+      }
+
       setPasswordNotice({
         type: 'success',
-        message: 'Password validation successful. Connected securely.',
+        message: data.message || 'Your password has been changed successfully!',
       })
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (err) {
+      setPasswordNotice({
+        type: 'error',
+        message: err.message || 'Failed to change password. Please check your credentials.',
+      })
     } finally {
       setIsSavingPassword(false)
     }

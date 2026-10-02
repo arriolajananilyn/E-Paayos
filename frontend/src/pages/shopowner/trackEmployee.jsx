@@ -16,6 +16,8 @@ import { cn } from '../../lib/utils'
 import {
   Activity,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Clock,
   Eye,
   MapPin,
@@ -39,6 +41,57 @@ function authHeaders() {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
+}
+
+const STAT_CARD_GRADIENT = {
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  amber: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  blue: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
+  emerald: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+}
+
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
+  const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
+  const helperText = helper || sub
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 /** Mock technician locations in Marinduque for live map demonstration */
@@ -309,41 +362,38 @@ export function TrackEmployeePage() {
 
         {/* 4 KPI Metrics Grid */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
-          <Card className="rounded-none border border-slate-200 bg-white p-2.5 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.12)]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Total Staff</span>
-              <Users className="size-3.5 sm:size-4 text-indigo-600 shrink-0" />
-            </div>
-            <p className="text-lg sm:text-xl font-black text-slate-900 mt-1">{metrics.total}</p>
-            <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium">Registered in shop</span>
-          </Card>
-
-          <Card className="rounded-none border border-slate-200 bg-white p-2.5 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.12)]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-amber-800">On Field / Route</span>
-              <Navigation className="size-3.5 sm:size-4 text-amber-600 shrink-0" />
-            </div>
-            <p className="text-lg sm:text-xl font-black text-amber-900 mt-1">{metrics.onField}</p>
-            <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium">Home dispatch</span>
-          </Card>
-
-          <Card className="rounded-none border border-slate-200 bg-white p-2.5 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.12)]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-blue-800">In-Shop Working</span>
-              <Wrench className="size-3.5 sm:size-4 text-blue-600 shrink-0" />
-            </div>
-            <p className="text-lg sm:text-xl font-black text-blue-900 mt-1">{metrics.inShop}</p>
-            <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium">Shop repair</span>
-          </Card>
-
-          <Card className="rounded-none border border-slate-200 bg-white p-2.5 sm:p-3.5 shadow-[0_3px_8px_rgba(15,23,42,0.12)]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">Available / Idle</span>
-              <UserCheck className="size-3.5 sm:size-4 text-emerald-600 shrink-0" />
-            </div>
-            <p className="text-lg sm:text-xl font-black text-emerald-900 mt-1">{metrics.available}</p>
-            <span className="text-[9px] sm:text-[10px] text-slate-500 font-medium">Ready for dispatch</span>
-          </Card>
+          <StatGradientCard
+            variant="total"
+            label="Total Staff"
+            value={metrics.total}
+            helper="Registered in shop"
+            icon={Users}
+            onClick={() => setStatusFilter('all')}
+          />
+          <StatGradientCard
+            variant="amber"
+            label="On Field / Route"
+            value={metrics.onField}
+            helper="Home dispatch"
+            icon={Navigation}
+            onClick={() => setStatusFilter(statusFilter === 'on_site' ? 'all' : 'on_site')}
+          />
+          <StatGradientCard
+            variant="blue"
+            label="In-Shop Working"
+            value={metrics.inShop}
+            helper="Shop repair"
+            icon={Wrench}
+            onClick={() => setStatusFilter(statusFilter === 'in_shop' ? 'all' : 'in_shop')}
+          />
+          <StatGradientCard
+            variant="emerald"
+            label="Available / Idle"
+            value={metrics.available}
+            helper="Ready for dispatch"
+            icon={UserCheck}
+            onClick={() => setStatusFilter(statusFilter === 'available' ? 'all' : 'available')}
+          />
         </div>
 
         {/* Filter Controls & Search Bar */}
@@ -370,7 +420,7 @@ export function TrackEmployeePage() {
                   className={cn(
                     "px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold rounded-none border-0 transition-all cursor-pointer whitespace-nowrap shrink-0",
                     statusFilter === st.key
-                      ? "bg-gradient-to-r from-[#081F5C] to-[#123B9B] text-white shadow-md shadow-[#081F5C]/35"
+                      ? "bg-gradient-to-r from-[#081F5C] to-[#1447a6] text-white shadow-md shadow-[#081F5C]/35"
                       : "bg-white text-slate-700 hover:bg-slate-50 shadow-[0_3px_8px_rgba(15,23,42,0.1)]"
                   )}
                 >
@@ -381,20 +431,24 @@ export function TrackEmployeePage() {
           </div>
 
           {/* Search Box */}
-          <div className="relative w-full sm:w-[320px] md:w-[380px] shrink-0">
-            <input
-              type="text"
-              placeholder="Search technician or job ref..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-none border border-slate-200 bg-white px-3.5 py-2 pr-10 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none shadow-sm transition-shadow duration-200 focus:border-[#081F5C] font-medium"
-            />
-            <button
-              type="button"
-              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-none bg-gradient-to-r from-[#081F5C] to-[#123B9B] p-1.5 text-white shadow-sm cursor-pointer"
-            >
-              <Search className="size-3.5" />
-            </button>
+          <div className="relative min-w-0 w-full sm:w-[320px] md:w-[380px] shrink-0">
+            <div className="relative w-full min-w-0 max-w-full">
+              <Input
+                className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
+                placeholder="Search technician or job ref…"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search technicians"
+              />
+              <Button
+                type="button"
+                size="icon-sm"
+                className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95 cursor-pointer"
+                aria-label="Search"
+              >
+                <Search className="h-3.5 w-3.5 text-white" />
+              </Button>
+            </div>
           </div>
         </div>
 

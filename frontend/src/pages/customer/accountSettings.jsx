@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react"
 import CustomerLayout, { readCustomerUserSession } from "../../layout/customerlayout.jsx"
 import { cn } from "../../lib/utils"
+import { getApiBaseUrl } from "../../lib/apiBaseUrl"
 
 import {
   User,
@@ -646,7 +647,7 @@ export default function AccountSettings() {
   }
 
   // ── Password Handlers ───────────────────────────────────────────────────────
-  const handleUpdatePassword = (e) => {
+  const handleUpdatePassword = async (e) => {
     e.preventDefault()
     if (!security.currentPassword) {
       toast.error("Please enter your current password.")
@@ -662,16 +663,39 @@ export default function AccountSettings() {
     }
 
     setIsUpdatingPassword(true)
-    setTimeout(() => {
-      setIsUpdatingPassword(false)
+    try {
+      const token = localStorage.getItem("token") || ""
+      const res = await fetch(`${getApiBaseUrl()}/api/users/me/change-password`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({
+          currentPassword: security.currentPassword,
+          newPassword: security.newPassword,
+          confirmPassword: security.confirmPassword,
+        }),
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update password.")
+      }
+
       setSecurity((prev) => ({
         ...prev,
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       }))
-      toast.success("Security password changed successfully!")
-    }, 600)
+      toast.success(data.message || "Security password changed successfully!")
+    } catch (err) {
+      toast.error(err.message || "Failed to change password. Please check your credentials.")
+    } finally {
+      setIsUpdatingPassword(false)
+    }
   }
 
   // ── Payment Handlers ───────────────────────────────────────────────────────

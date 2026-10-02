@@ -5,7 +5,13 @@ const bookingSchema = new mongoose.Schema(
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+      default: null,
+      index: true,
+    },
+    isWalkIn: {
+      type: Boolean,
+      default: false,
       index: true,
     },
     shopOwner: {

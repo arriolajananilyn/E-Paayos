@@ -15,30 +15,37 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   AlertCircle,
+  Calendar,
+  Check,
   CheckCircle,
   ChevronDown,
+  ChevronRight,
   Clock,
   Edit,
   Eye,
+  FileText,
   Megaphone,
   Plus,
   RefreshCw,
   Search,
   Trash2,
+  User,
+  Users,
 } from 'lucide-react'
 import { getApiBaseUrl } from '@/lib/apiBaseUrl'
+import { cn } from '@/lib/utils'
 
 const API_URL = getApiBaseUrl()
 
 const STAT_CARD_GRADIENT = {
-  total: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
-  published: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-900',
-  draft: 'bg-linear-to-br from-sky-600 via-blue-600 to-indigo-900',
-  views: 'bg-linear-to-br from-violet-600 via-purple-700 to-fuchsia-950',
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  published: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+  draft: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  views: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-md border border-[#081F5C]/15 bg-white/95 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
 
 function authHeaders() {
   const token = localStorage.getItem('token')
@@ -64,21 +71,44 @@ async function apiJson(path, options = {}) {
   return data
 }
 
-function StatGradientCard({ label, value, sub, icon: Icon, variant, className = '' }) {
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className = '' }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
+  const helperText = helper || sub
   return (
     <div
-      className={`relative min-h-[84px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-lg border border-white/15 p-3 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient} ${className}`}
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium tracking-wide text-white/85 sm:text-xs truncate">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {sub ? <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-white/70 truncate">{sub}</p> : null}
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-md border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -144,38 +174,38 @@ function formatDate(dateString) {
 function getPriorityBadgeClass(priority) {
   switch (priority) {
     case 'high':
-      return 'border border-rose-500/30 bg-rose-500/10 font-medium text-rose-900 hover:bg-rose-500/15 dark:border-rose-500/35 dark:bg-rose-500/15 dark:text-rose-100'
+      return 'border-rose-200 bg-rose-50 text-rose-700'
     case 'normal':
-      return 'border border-[#1447a6]/25 bg-blue-500/10 font-medium text-[#081F5C] hover:bg-blue-500/15 dark:border-[#1447a6]/35 dark:bg-blue-500/15 dark:text-blue-100'
+      return 'border-blue-200 bg-blue-50 text-blue-700'
     case 'low':
     default:
-      return 'border border-muted-foreground/25 bg-muted/40 font-medium text-foreground hover:bg-muted/55'
+      return 'border-slate-200 bg-slate-100 text-slate-700'
   }
 }
 
 function getStatusBadgeClass(status) {
   switch (status) {
     case 'published':
-      return 'border border-emerald-500/25 bg-emerald-500/10 font-medium text-emerald-900 hover:bg-emerald-500/15 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-100'
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     case 'draft':
-      return 'border border-amber-500/30 bg-amber-500/10 font-medium text-amber-950 hover:bg-amber-500/15 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-100'
+      return 'border-amber-200 bg-amber-50 text-amber-700'
     case 'scheduled':
-      return 'border border-sky-500/30 bg-sky-500/10 font-medium text-sky-950 hover:bg-sky-500/15 dark:border-sky-500/35 dark:bg-sky-500/15 dark:text-sky-100'
+      return 'border-sky-200 bg-sky-50 text-sky-700'
     default:
-      return 'border border-muted-foreground/25 bg-muted/40 font-medium text-foreground'
+      return 'border-slate-200 bg-slate-100 text-slate-700'
   }
 }
 
 function getStatusIcon(status) {
   switch (status) {
     case 'published':
-      return <CheckCircle className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-300" />
+      return <CheckCircle className="h-3 w-3 shrink-0 text-emerald-600" />
     case 'draft':
-      return <Edit className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+      return <Edit className="h-3 w-3 shrink-0 text-amber-600" />
     case 'scheduled':
-      return <Clock className="h-4 w-4 shrink-0 text-sky-700 dark:text-sky-300" />
+      return <Clock className="h-3 w-3 shrink-0 text-sky-600" />
     default:
-      return <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+      return <AlertCircle className="h-3 w-3 shrink-0 text-slate-500" />
   }
 }
 
@@ -382,34 +412,34 @@ export default function AdminAnnouncement() {
   const audienceLabel = (value) => AUDIENCE_OPTIONS.find((o) => o.value === value)?.label || value || '—'
 
   const formFields = (
-    <div className="grid gap-4">
+    <div className="grid gap-3.5 text-xs sm:text-sm">
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+        <div className="border border-rose-300 bg-rose-50 p-3 text-xs font-semibold text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200">
           {error}
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="ann-title" className="text-foreground">
-            Title *
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="ann-title" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            Title <span className="text-rose-600">*</span>
           </Label>
           <Input
             id="ann-title"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            placeholder="Announcement title"
-            className="h-9 rounded-md border-[#081F5C]/15 bg-white/95 shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+            placeholder="e.g. Scheduled System Maintenance Notice"
+            className="h-9 rounded-none border-slate-200 text-xs bg-white focus-visible:ring-[#1447a6] dark:border-slate-700 dark:bg-slate-900"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="ann-priority" className="text-foreground">
+        <div className="space-y-1.5">
+          <Label htmlFor="ann-priority" className="text-xs font-bold text-slate-800 dark:text-slate-200">
             Priority
           </Label>
           <div className="relative">
             <select
               id="ann-priority"
-              className={`${selectShell} text-foreground`}
+              className={`${selectShell} text-slate-800 dark:text-slate-200 capitalize`}
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
             >
@@ -417,33 +447,33 @@ export default function AdminAnnouncement() {
               <option value="normal">Normal</option>
               <option value="high">High</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           </div>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="ann-content" className="text-foreground">
-          Content *
+      <div className="space-y-1.5">
+        <Label htmlFor="ann-content" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+          Content <span className="text-rose-600">*</span>
         </Label>
         <Textarea
           id="ann-content"
           value={formData.content}
           onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-          placeholder="Announcement body"
-          className="min-h-[180px] resize-y rounded-md border-[#081F5C]/15 bg-white/95 shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+          placeholder="Write the full announcement message here..."
+          className="min-h-[140px] resize-y rounded-none border-slate-200 text-xs bg-white focus-visible:ring-[#1447a6] dark:border-slate-700 dark:bg-slate-900"
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="ann-audience" className="text-foreground">
-            Target audience
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="ann-audience" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            Target Audience
           </Label>
           <div className="relative">
             <select
               id="ann-audience"
-              className={`${selectShell} text-foreground`}
+              className={`${selectShell} text-slate-800 dark:text-slate-200`}
               value={formData.targetAudience}
               onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
             >
@@ -453,17 +483,17 @@ export default function AdminAnnouncement() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="ann-status" className="text-foreground">
-            Status
+        <div className="space-y-1.5">
+          <Label htmlFor="ann-status" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            Publishing Status
           </Label>
           <div className="relative">
             <select
               id="ann-status"
-              className={`${selectShell} text-foreground`}
+              className={`${selectShell} text-slate-800 dark:text-slate-200 capitalize`}
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
             >
@@ -471,22 +501,22 @@ export default function AdminAnnouncement() {
               <option value="published">Published</option>
               <option value="scheduled">Scheduled</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
           </div>
         </div>
       </div>
 
       {formData.status === 'scheduled' ? (
-        <div className="space-y-2">
-          <Label htmlFor="ann-sched" className="text-foreground">
-            Schedule date
+        <div className="space-y-1.5">
+          <Label htmlFor="ann-sched" className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            Scheduled Publish Date &amp; Time
           </Label>
           <Input
             id="ann-sched"
             type="datetime-local"
             value={formData.scheduledDate}
             onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
-            className="h-9 max-w-md rounded-md border-[#081F5C]/15 bg-white/95 shadow-sm focus-visible:border-[#1447a6]/45 dark:border-white/10 dark:bg-[#04133d]/25"
+            className="h-9 max-w-md rounded-none border-slate-200 text-xs bg-white focus-visible:ring-[#1447a6] dark:border-slate-700 dark:bg-slate-900"
           />
         </div>
       ) : null}
@@ -494,44 +524,46 @@ export default function AdminAnnouncement() {
   )
 
   return (
-    <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">Announcements</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Manage platform announcements and notifications.</p>
+    <div className="w-full min-w-0 max-w-full space-y-3.5 sm:space-y-4 overflow-x-hidden">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-0.5 min-w-0 flex-1">
+          <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">Announcements</h1>
+          <p className="text-xs text-slate-500 font-medium">Manage platform announcements and notifications.</p>
         </div>
         <Button
           type="button"
           variant="outline"
-          className="h-9 shrink-0 self-start border-[#081F5C]/20 bg-white/90 px-3 text-xs sm:text-sm hover:bg-[#081F5C]/5 dark:border-white/15 dark:bg-transparent"
+          className="h-8 sm:h-9 shrink-0 rounded-none border border-slate-200 bg-white px-2.5 sm:px-3 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50"
           onClick={() => void loadAnnouncements()}
           disabled={loading}
         >
-          <RefreshCw className={`mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw className={`h-3.5 w-3.5 sm:mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refresh</span>
         </Button>
       </div>
 
       {error && !loading && !isCreateOpen && !isEditOpen ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+        <div className="rounded-none border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
           {error}
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
         <StatGradientCard
           variant="total"
           label="Total announcements"
           value={summaryData.totalAnnouncements}
-          sub="All time"
+          sub="All announcements"
           icon={Megaphone}
+          onClick={() => setStatusFilter('all')}
         />
         <StatGradientCard
           variant="published"
           label="Published"
           value={summaryData.published}
-          sub="Live"
+          sub="Live and visible"
           icon={CheckCircle}
+          onClick={() => setStatusFilter('published')}
         />
         <StatGradientCard
           variant="draft"
@@ -539,12 +571,13 @@ export default function AdminAnnouncement() {
           value={summaryData.draft}
           sub={summaryData.scheduled ? `${summaryData.scheduled} scheduled` : 'Pending review'}
           icon={Edit}
+          onClick={() => setStatusFilter('draft')}
         />
         <StatGradientCard
           variant="views"
           label="Total views"
           value={summaryData.totalViews}
-          sub="All announcements"
+          sub="Read views by users"
           icon={Eye}
         />
       </div>
@@ -553,7 +586,7 @@ export default function AdminAnnouncement() {
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:gap-3 min-w-0 w-full lg:w-auto">
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
             <select
-              className={`${selectShell} ${statusFilter !== 'all' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+              className={selectShell}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -562,11 +595,11 @@ export default function AdminAnnouncement() {
               <option value="draft">Draft</option>
               <option value="scheduled">Scheduled</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[220px]">
             <select
-              className={`${selectShell} ${dateFilter !== 'all' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+              className={selectShell}
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
             >
@@ -578,14 +611,14 @@ export default function AdminAnnouncement() {
               <option value="this-year">This year</option>
               <option value="last-year">Last year</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
         </div>
 
         <div className="flex min-w-0 w-full max-w-full flex-col gap-2 sm:flex-row sm:items-stretch lg:max-w-xl lg:flex-1">
           <div className="relative min-w-0 flex-1">
             <Input
-              className="h-9 w-full min-w-0 rounded-md border-[#081F5C]/15 bg-white/95 pr-12 pl-3 sm:pl-4 text-xs sm:text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+              className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
               placeholder="Search title or content…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -597,7 +630,7 @@ export default function AdminAnnouncement() {
             <Button
               type="button"
               size="icon-sm"
-              className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95"
+              className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95"
               aria-label="Search"
               onClick={() => void loadAnnouncements()}
             >
@@ -606,41 +639,41 @@ export default function AdminAnnouncement() {
           </div>
           <Button
             type="button"
-            className="h-9 shrink-0 bg-linear-to-r from-[#081F5C] to-[#1447a6] px-3 sm:px-4 text-xs sm:text-sm text-white shadow-sm hover:opacity-95"
+            className="h-9 shrink-0 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] px-3.5 sm:px-4 text-xs font-semibold text-white shadow-xs hover:opacity-95"
             onClick={() => {
               resetForm()
               setIsCreateOpen(true)
             }}
           >
-            <Plus className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <Plus className="mr-1.5 size-3.5" />
             Create announcement
           </Button>
         </div>
       </div>
 
-      <Card className="mt-3 min-w-0 max-w-full overflow-hidden rounded-lg border border-[#081F5C]/12 bg-white shadow-lg ring-1 ring-black/3 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90 dark:ring-white/6">
-        <CardContent className="min-w-0 p-0">
+      <div className="mt-3 min-w-0 max-w-full overflow-hidden rounded-none border border-slate-200/60 bg-white/90 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90">
+        <div className="min-w-0 p-0">
           {/* Desktop Table View */}
           <div className="scrollbar-thin hidden max-w-full overflow-x-auto scroll-smooth md:block">
             <table className="w-full min-w-[720px] border-collapse text-sm">
               <thead className="[&_tr]:border-0">
-                <tr className="border-0 bg-linear-to-r from-[#081F5C] to-[#1447a6]">
-                  <th className="w-[26%] border-0 px-4 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                <tr className="border-0 bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6]">
+                  <th className="w-[26%] border-0 px-4 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Title
                   </th>
-                  <th className="w-[12%] border-0 px-3 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[12%] border-0 px-3 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Priority
                   </th>
-                  <th className="w-[16%] border-0 px-3 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[16%] border-0 px-3 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Status
                   </th>
-                  <th className="w-[16%] border-0 px-3 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[16%] border-0 px-3 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Target
                   </th>
-                  <th className="w-[16%] border-0 px-3 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[16%] border-0 px-3 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Created
                   </th>
-                  <th className="w-[14%] border-0 px-3 py-3.5 text-center text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[14%] border-0 px-3 py-3 text-center text-[11px] font-black tracking-wider text-white uppercase">
                     Actions
                   </th>
                 </tr>
@@ -648,13 +681,13 @@ export default function AdminAnnouncement() {
               <tbody className="bg-white dark:bg-[#04133d]/35">
                 {loading && announcements.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-14 text-center text-sm text-muted-foreground" colSpan={6}>
-                      Loading…
+                    <td className="px-6 py-14 text-center text-xs font-semibold text-slate-500" colSpan={6}>
+                      Loading announcements…
                     </td>
                   </tr>
                 ) : filteredAnnouncements.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-14 text-center text-sm text-muted-foreground" colSpan={6}>
+                    <td className="px-6 py-14 text-center text-xs font-semibold text-slate-500" colSpan={6}>
                       {announcements.length === 0
                         ? 'No announcements yet. Create one to get started.'
                         : 'No rows match your filters or search.'}
@@ -664,67 +697,65 @@ export default function AdminAnnouncement() {
                   filteredAnnouncements.map((row, idx) => (
                     <tr
                       key={row._id || row.id}
-                      className={`transition-colors duration-150 hover:bg-[#081F5C]/5 dark:hover:bg-white/6 ${idx % 2 === 1 ? 'bg-[#081F5C]/2.5 dark:bg-white/2' : ''} ${idx < filteredAnnouncements.length - 1 ? 'border-b border-[#081F5C]/8 dark:border-white/5' : ''}`}
+                      className={`transition-colors duration-150 hover:bg-slate-50/80 ${idx % 2 === 1 ? 'bg-slate-50/40' : ''} ${idx < filteredAnnouncements.length - 1 ? 'border-b border-slate-100' : ''}`}
                     >
-                      <td className="px-4 py-3.5">
-                        <div className="truncate font-semibold text-foreground">{row.title}</div>
-                        <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                      <td className="px-4 py-3">
+                        <div className="truncate font-semibold text-xs text-slate-900">{row.title}</div>
+                        <div className="mt-0.5 truncate text-[11px] text-slate-500 font-medium">
                           by {row.authorName || row.author?.fullName || 'Admin'}
                         </div>
                       </td>
-                      <td className="px-3 py-3.5 align-middle">
-                        <Badge className={`text-xs capitalize ${getPriorityBadgeClass(row.priority)}`}>
+                      <td className="px-3 py-3 align-middle">
+                        <span className={cn("inline-flex items-center rounded-none border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", getPriorityBadgeClass(row.priority))}>
                           {row.priority || 'normal'}
-                        </Badge>
+                        </span>
                       </td>
-                      <td className="px-3 py-3.5 align-middle">
-                        <div className="flex items-center gap-2">
+                      <td className="px-3 py-3 align-middle">
+                        <span className={cn("inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", getStatusBadgeClass(row.status))}>
                           {getStatusIcon(row.status)}
-                          <Badge className={`text-xs capitalize ${getStatusBadgeClass(row.status)}`}>
-                            {row.status}
-                          </Badge>
-                        </div>
+                          <span>{row.status}</span>
+                        </span>
                       </td>
-                      <td className="px-3 py-3.5 align-middle text-sm capitalize text-foreground">
+                      <td className="px-3 py-3 align-middle text-xs font-medium capitalize text-slate-700">
                         {audienceLabel(row.targetAudience)}
                       </td>
-                      <td className="px-3 py-3.5 align-middle text-sm tabular-nums text-muted-foreground">
-                        {formatDate(row.createdAt)}
+                      <td className="px-3 py-3 align-middle text-xs tabular-nums text-slate-500">
+                        <div className="font-medium text-slate-800">{formatDate(row.createdAt)}</div>
                         {(row.viewCount ?? 0) > 0 ? (
-                          <div className="text-xs text-muted-foreground">{row.viewCount} views</div>
+                          <div className="text-[10px] text-slate-400 font-medium">{row.viewCount} views</div>
                         ) : null}
                       </td>
                       <td className="px-2 py-3 text-center align-middle">
-                        <div className="flex items-center justify-center gap-0.5">
+                        <div className="flex items-center justify-center gap-1">
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-[#081F5C] hover:bg-[#081F5C]/10 dark:text-blue-200"
+                            className="h-7 w-7 rounded-none p-0 text-[#081F5C] hover:bg-slate-100 transition-colors"
                             onClick={() => {
                               setSelectedAnnouncement(row)
                               setIsViewOpen(true)
                             }}
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                            className="h-7 w-7 rounded-none p-0 text-emerald-700 hover:bg-emerald-50 transition-colors"
                             onClick={() => handleEditAnnouncement(row)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-rose-600 hover:bg-rose-500/10 dark:text-rose-300"
+                            className="h-7 w-7 rounded-none p-0 text-rose-600 hover:bg-rose-50 transition-colors"
                             onClick={() => void handleDeleteAnnouncement(row._id || row.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </td>
@@ -736,13 +767,13 @@ export default function AdminAnnouncement() {
           </div>
 
           {/* Mobile Cards View */}
-          <div className="block divide-y divide-[#081F5C]/8 dark:divide-white/5 md:hidden">
+          <div className="block divide-y divide-slate-100 dark:divide-white/5 md:hidden">
             {loading && announcements.length === 0 ? (
-              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
-                Loading…
+              <div className="px-4 py-12 text-center text-xs font-medium text-slate-500">
+                Loading announcements…
               </div>
             ) : filteredAnnouncements.length === 0 ? (
-              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+              <div className="px-4 py-12 text-center text-xs font-medium text-slate-500">
                 {announcements.length === 0
                   ? 'No announcements yet. Create one to get started.'
                   : 'No rows match your filters or search.'}
@@ -751,12 +782,12 @@ export default function AdminAnnouncement() {
               filteredAnnouncements.map((row) => (
                 <div
                   key={row._id || row.id}
-                  className="space-y-2 p-3.5 transition-colors hover:bg-[#081F5C]/5 dark:hover:bg-white/5"
+                  className="space-y-2 p-3 sm:p-3.5 transition-colors bg-gradient-to-r from-white via-slate-50/40 to-blue-50/20 hover:bg-slate-50/80"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <h3 className="line-clamp-1 text-sm font-semibold text-foreground">{row.title}</h3>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                      <h3 className="line-clamp-1 text-xs sm:text-sm font-bold text-slate-900">{row.title}</h3>
+                      <p className="mt-0.5 text-[10px] sm:text-xs text-slate-500 font-medium">
                         by {row.authorName || row.author?.fullName || 'Admin'} • {formatDate(row.createdAt)}
                       </p>
                     </div>
@@ -765,7 +796,7 @@ export default function AdminAnnouncement() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-[#081F5C] hover:bg-[#081F5C]/10 dark:text-blue-200"
+                        className="h-7 w-7 rounded-none p-0 text-[#081F5C] hover:bg-white border border-slate-200 shadow-xs"
                         onClick={() => {
                           setSelectedAnnouncement(row)
                           setIsViewOpen(true)
@@ -778,7 +809,7 @@ export default function AdminAnnouncement() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                        className="h-7 w-7 rounded-none p-0 text-emerald-700 hover:bg-white border border-slate-200 shadow-xs"
                         onClick={() => handleEditAnnouncement(row)}
                         title="Edit"
                       >
@@ -788,7 +819,7 @@ export default function AdminAnnouncement() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-rose-600 hover:bg-rose-500/10 dark:text-rose-300"
+                        className="h-7 w-7 rounded-none p-0 text-rose-600 hover:bg-white border border-slate-200 shadow-xs"
                         onClick={() => void handleDeleteAnnouncement(row._id || row.id)}
                         title="Delete"
                       >
@@ -798,25 +829,23 @@ export default function AdminAnnouncement() {
                   </div>
 
                   {row.content ? (
-                    <p className="line-clamp-2 text-xs text-muted-foreground">{row.content}</p>
+                    <p className="line-clamp-2 text-xs text-slate-600 font-normal">{row.content}</p>
                   ) : null}
 
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-xs">
-                    <Badge className={`px-2 py-0.5 text-[10px] capitalize ${getPriorityBadgeClass(row.priority)}`}>
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs border-t border-slate-100">
+                    <span className={cn("inline-flex items-center rounded-none border px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider", getPriorityBadgeClass(row.priority))}>
                       {row.priority || 'normal'}
-                    </Badge>
-                    <div className="flex items-center gap-1">
+                    </span>
+                    <span className={cn("inline-flex items-center gap-1 rounded-none border px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider", getStatusBadgeClass(row.status))}>
                       {getStatusIcon(row.status)}
-                      <Badge className={`px-2 py-0.5 text-[10px] capitalize ${getStatusBadgeClass(row.status)}`}>
-                        {row.status}
-                      </Badge>
-                    </div>
-                    <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground capitalize">
+                      <span>{row.status}</span>
+                    </span>
+                    <span className="inline-flex items-center rounded-none border border-slate-200 bg-slate-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold text-slate-700 capitalize">
                       {audienceLabel(row.targetAudience)}
                     </span>
                     {(row.viewCount ?? 0) > 0 ? (
-                      <span className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <Eye className="h-3 w-3" />
+                      <span className="ml-auto flex items-center gap-1 text-[10px] sm:text-[11px] font-medium text-slate-500">
+                        <Eye className="size-3" />
                         {row.viewCount} views
                       </span>
                     ) : null}
@@ -825,9 +854,10 @@ export default function AdminAnnouncement() {
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
+      {/* 1. Create Announcement Dialog */}
       <Dialog
         open={isCreateOpen}
         onOpenChange={(open) => {
@@ -836,32 +866,52 @@ export default function AdminAnnouncement() {
         }}
       >
         <DialogContent
-          className="max-h-[90vh] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:p-6 border-[#081F5C]/12 sm:max-w-2xl dark:border-white/10"
+          className="max-h-[90vh] max-w-[calc(100vw-1.5rem)] sm:max-w-xl md:max-w-2xl overflow-hidden flex flex-col p-0 border border-slate-200 bg-white shadow-2xl rounded-none dark:border-slate-800 dark:bg-slate-900"
           showCloseButton
         >
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Create announcement</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Title and content are required. Drafts stay internal until you publish.
-            </DialogDescription>
-          </DialogHeader>
-          {formFields}
-          <DialogFooter className="mx-0 mb-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button type="button" variant="outline" disabled={loading} onClick={() => setIsCreateOpen(false)}>
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 sm:size-8 items-center justify-center bg-white/15 text-white border border-white/20 shrink-0">
+                <Plus className="size-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                  Create Announcement
+                </DialogTitle>
+                <DialogDescription className="text-[10px] sm:text-[11px] text-blue-100/75 font-normal">
+                  Publish or schedule platform notices across user roles
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            {formFields}
+          </div>
+
+          <DialogFooter className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end shrink-0 dark:border-slate-800 dark:bg-slate-950">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading}
+              className="h-8 px-4 text-xs font-bold rounded-none border-slate-300 hover:bg-slate-100 dark:border-slate-700"
+              onClick={() => setIsCreateOpen(false)}
+            >
               Cancel
             </Button>
             <Button
               type="button"
               disabled={loading}
-              className="bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white shadow-sm hover:opacity-95"
+              className="h-8 px-4 text-xs font-bold rounded-none bg-[#1447a6] text-white hover:bg-[#081F5C] shadow-xs"
               onClick={() => void handleCreateAnnouncement()}
             >
-              {loading ? 'Creating…' : 'Create announcement'}
+              {loading ? 'Creating…' : 'Create Announcement'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* 2. Edit Announcement Dialog */}
       <Dialog
         open={isEditOpen}
         onOpenChange={(open) => {
@@ -873,19 +923,35 @@ export default function AdminAnnouncement() {
         }}
       >
         <DialogContent
-          className="max-h-[90vh] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:p-6 border-[#081F5C]/12 sm:max-w-2xl dark:border-white/10"
+          className="max-h-[90vh] max-w-[calc(100vw-1.5rem)] sm:max-w-xl md:max-w-2xl overflow-hidden flex flex-col p-0 border border-slate-200 bg-white shadow-2xl rounded-none dark:border-slate-800 dark:bg-slate-900"
           showCloseButton
         >
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Edit announcement</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Update fields and save changes.</DialogDescription>
-          </DialogHeader>
-          {formFields}
-          <DialogFooter className="mx-0 mb-0 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 sm:size-8 items-center justify-center bg-white/15 text-white border border-white/20 shrink-0">
+                <Edit className="size-4 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                  Edit Announcement
+                </DialogTitle>
+                <DialogDescription className="text-[10px] sm:text-[11px] text-blue-100/75 font-normal">
+                  Update content, priority, and target audience
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            {formFields}
+          </div>
+
+          <DialogFooter className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end shrink-0 dark:border-slate-800 dark:bg-slate-950">
             <Button
               type="button"
               variant="outline"
               disabled={loading}
+              className="h-8 px-4 text-xs font-bold rounded-none border-slate-300 hover:bg-slate-100 dark:border-slate-700"
               onClick={() => {
                 setIsEditOpen(false)
                 setSelectedAnnouncement(null)
@@ -897,74 +963,128 @@ export default function AdminAnnouncement() {
             <Button
               type="button"
               disabled={loading}
-              className="bg-linear-to-r from-[#081F5C] to-[#1447a6] text-white shadow-sm hover:opacity-95"
+              className="h-8 px-4 text-xs font-bold rounded-none bg-[#1447a6] text-white hover:bg-[#081F5C] shadow-xs"
               onClick={() => void handleUpdateAnnouncement()}
             >
-              {loading ? 'Saving…' : 'Save changes'}
+              {loading ? 'Saving…' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* 3. View Announcement Details Dialog */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent
-          className="max-h-[90vh] max-w-[calc(100vw-1rem)] overflow-y-auto p-4 sm:p-6 border-[#081F5C]/12 sm:max-w-2xl dark:border-white/10"
+          className="max-h-[90vh] max-w-[calc(100vw-1.5rem)] sm:max-w-xl md:max-w-2xl overflow-hidden flex flex-col p-0 border border-slate-200 bg-white shadow-2xl rounded-none dark:border-slate-800 dark:bg-slate-900"
           showCloseButton
         >
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Announcement details</DialogTitle>
-            <DialogDescription className="text-muted-foreground">Read-only summary.</DialogDescription>
-          </DialogHeader>
           {selectedAnnouncement ? (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-foreground">{selectedAnnouncement.title}</h3>
-                <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">{selectedAnnouncement.content}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 border-t border-border pt-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Priority</p>
-                  <Badge className={`mt-1 text-xs capitalize ${getPriorityBadgeClass(selectedAnnouncement.priority)}`}>
-                    {selectedAnnouncement.priority}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Status</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    {getStatusIcon(selectedAnnouncement.status)}
-                    <Badge className={`text-xs capitalize ${getStatusBadgeClass(selectedAnnouncement.status)}`}>
-                      {selectedAnnouncement.status}
-                    </Badge>
+            <>
+              {/* Compact Sleek Header Banner */}
+              <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pr-6">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex size-7 sm:size-8 items-center justify-center bg-white/15 text-white border border-white/20 shrink-0">
+                      <Megaphone className="size-3.5 sm:size-4 text-white" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                        Announcement Details
+                      </DialogTitle>
+                      <DialogDescription className="text-[10px] sm:text-[11px] text-blue-100/75 font-normal">
+                        Published {formatDate(selectedAnnouncement.createdAt)}
+                      </DialogDescription>
+                    </div>
+                  </div>
+
+                  {/* Badges in same compact row */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className={cn("inline-flex items-center rounded-none border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", getPriorityBadgeClass(selectedAnnouncement.priority))}>
+                      {selectedAnnouncement.priority || 'normal'}
+                    </span>
+                    <span className={cn("inline-flex items-center gap-1 rounded-none border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider", getStatusBadgeClass(selectedAnnouncement.status))}>
+                      {getStatusIcon(selectedAnnouncement.status)}
+                      <span>{selectedAnnouncement.status}</span>
+                    </span>
+                    <span className="inline-flex items-center rounded-none border border-white/20 bg-white/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white tracking-wider">
+                      {audienceLabel(selectedAnnouncement.targetAudience)}
+                    </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Scrollable Announcement Body */}
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs sm:text-sm">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Target audience</p>
-                  <p className="mt-1 text-sm text-foreground">{audienceLabel(selectedAnnouncement.targetAudience)}</p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Author</p>
-                  <p className="mt-1 text-sm text-foreground">
-                    {selectedAnnouncement.authorName || selectedAnnouncement.author?.fullName || 'Admin'}
+                  <h3 className="text-sm sm:text-base font-black text-slate-900 dark:text-white leading-tight">
+                    {selectedAnnouncement.title}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Author: <span className="font-semibold text-slate-700 dark:text-slate-300">{selectedAnnouncement.authorName || selectedAnnouncement.author?.fullName || 'Admin'}</span>
                   </p>
                 </div>
+
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Created</p>
-                  <p className="mt-1 text-sm text-foreground">{formatDate(selectedAnnouncement.createdAt)}</p>
+                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                    Announcement Message:
+                  </span>
+                  <div className="bg-slate-50 border-l-2 border-[#1447a6] p-3.5 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-wrap dark:bg-slate-800/60 dark:border-blue-500 dark:text-slate-200 font-normal">
+                    {selectedAnnouncement.content}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Views</p>
-                  <p className="mt-1 text-sm text-foreground">
-                    {selectedAnnouncement.viewCount ?? selectedAnnouncement.views ?? 0}
-                  </p>
+
+                {/* Meta details grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-800">
+                  <div className="border border-slate-200 bg-slate-50/70 p-3 space-y-1.5 rounded-none dark:border-slate-800 dark:bg-slate-800/40">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                      Target Audience
+                    </span>
+                    <p className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                      {audienceLabel(selectedAnnouncement.targetAudience)}
+                    </p>
+                  </div>
+
+                  <div className="border border-slate-200 bg-slate-50/70 p-3 space-y-1.5 rounded-none dark:border-slate-800 dark:bg-slate-800/40">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                      Engagement / Views
+                    </span>
+                    <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200 text-xs">
+                      <Eye className="size-3.5 text-[#1447a6] dark:text-blue-400" />
+                      <span>{selectedAnnouncement.viewCount ?? selectedAnnouncement.views ?? 0} user views</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+
+              {/* Footer */}
+              <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0 dark:border-slate-800 dark:bg-slate-950">
+                <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400">
+                  Created {formatDate(selectedAnnouncement.createdAt)}
+                </p>
+                <div className="flex w-full sm:w-auto items-center justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto h-8 px-4 text-xs font-bold rounded-none border-slate-300 hover:bg-slate-100 dark:border-slate-700"
+                    onClick={() => setIsViewOpen(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    type="button"
+                    className="w-full sm:w-auto h-8 px-4 text-xs font-bold rounded-none bg-[#1447a6] text-white hover:bg-[#081F5C] shadow-xs"
+                    onClick={() => {
+                      setIsViewOpen(false)
+                      handleEditAnnouncement(selectedAnnouncement)
+                    }}
+                  >
+                    <Edit className="size-3 mr-1" />
+                    Edit
+                  </Button>
+                </div>
+              </div>
+            </>
           ) : null}
-          <DialogFooter>
-            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => setIsViewOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -26,6 +26,7 @@ import {
   CalendarClock,
   CheckCircle,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ClipboardList,
   Clock,
@@ -47,6 +48,7 @@ import {
   Store,
   Tag,
   User,
+  UserPlus,
   WashingMachine,
   Wrench,
 } from 'lucide-react'
@@ -62,6 +64,7 @@ import {
   preferredDateSortValue,
   selectShell,
 } from './mechanicBookingShared.jsx'
+import { ServiceReceiptDialog } from '../../../components/bookings/ServiceReceiptDialog.jsx'
 import { useLogoutConfirmation } from '@/hooks/useLogoutConfirmation.jsx'
 
 const MECHANIC_FOCUS_KEY = 'epaayosMechanicHistoryFocusBookingId'
@@ -83,6 +86,15 @@ const sidebarMenuButtonClass =
 
 function cn(...classes) {
   return classes.filter(Boolean).join(' ')
+}
+
+function formatPhp(amount) {
+  const n = Number(amount || 0)
+  try {
+    return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 2 }).format(n)
+  } catch {
+    return `₱${Math.round(n).toLocaleString('en-PH')}`
+  }
 }
 
 function initialsFromName(name) {
@@ -151,6 +163,7 @@ function MechanicTechnicianServiceHistory() {
   const [sortBy, setSortBy] = useState('recent')
   const [q, setQ] = useState('')
   const [highlightId, setHighlightId] = useState('')
+  const [receiptBooking, setReceiptBooking] = useState(null)
 
   const loadBookings = useCallback(async () => {
     setListError('')
@@ -497,20 +510,20 @@ function MechanicTechnicianServiceHistory() {
 
                 <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:flex-1 lg:flex-nowrap">
-                    <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[240px]">
-                      <select className={`${selectShell} text-neutral-900 dark:text-neutral-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[180px] sm:flex-1 sm:max-w-[260px]">
+                      <select className={`${selectShell} text-slate-900 dark:text-slate-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                         <option value="recent">Sort: Recently completed</option>
                         <option value="oldest">Sort: Oldest completion</option>
                         <option value="schedule">Sort: Preferred service date</option>
                       </select>
-                      <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                      <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
                     </div>
                   </div>
 
-                  <div className="flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none lg:w-[360px] lg:max-w-[360px]">
-                    <div className="relative h-9 w-full min-w-0 shrink-0">
+                  <div className="relative min-w-0 w-full max-w-full lg:max-w-md lg:flex-1">
+                    <div className="relative w-full min-w-0 max-w-full">
                       <Input
-                        className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-[13px] shadow-sm sm:text-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+                        className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-10 pl-3.5 sm:pr-12 sm:pl-4 text-xs sm:text-sm font-medium shadow-xs placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#04133d]/25"
                         placeholder="Search customer, service, shop…"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
@@ -519,11 +532,10 @@ function MechanicTechnicianServiceHistory() {
                       <Button
                         type="button"
                         size="icon-sm"
-                        className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
-                        aria-hidden
-                        tabIndex={-1}
+                        className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95 cursor-pointer"
+                        aria-label="Search"
                       >
-                        <Search className="h-4 w-4 text-white" />
+                        <Search className="h-3.5 w-3.5 text-white" />
                       </Button>
                     </div>
                   </div>
@@ -598,6 +610,12 @@ function MechanicTechnicianServiceHistory() {
                                         Ref: #{b.ref}
                                       </span>
                                     ) : null}
+                                    {b.isWalkIn && (
+                                      <span className="text-[10px] sm:text-[11px] font-extrabold bg-amber-100 text-amber-900 px-1.5 sm:px-2 py-0.5 rounded-none border border-amber-300 inline-flex items-center gap-1">
+                                        <UserPlus className="size-3 text-amber-700 shrink-0" />
+                                        Walk-in Customer
+                                      </span>
+                                    )}
                                     {b.shopName ? (
                                       <span className="text-[10px] sm:text-[11px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 border border-slate-200 inline-flex items-center gap-1">
                                         <Store className="size-2.5 sm:size-3 text-slate-500" />
@@ -654,11 +672,32 @@ function MechanicTechnicianServiceHistory() {
                                     {completionOutcomeLabel(cat)}
                                   </p>
                                 </div>
-                                <div className="bg-white p-2 border border-slate-200 space-y-0.5 text-[11px]">
-                                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
-                                  <div className="flex items-center gap-1 font-bold text-slate-800">
-                                    <CalendarClock className="size-3 text-indigo-600" />
-                                    <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
+                                <div className="bg-white p-2 border border-slate-200 space-y-1 text-[11px]">
+                                  <div className="space-y-0.5">
+                                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
+                                    <div className="flex items-center gap-1 font-bold text-slate-800">
+                                      <CalendarClock className="size-3 text-indigo-600" />
+                                      <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
+                                    </div>
+                                  </div>
+                                  {(b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null) && (
+                                    <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[11px]">
+                                      <span className="text-slate-600 font-medium">Total Fee:</span>
+                                      <span className="font-bold text-indigo-700">
+                                        {formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[11px]">
+                                    <span className="text-slate-600 font-medium">Official Receipt:</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setReceiptBooking(b)}
+                                      className="text-indigo-600 hover:text-indigo-800 font-bold underline text-[11px] inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
+                                    >
+                                      <FileText className="size-3 text-indigo-600" />
+                                      <span>View Receipt</span>
+                                    </button>
                                   </div>
                                 </div>
                               </div>
@@ -703,18 +742,30 @@ function MechanicTechnicianServiceHistory() {
                               <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-800 dark:text-emerald-200/95">
                                 Outcome: <span className="font-bold">{completionOutcomeLabel(cat)}</span> · Status: <span className="font-bold">Completed</span>
                               </p>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="h-8 gap-1.5 rounded-none border-slate-300 bg-white/90 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-slate-50 cursor-pointer w-full sm:w-auto inline-flex items-center justify-center"
-                                onClick={() => {
-                                  window.location.hash = '#/mechanic/technician/messages'
-                                }}
-                              >
-                                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-indigo-600" aria-hidden />
-                                Messages
-                              </Button>
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1.5 rounded-none border-slate-300 bg-white/90 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-slate-50 cursor-pointer flex-1 sm:flex-none inline-flex items-center justify-center"
+                                  onClick={() => setReceiptBooking(b)}
+                                >
+                                  <FileText className="h-3.5 w-3.5 shrink-0 text-indigo-600" aria-hidden />
+                                  View Receipt
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 gap-1.5 rounded-none border-slate-300 bg-white/90 px-3 text-xs font-bold text-[#081F5C] shadow-2xs hover:bg-slate-50 cursor-pointer flex-1 sm:flex-none inline-flex items-center justify-center"
+                                  onClick={() => {
+                                    window.location.hash = '#/mechanic/technician/messages'
+                                  }}
+                                >
+                                  <MessageSquare className="h-3.5 w-3.5 shrink-0 text-indigo-600" aria-hidden />
+                                  Messages
+                                </Button>
+                              </div>
                             </div>
                           </article>
                         )
@@ -728,6 +779,15 @@ function MechanicTechnicianServiceHistory() {
         </SidebarProvider>
       </TooltipProvider>
       {LogoutDialog}
+
+      {/* Official Service E-Receipt Dialog */}
+      <ServiceReceiptDialog
+        open={Boolean(receiptBooking)}
+        onOpenChange={(open) => {
+          if (!open) setReceiptBooking(null)
+        }}
+        booking={receiptBooking}
+      />
     </div>
   )
 }

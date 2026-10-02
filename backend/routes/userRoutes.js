@@ -12,6 +12,9 @@ import {
   getUserForAdmin,
   approveUserForAdmin,
   rejectUserForAdmin,
+  forgotPassword,
+  resetPassword,
+  changePassword,
 } from "../controllers/userController.js"
 import { listPublicAnnouncements, incrementAnnouncementView } from "../controllers/announcementController.js"
 import { protect, adminOnly } from "../middleware/authMiddleware.js"
@@ -38,7 +41,11 @@ router.post(
   registerUser
 )
 router.post("/login", loginUser)
+router.post("/forgot-password", forgotPassword)
+router.post("/reset-password", resetPassword)
 router.get("/me", protect, getMe)
+router.patch("/me/change-password", protect, changePassword)
+router.patch("/me/password", protect, changePassword)
 router.patch("/me/payment-methods", protect, patchMyPaymentMethods)
 router.patch("/me/warranty-settings", protect, patchMyWarrantySettings)
 router.patch("/me/shop", protect, updateShopOwnerShopInfo)

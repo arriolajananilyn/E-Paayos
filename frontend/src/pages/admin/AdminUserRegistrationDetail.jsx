@@ -97,22 +97,24 @@ function sectionHeading(title) {
 
 function Section({ title, children }) {
   return (
-    <div className="border-b border-gray-200 pb-5 last:border-0 last:pb-0 dark:border-white/10">
-      <h3 className="mb-3 text-base font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-        {sectionHeading(title)}
-      </h3>
-      <div className="max-w-3xl space-y-2.5">{children}</div>
+    <div className="border border-slate-200 bg-white shadow-xs rounded-none overflow-hidden dark:border-slate-800 dark:bg-slate-900/60">
+      <div className="bg-slate-50 px-3.5 py-2 border-b border-slate-200 dark:bg-slate-800/60 dark:border-slate-800">
+        <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+          {sectionHeading(title)}
+        </h3>
+      </div>
+      <div className="p-3.5 space-y-2 divide-y divide-slate-100 dark:divide-slate-800/60">{children}</div>
     </div>
   )
 }
 
-/** One line: "Label:   value" (same idea as a simple form printout). */
+/** One line: "Label: value" */
 function Line({ label, value }) {
   const v = value == null || value === '' ? '—' : value
   return (
-    <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 text-sm sm:grid-cols-[minmax(11rem,13rem)_1fr] sm:items-start">
-      <span className="font-medium text-gray-700 dark:text-gray-300">{label}:</span>
-      <span className="wrap-break-word whitespace-pre-wrap text-gray-900 dark:text-gray-100">{v}</span>
+    <div className="grid grid-cols-1 sm:grid-cols-[minmax(10rem,13rem)_1fr] gap-x-4 gap-y-0.5 text-xs sm:text-sm pt-2 first:pt-0 sm:items-baseline">
+      <span className="font-semibold text-slate-500 dark:text-slate-400 text-xs">{label}:</span>
+      <span className="font-medium text-slate-900 dark:text-slate-100 break-words whitespace-pre-wrap">{v}</span>
     </div>
   )
 }
@@ -125,36 +127,59 @@ function DocumentCard({ title, subtitle, storedPath, dataUrl, apiBaseUrl }) {
     (!dataUrl && Boolean(name) && isLikelyImageFilename(name))
 
   return (
-    <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-gray-950/40">
-      <div className="border-b border-gray-100 px-3 py-2 dark:border-white/10">
-        <div className="text-xs font-medium text-gray-700 dark:text-gray-200">{title}</div>
-        {subtitle ? <div className="mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">{subtitle}</div> : null}
+    <div className="overflow-hidden rounded-none border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900/80">
+      <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-800/40 flex items-center justify-between">
+        <div>
+          <div className="text-xs font-bold text-slate-800 dark:text-slate-200">{title}</div>
+          {subtitle ? <div className="text-[10px] text-slate-500 dark:text-slate-400">{subtitle}</div> : null}
+        </div>
+        {url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#1447a6] hover:underline dark:text-blue-400"
+          >
+            <span>View Full</span>
+            <ExternalLink className="size-3" />
+          </a>
+        ) : null}
       </div>
-      <div className="p-2">
+      <div className="p-2.5 bg-slate-100/50 dark:bg-slate-950/50 flex items-center justify-center">
         {!url ? (
-          <div className="flex h-52 items-center justify-center rounded-md bg-gray-50 text-xs text-gray-500 dark:bg-white/5">
+          <div className="flex h-44 w-full items-center justify-center rounded-none bg-slate-100 text-xs text-slate-400 dark:bg-slate-800">
             No file uploaded
           </div>
         ) : isImage ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-md ring-1 ring-black/5">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative block w-full overflow-hidden border border-slate-200 bg-black/5 dark:border-slate-700"
+          >
             <ImageWithFallback
               src={url}
               alt={title}
-              className="h-52 w-full object-cover transition-transform hover:scale-[1.02]"
+              className="h-44 w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+              <ExternalLink className="size-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+            </div>
           </a>
         ) : (
-          <div className="flex h-52 flex-col items-center justify-center gap-2 rounded-md bg-gray-50 px-3 dark:bg-white/5">
-            <FileText className="h-10 w-10 text-gray-400" aria-hidden />
-            <span className="max-w-full truncate text-center text-xs text-gray-600 dark:text-gray-300">{name}</span>
+          <div className="flex h-44 w-full flex-col items-center justify-center gap-2 rounded-none bg-white p-3 border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+            <FileText className="size-8 text-[#1447a6] dark:text-blue-400" aria-hidden />
+            <span className="max-w-full truncate text-center text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {name || 'Attached File'}
+            </span>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-[#1447a6] underline underline-offset-2 hover:text-[#081F5C] dark:text-blue-300"
+              className="inline-flex items-center gap-1 text-xs font-bold text-[#1447a6] hover:underline dark:text-blue-400"
             >
-              Open file
-              <ExternalLink className="h-3 w-3" />
+              <span>Open File</span>
+              <ExternalLink className="size-3" />
             </a>
           </div>
         )}
@@ -371,10 +396,11 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl }) {
 
         {idVerificationBlock}
 
-        <Section title="Shop roster (set by shop owner after registration)">
-          <Line label="Shop job title" value={profile.shopJobTitle} />
-          <Line label="Roster status" value={rosterStatusLabel} />
-        </Section>
+        {profile.shopJobTitle ? (
+          <Section title="Shop job assignment">
+            <Line label="Shop job title" value={profile.shopJobTitle} />
+          </Section>
+        ) : null}
       </div>
     )
   }

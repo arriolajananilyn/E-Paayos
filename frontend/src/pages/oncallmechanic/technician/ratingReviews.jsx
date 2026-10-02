@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ChevronDown,
+  ChevronRight,
   ClipboardList,
   Eye,
   EyeOff,
@@ -97,39 +98,55 @@ const selectClass = cn(
   '[&_[data-slot=native-select-icon]]:text-slate-400'
 )
 
-const statCardThemes = {
-  amber: {
-    surface: 'bg-gradient-to-br from-white via-amber-50/35 to-yellow-100/35',
-    glow: 'bg-amber-400/25',
-    icon: 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/35',
-    iconRing: 'ring-amber-100/80',
-    bar: 'from-amber-500 via-orange-400 to-orange-300/0',
-    hint: 'text-amber-600/70',
-  },
-  emerald: {
-    surface: 'bg-gradient-to-br from-white via-blue-50/40 to-indigo-100/35',
-    glow: 'bg-[#081F5C]/20',
-    icon: 'bg-gradient-to-br from-[#081F5C] via-[#0a2773] to-[#1447a6] text-white shadow-lg shadow-[#081F5C]/35',
-    iconRing: 'ring-blue-100/80',
-    bar: 'from-[#081F5C] via-[#1447a6] to-blue-400/0',
-    hint: 'text-[#081F5C]/80',
-  },
-  sky: {
-    surface: 'bg-gradient-to-br from-white via-sky-50/30 to-blue-100/35',
-    glow: 'bg-sky-400/25',
-    icon: 'bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/35',
-    iconRing: 'ring-sky-100/80',
-    bar: 'from-sky-500 via-blue-400 to-blue-300/0',
-    hint: 'text-sky-600/70',
-  },
-  rose: {
-    surface: 'bg-gradient-to-br from-white via-rose-50/30 to-red-100/30',
-    glow: 'bg-rose-400/25',
-    icon: 'bg-gradient-to-br from-rose-500 to-red-500 text-white shadow-lg shadow-rose-500/35',
-    iconRing: 'ring-rose-100/80',
-    bar: 'from-rose-500 via-red-400 to-red-300/0',
-    hint: 'text-rose-600/70',
-  },
+const STAT_CARD_GRADIENT = {
+  amber: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  pending: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
+  flagged: "from-rose-600 via-red-700 to-slate-950 border-rose-400/30",
+}
+
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
+  const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
+  const helperText = helper || sub
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function formatRelativeTime(isoString) {
@@ -697,36 +714,41 @@ export default function OnCallMechanicRatingReviews() {
     >
       <div className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
-          <StatCard
-            theme="amber"
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+          <StatGradientCard
+            variant="amber"
             label="Average Rating"
             value={stats.avgRating > 0 ? stats.avgRating.toFixed(1) : '—'}
             icon={Star}
-            hint={stats.total > 0 ? `${stats.total} total review${stats.total === 1 ? '' : 's'}` : 'No reviews yet'}
-            progress={stats.avgRating > 0 ? (stats.avgRating / 5) * 100 : 0}
+            helper={stats.total > 0 ? `${stats.total} total review${stats.total === 1 ? '' : 's'}` : 'No reviews yet'}
+            onClick={() => setRatingFilter('')}
           />
-          <StatCard
-            theme="emerald"
+          <StatGradientCard
+            variant="total"
             label="Total Reviews"
             value={stats.total}
             icon={TrendingUp}
-            hint="Across all services"
+            helper="Across all services"
+            onClick={() => {
+              setRatingFilter('')
+              setStatusFilter('')
+            }}
           />
-          <StatCard
-            theme="sky"
+          <StatGradientCard
+            variant="pending"
             label="Pending Replies"
             value={stats.pending}
             icon={MessageSquare}
-            hint={stats.pending > 0 ? 'Awaiting your response' : 'All caught up'}
-            progress={stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}
+            helper={stats.pending > 0 ? 'Awaiting response' : 'All caught up'}
+            onClick={() => setStatusFilter(statusFilter === 'pending' ? '' : 'pending')}
           />
-          <StatCard
-            theme="rose"
+          <StatGradientCard
+            variant="flagged"
             label="Flagged"
             value={stats.flagged}
             icon={AlertTriangle}
-            hint={stats.flagged > 0 ? 'Needs attention' : 'No flagged reviews'}
+            helper={stats.flagged > 0 ? 'Needs attention' : 'No flagged reviews'}
+            onClick={() => setStatusFilter(statusFilter === 'flagged' ? '' : 'flagged')}
           />
         </div>
 

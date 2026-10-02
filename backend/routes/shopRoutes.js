@@ -11,6 +11,7 @@ import {
   updateShopService,
 } from "../controllers/shopController.js"
 import {
+  createWalkInBooking,
   listShopOwnerBookings,
   listShopOwnerReviewsRatings,
   patchShopOwnerBookingReviewResponse,
@@ -27,6 +28,7 @@ router.get("/employees", getShopEmployees)
 router.get("/registered-mechanics", getRegisteredMechanics)
 router.patch("/registered-mechanics/:id", patchRegisteredMechanic)
 router.get("/bookings", listShopOwnerBookings)
+router.post("/bookings/walkin", createWalkInBooking)
 router.get("/reviews-ratings", listShopOwnerReviewsRatings)
 router.patch("/bookings/:id/review-response", patchShopOwnerBookingReviewResponse)
 router.patch("/bookings/:id/service-fee", patchShopOwnerBookingServiceFee)

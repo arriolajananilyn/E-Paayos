@@ -38,9 +38,11 @@ import {
   Camera,
   CheckCircle,
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
   Clock,
   DollarSign,
+  FileText,
   History,
   Home,
   Image as ImageIcon,
@@ -52,6 +54,7 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   Smartphone,
   Store,
@@ -1162,6 +1165,7 @@ function MechanicTechnicianAssignedRequest() {
                     value={counts.pending}
                     helper="Awaiting shop confirmation"
                     icon={CalendarClock}
+                    onClick={() => setStatusFilter((f) => (f === 'pending' ? '' : 'pending'))}
                   />
                   <StatGradientCard
                     variant="confirmed"
@@ -1169,6 +1173,7 @@ function MechanicTechnicianAssignedRequest() {
                     value={counts.confirmed}
                     helper="Accepted, ready to start"
                     icon={CalendarCheck}
+                    onClick={() => setStatusFilter((f) => (f === 'confirmed' ? '' : 'confirmed'))}
                   />
                   <StatGradientCard
                     variant="working"
@@ -1176,6 +1181,7 @@ function MechanicTechnicianAssignedRequest() {
                     value={counts.working}
                     helper="In progress / calculating fee"
                     icon={Wrench}
+                    onClick={() => setStatusFilter((f) => (f === 'working' ? '' : 'working'))}
                   />
                   <StatGradientCard
                     variant="completed"
@@ -1183,6 +1189,7 @@ function MechanicTechnicianAssignedRequest() {
                     value={counts.fixed}
                     helper="Fixed / Awaiting pay"
                     icon={CheckCircle}
+                    onClick={() => setStatusFilter((f) => (f === 'fixed' ? '' : 'fixed'))}
                   />
                   <StatGradientCard
                     className="col-span-2 sm:col-span-1 lg:col-span-1"
@@ -1191,6 +1198,7 @@ function MechanicTechnicianAssignedRequest() {
                     value={counts.completed}
                     helper="Finished and paid jobs"
                     icon={ClipboardList}
+                    onClick={() => setStatusFilter((f) => (f === 'completed' ? '' : 'completed'))}
                   />
                 </div>
 
@@ -1198,7 +1206,7 @@ function MechanicTechnicianAssignedRequest() {
                   <div className="grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-nowrap gap-2 sm:gap-3 w-full min-w-0 max-w-full flex-1">
                     <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
                       <select
-                        className={`${selectShell} text-neutral-900 dark:text-neutral-100`}
+                        className={`${selectShell} ${statusFilter ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500'}`}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                       >
@@ -1210,36 +1218,37 @@ function MechanicTechnicianAssignedRequest() {
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
-                      <Clock className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                      <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
                     </div>
 
                     <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[220px]">
-                      <select className={`${selectShell} text-neutral-900 dark:text-neutral-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                      <select className={`${selectShell} text-slate-900 dark:text-slate-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                         <option value="schedule">Sort: Preferred date</option>
                         <option value="newest">Sort: Newest request</option>
                         <option value="oldest">Sort: Oldest request</option>
                       </select>
-                      <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                      <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
                     </div>
                   </div>
 
-                  <div className="relative h-9 w-full min-w-0 shrink-0 lg:w-[320px]">
-                    <Input
-                      className="h-9 w-full rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-xs sm:text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
-                      placeholder="Search name, phone, service, shop, notes…"
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                      aria-label="Search assigned requests"
-                    />
-                    <Button
-                      type="button"
-                      size="icon-sm"
-                      className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
-                      aria-hidden
-                      tabIndex={-1}
-                    >
-                      <Search className="h-4 w-4 text-white" />
-                    </Button>
+                  <div className="relative min-w-0 w-full max-w-full lg:max-w-md lg:flex-1">
+                    <div className="relative w-full min-w-0 max-w-full">
+                      <Input
+                        className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-10 pl-3.5 sm:pr-12 sm:pl-4 text-xs sm:text-sm font-medium shadow-xs placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#04133d]/25"
+                        placeholder="Search name, phone, service, shop, notes…"
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        aria-label="Search assigned requests"
+                      />
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95 cursor-pointer"
+                        aria-label="Search"
+                      >
+                        <Search className="h-3.5 w-3.5 text-white" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 

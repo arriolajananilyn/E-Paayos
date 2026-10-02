@@ -8,6 +8,7 @@ import { User } from "../models/userModel.js"
 import { generateToken } from "../utils/generateToken.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
+import { sendEmail } from "../utils/sendEmail.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -778,8 +779,9 @@ export const patchMyWarrantySettings = asyncHandler(async (req, res) => {
 export const listUsersForAdmin = asyncHandler(async (_req, res) => {
   const users = await User.find({ role: { $ne: "admin" } })
     .select(
-      "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus barangay cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason"
+      "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus barangay cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason employedByShopOwner"
     )
+    .populate("employedByShopOwner", "shopName fullName email")
     .sort({ createdAt: -1 })
     .lean()
 
@@ -872,3 +874,237 @@ export const rejectUserForAdmin = asyncHandler(async (req, res) => {
   })
 })
 
+/**
+ * @desc    Request 6-digit password reset verification code (OTP) via email
+ * @route   POST /api/users/forgot-password
+ * @access  Public
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body
+  const normalizedEmail = String(email || "").trim().toLowerCase()
+
+  if (!normalizedEmail) {
+    res.status(400)
+    throw new Error("Please enter your registered email address")
+  }
+
+  const user = await User.findOne({ email: normalizedEmail })
+  if (!user) {
+    res.status(404)
+    throw new Error("This email address is not registered in E-Paayos.")
+  }
+
+  // Generate 6-digit numeric OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString()
+  const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex")
+
+  // Also keep reset token support
+  const resetToken = crypto.randomBytes(32).toString("hex")
+  const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex")
+
+  // Set OTP & token expiration (15 minutes)
+  user.resetPasswordOtp = hashedOtp
+  user.resetPasswordOtpExpire = new Date(Date.now() + 15 * 60 * 1000)
+  user.resetPasswordToken = hashedToken
+  user.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000)
+  await user.save({ validateBeforeSave: false })
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Password Reset Code - E-Paayos</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 30px 15px;">
+        <tr>
+          <td align="center">
+            <table role="presentation" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
+              <!-- Header -->
+              <tr>
+                <td style="background: linear-gradient(135deg, #081F5C 0%, #0b2b73 50%, #1447a6 100%); padding: 26px 24px; text-align: center;">
+                  <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">E-Paayos</h1>
+                  <p style="margin: 6px 0 0 0; color: #cbd5e1; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">Password Reset Verification</p>
+                </td>
+              </tr>
+              <!-- Body -->
+              <tr>
+                <td style="padding: 30px 26px;">
+                  <h2 style="margin: 0 0 14px 0; color: #081F5C; font-size: 18px; font-weight: 700;">Hello ${user.fullName || "Valued User"},</h2>
+                  <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                    We received a request to reset your password for your <strong>E-Paayos</strong> account (<em>${user.email}</em>).
+                  </p>
+                  <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                    Use the 6-digit verification code below to complete your password reset:
+                  </p>
+                  
+                  <!-- OTP Code Box -->
+                  <div style="text-align: center; margin: 26px 0; background-color: #f8fafc; border: 2px dashed #081F5C; border-radius: 10px; padding: 18px 20px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #64748b; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px;">Your 6-Digit Code</div>
+                    <div style="font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #081F5C; font-family: monospace;">${otp}</div>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Valid for 15 minutes</div>
+                  </div>
+
+                  <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 14px; border-radius: 4px; margin-bottom: 20px;">
+                    <p style="margin: 0; color: #78350f; font-size: 12px; line-height: 1.5;">
+                      <strong>Security Tip:</strong> Never share this verification code with anyone. E-Paayos staff will never ask for your code or password.
+                    </p>
+                  </div>
+
+                  <p style="margin: 0; color: #64748b; font-size: 12px; line-height: 1.5;">
+                    If you did not request a password reset, you can safely ignore this email.
+                  </p>
+                </td>
+              </tr>
+              <!-- Footer -->
+              <tr>
+                <td style="background-color: #f8fafc; padding: 18px 24px; border-top: 1px solid #e2e8f0; text-align: center;">
+                  <p style="margin: 0; color: #94a3b8; font-size: 11px;">
+                    &copy; ${new Date().getFullYear()} E-Paayos Platform. All rights reserved.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `
+
+  const text = `Hello ${user.fullName || "User"},\n\nYour 6-digit E-Paayos password reset verification code is: ${otp}\n\nThis code is valid for 15 minutes.\nIf you did not request this, please ignore this email.\n\n— E-Paayos Support`
+
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: `E-Paayos Verification Code: ${otp}`,
+      html,
+      text,
+    })
+  } catch (err) {
+    user.resetPasswordOtp = undefined
+    user.resetPasswordOtpExpire = undefined
+    await user.save({ validateBeforeSave: false })
+    console.error("Failed to send reset email:", err)
+    res.status(500)
+    throw new Error(`Email could not be sent: ${err.message || "Email service error"}`)
+  }
+
+  return res.json({
+    success: true,
+    message: `Verification code sent to ${user.email}. Please check your email inbox.`,
+  })
+})
+
+/**
+ * @desc    Verify 6-digit OTP / token and reset password
+ * @route   POST /api/users/reset-password
+ * @access  Public
+ */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { email, otp, token, newPassword, password } = req.body
+  const targetPassword = String(newPassword || password || "").trim()
+  const cleanEmail = String(email || "").trim().toLowerCase()
+
+  if (!targetPassword || targetPassword.length < 6) {
+    res.status(400)
+    throw new Error("Password must be at least 6 characters long")
+  }
+
+  let user = null
+
+  // 1. Verify by 6-digit OTP
+  if (otp && cleanEmail) {
+    const cleanOtp = String(otp).trim()
+    const hashedOtp = crypto.createHash("sha256").update(cleanOtp).digest("hex")
+
+    user = await User.findOne({
+      email: cleanEmail,
+      resetPasswordOtp: hashedOtp,
+      resetPasswordOtpExpire: { $gt: new Date() },
+    })
+
+    if (!user) {
+      res.status(400)
+      throw new Error("Invalid or expired 6-digit verification code. Please check the code or request a new one.")
+    }
+  } else if (token) {
+    // 2. Verify by URL token
+    const hashedToken = crypto.createHash("sha256").update(String(token).trim()).digest("hex")
+    user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: new Date() },
+    })
+
+    if (!user) {
+      res.status(400)
+      throw new Error("Invalid or expired password reset link. Please request a new one.")
+    }
+  } else {
+    res.status(400)
+    throw new Error("Please provide your email and 6-digit verification code")
+  }
+
+  // Set new password
+  user.password = targetPassword
+  user.resetPasswordOtp = undefined
+  user.resetPasswordOtpExpire = undefined
+  user.resetPasswordToken = undefined
+  user.resetPasswordExpire = undefined
+
+  await user.save()
+
+  return res.json({
+    success: true,
+    message: "Password updated successfully! You can now sign in with your new password.",
+  })
+})
+
+/**
+ * @desc    Change password for logged-in user
+ * @route   PATCH /api/users/me/change-password
+ * @access  Private
+ */
+export const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body
+  const cleanCurrent = String(currentPassword || "").trim()
+  const cleanNew = String(newPassword || "").trim()
+  const cleanConfirm = String(confirmPassword || "").trim()
+
+  if (!cleanCurrent || !cleanNew) {
+    res.status(400)
+    throw new Error("Current password and new password are required")
+  }
+
+  if (cleanNew.length < 6) {
+    res.status(400)
+    throw new Error("New password must be at least 6 characters long")
+  }
+
+  if (cleanConfirm && cleanNew !== cleanConfirm) {
+    res.status(400)
+    throw new Error("New password and confirm password do not match")
+  }
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User account not found")
+  }
+
+  const isMatch = await user.matchPassword(cleanCurrent)
+  if (!isMatch) {
+    res.status(400)
+    throw new Error("Incorrect current password. Please re-enter your current password.")
+  }
+
+  user.password = cleanNew
+  await user.save()
+
+  return res.json({
+    success: true,
+    message: "Your password has been changed successfully!",
+  })
+})

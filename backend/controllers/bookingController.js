@@ -1039,8 +1039,11 @@ function mapBookingForShopOwner(b) {
   if (!b) return null
   const cust = b.customer && typeof b.customer === "object" ? b.customer : null
   const svc = b.shopService && typeof b.shopService === "object" ? b.shopService : null
+  const id = String(b._id)
   return {
-    id: String(b._id),
+    id,
+    ref: `BK-${id.slice(-8).toUpperCase()}`,
+    isWalkIn: Boolean(b.isWalkIn),
     status: b.status,
     contactName: b.contactName,
     contactPhone: b.contactPhone,
@@ -1284,8 +1287,14 @@ export const patchShopOwnerBookingStatus = asyncHandler(async (req, res) => {
         throw new Error("Calculate and save the service fee before completing.")
       }
       if (doc.paymentStatus !== "paid") {
-        res.status(400)
-        throw new Error("Customer must complete payment first before this booking can be marked as Paid (Completed).")
+        if (doc.isWalkIn || !doc.customer || req.body?.paymentMethod || req.body?.markPaid) {
+          doc.paymentStatus = "paid"
+          doc.paymentMethod = clean(req.body?.paymentMethod) || "cash"
+          doc.paidAt = new Date()
+        } else {
+          res.status(400)
+          throw new Error("Customer must complete payment first before this booking can be marked as Paid (Completed).")
+        }
       }
 
       const rawCompletionProof =
@@ -1308,7 +1317,7 @@ export const patchShopOwnerBookingStatus = asyncHandler(async (req, res) => {
 
   await doc.save()
 
-  if (nextStatus) {
+  if (nextStatus && doc.customer && !doc.isWalkIn) {
     try {
       const actor = await User.findById(req.user._id).select("shopName fullName").lean()
       const shopLabel = (actor?.shopName && String(actor.shopName).trim()) || actor?.fullName || "Provider"
@@ -1416,26 +1425,28 @@ export const patchShopOwnerBookingServiceFee = asyncHandler(async (req, res) => 
   doc.serviceFeeConfirmedAt = new Date()
   await doc.save()
 
-  try {
-    const actor = await User.findById(req.user._id).select("shopName fullName").lean()
-    const providerLabel = (actor?.shopName && String(actor.shopName).trim()) || actor?.fullName || "Provider"
-    const svc =
-      doc.shopService && typeof doc.shopService === "object" ? doc.shopService : null
-    const text = formatServiceFeeToCustomer({
-      bookingRefId: doc._id,
-      providerLabel,
-      labor: doc.serviceFeeLaborRateAtCalc,
-      materials: doc.serviceFeeMaterialsAmount,
-      replacementParts: doc.serviceFeeReplacementParts,
-      serviceName: svc?.name || "",
-    })
-    await sendDirectMessage({
-      fromUserId: req.user._id,
-      toUserId: doc.customer,
-      content: text,
-    })
-  } catch (err) {
-    console.error("Booking chat notification failed:", err?.message || err)
+  if (doc.customer && !doc.isWalkIn) {
+    try {
+      const actor = await User.findById(req.user._id).select("shopName fullName").lean()
+      const providerLabel = (actor?.shopName && String(actor.shopName).trim()) || actor?.fullName || "Provider"
+      const svc =
+        doc.shopService && typeof doc.shopService === "object" ? doc.shopService : null
+      const text = formatServiceFeeToCustomer({
+        bookingRefId: doc._id,
+        providerLabel,
+        labor: doc.serviceFeeLaborRateAtCalc,
+        materials: doc.serviceFeeMaterialsAmount,
+        replacementParts: doc.serviceFeeReplacementParts,
+        serviceName: svc?.name || "",
+      })
+      await sendDirectMessage({
+        fromUserId: req.user._id,
+        toUserId: doc.customer,
+        content: text,
+      })
+    } catch (err) {
+      console.error("Booking chat notification failed:", err?.message || err)
+    }
   }
 
   const populated = await Booking.findById(doc._id)
@@ -1462,6 +1473,7 @@ function mapBookingForTechnician(b) {
   return {
     id,
     ref: `BK-${id.slice(-8).toUpperCase()}`,
+    isWalkIn: Boolean(b.isWalkIn),
     status: b.status,
     contactName: b.contactName,
     contactPhone: b.contactPhone,
@@ -1665,8 +1677,14 @@ export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
       throw new Error("Calculate and save the service fee before marking this job complete.")
     }
     if (doc.paymentStatus !== "paid") {
-      res.status(400)
-      throw new Error("Customer must complete payment first before this booking can be marked as Paid (Completed).")
+      if (doc.isWalkIn || !doc.customer || req.body?.paymentMethod || req.body?.markPaid) {
+        doc.paymentStatus = "paid"
+        doc.paymentMethod = clean(req.body?.paymentMethod) || "cash"
+        doc.paidAt = new Date()
+      } else {
+        res.status(400)
+        throw new Error("Customer must complete payment first before this booking can be marked as Paid (Completed).")
+      }
     }
 
     const rawCompletionProof =
@@ -1688,21 +1706,23 @@ export const patchTechnicianBookingAction = asyncHandler(async (req, res) => {
 
   await doc.save()
 
-  try {
-    const tech = await User.findById(techId).select("fullName").lean()
-    const techName = tech?.fullName?.trim() || "Technician"
-    const text = formatTechnicianActionToCustomer({
-      bookingRefId: doc._id,
-      action,
-      technicianName: techName,
-    })
-    await sendDirectMessage({
-      fromUserId: techId,
-      toUserId: doc.customer,
-      content: text,
-    })
-  } catch (err) {
-    console.error("Booking chat notification failed:", err?.message || err)
+  if (doc.customer && !doc.isWalkIn) {
+    try {
+      const tech = await User.findById(techId).select("fullName").lean()
+      const techName = tech?.fullName?.trim() || "Technician"
+      const text = formatTechnicianActionToCustomer({
+        bookingRefId: doc._id,
+        action,
+        technicianName: techName,
+      })
+      await sendDirectMessage({
+        fromUserId: techId,
+        toUserId: doc.customer,
+        content: text,
+      })
+    } catch (err) {
+      console.error("Booking chat notification failed:", err?.message || err)
+    }
   }
 
   const populated = await Booking.findById(doc._id)
@@ -1770,24 +1790,26 @@ export const patchMechanicBookingServiceFee = asyncHandler(async (req, res) => {
   doc.serviceFeeConfirmedAt = new Date()
   await doc.save()
 
-  try {
-    const tech = await User.findById(techId).select("fullName").lean()
-    const providerLabel = tech?.fullName?.trim() || "Technician"
-    const text = formatServiceFeeToCustomer({
-      bookingRefId: doc._id,
-      providerLabel,
-      labor: doc.serviceFeeLaborRateAtCalc,
-      materials: doc.serviceFeeMaterialsAmount,
-      replacementParts: doc.serviceFeeReplacementParts,
-      serviceName: svc?.name || "",
-    })
-    await sendDirectMessage({
-      fromUserId: techId,
-      toUserId: doc.customer,
-      content: text,
-    })
-  } catch (err) {
-    console.error("Booking chat notification failed:", err?.message || err)
+  if (doc.customer && !doc.isWalkIn) {
+    try {
+      const tech = await User.findById(techId).select("fullName").lean()
+      const providerLabel = tech?.fullName?.trim() || "Technician"
+      const text = formatServiceFeeToCustomer({
+        bookingRefId: doc._id,
+        providerLabel,
+        labor: doc.serviceFeeLaborRateAtCalc,
+        materials: doc.serviceFeeMaterialsAmount,
+        replacementParts: doc.serviceFeeReplacementParts,
+        serviceName: svc?.name || "",
+      })
+      await sendDirectMessage({
+        fromUserId: techId,
+        toUserId: doc.customer,
+        content: text,
+      })
+    } catch (err) {
+      console.error("Booking chat notification failed:", err?.message || err)
+    }
   }
 
   const populated = await Booking.findById(doc._id)
@@ -2447,4 +2469,121 @@ export const patchMechanicWarrantyClaim = asyncHandler(async (req, res) => {
     booking: mapBookingForTechnician(populated),
   })
 })
+
+/**
+ * POST /api/shop/bookings/walkin or /api/mechanic/bookings/walkin
+ * Record a walk-in customer booking directly by shop owner or on-call mechanic/technician.
+ */
+export const createWalkInBooking = asyncHandler(async (req, res) => {
+  const shopServiceId = clean(req.body?.shopServiceId)
+  const contactName = clean(req.body?.contactName)
+  const contactPhone = clean(req.body?.contactPhone)
+  const preferredDateRaw = req.body?.preferredDate
+  const preferredTime = clean(req.body?.preferredTime) || new Date().toTimeString().slice(0, 5)
+  const serviceMode = clean(req.body?.serviceMode) || "in-shop"
+  const serviceAddress = clean(req.body?.serviceAddress)
+  const problemDescription = clean(req.body?.problemDescription)
+  const notes = clean(req.body?.notes)
+  const assignedTechnicianId = clean(req.body?.assignedTechnician)
+  const initialStatus = clean(req.body?.status) || "confirmed"
+
+  if (!shopServiceId || !mongoose.Types.ObjectId.isValid(shopServiceId)) {
+    res.status(400)
+    throw new Error("Invalid service selected.")
+  }
+  if (!contactName) {
+    res.status(400)
+    throw new Error("Please enter the customer's name.")
+  }
+  if (!contactPhone) {
+    res.status(400)
+    throw new Error("Please enter a contact number.")
+  }
+  if (!problemDescription) {
+    res.status(400)
+    throw new Error("Please enter a service or problem description.")
+  }
+
+  const svc = await ShopService.findById(shopServiceId)
+  if (!svc) {
+    res.status(404)
+    throw new Error("Service not found.")
+  }
+
+  const isOwner = String(svc.shopOwner) === String(req.user._id)
+  const isAssignedTech =
+    Array.isArray(svc.technicianIds) &&
+    svc.technicianIds.some((id) => String(id) === String(req.user._id))
+  if (
+    !isOwner &&
+    !isAssignedTech &&
+    req.user.role !== "shopowner" &&
+    req.user.role !== "oncall-mechanic-technician"
+  ) {
+    res.status(403)
+    throw new Error("You are not authorized to record walk-in customers for this service.")
+  }
+
+  let preferredDate = new Date()
+  if (preferredDateRaw) {
+    const parsed = parsePreferredDate(preferredDateRaw)
+    if (parsed) preferredDate = parsed
+  }
+
+  const validStatuses = ["pending", "confirmed", "working"]
+  const statusToSet = validStatuses.includes(initialStatus) ? initialStatus : "confirmed"
+
+  let techInfo = null
+  if (assignedTechnicianId) {
+    techInfo = await resolveBookingTechnician(svc.shopOwner, assignedTechnicianId)
+  } else if (req.user.role === "oncall-mechanic-technician") {
+    techInfo = {
+      id: req.user._id,
+      name: req.user.fullName || "Provider",
+      jobTitle: req.user.shopJobTitle || "On-call Mechanic/Technician",
+      phone: [req.user.phoneCode, req.user.phoneNumber].filter(Boolean).join(" ").trim(),
+      model: "User",
+    }
+  }
+
+  const doc = await Booking.create({
+    isWalkIn: true,
+    customer: null,
+    shopOwner: svc.shopOwner,
+    shopService: svc._id,
+    contactName,
+    contactPhone,
+    preferredDate,
+    preferredTime,
+    serviceMode: serviceMode === "home" ? "home" : "in-shop",
+    serviceAddress: serviceMode === "home" ? serviceAddress : "",
+    problemDescription,
+    notes,
+    status: statusToSet,
+    assignedTechnician: techInfo ? techInfo.id : null,
+    assignedTechnicianName: techInfo ? techInfo.name : "",
+    assignedTechnicianJobTitle: techInfo ? techInfo.jobTitle : "",
+    assignedTechnicianPhone: techInfo ? techInfo.phone : "",
+    assignedTechnicianModel: techInfo ? techInfo.model : "none",
+  })
+
+  // Increment bookingsCount on ShopService
+  await ShopService.findByIdAndUpdate(svc._id, { $inc: { bookingsCount: 1 } })
+
+  const populated = await Booking.findById(doc._id)
+    .populate("shopService", "name category subcategory location status startingPrice")
+    .populate("shopOwner", "fullName shopName warrantySettings")
+    .lean()
+
+  const mapped =
+    req.user.role === "oncall-mechanic-technician"
+      ? mapBookingForTechnician(populated)
+      : mapBookingForShopOwner(populated)
+
+  return res.status(201).json({
+    message: "Walk-in customer recorded successfully.",
+    booking: mapped,
+  })
+})
+
 

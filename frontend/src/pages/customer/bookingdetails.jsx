@@ -203,7 +203,7 @@ function getStepIndexByStatus(status, b = null) {
     case 'completed':
       return (b?.customerReviewedAt || b?.customerReviewRating) ? 6 : 5
     case 'cancelled':
-      return 0
+      return 1
     default:
       return 0
   }
@@ -397,7 +397,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
   const isWorking = status === 'working' || status === 'fixed' || status === 'completed'
   const isFixed = status === 'fixed' || status === 'completed'
   const isCompleted = status === 'completed'
-  const isMapActive = isHomeService || status === 'confirmed' || status === 'working'
+  const isMapActive = status !== 'cancelled' && (isHomeService || status === 'confirmed' || status === 'working')
 
   // Coordinates resolution
   const originCoords = useMemo(() => {
@@ -828,14 +828,46 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
   }
 
   const isRated = Boolean(booking?.customerReviewedAt || booking?.customerReviewRating)
+  const isCancelled = status === 'cancelled'
+
   const steps = [
-    { label: 'Booking Submitted', icon: Calendar, date: booking.createdAt },
-    { label: 'Booking Confirmed', icon: CheckCircle2, date: booking.updatedAt },
-    { label: 'Working', icon: Wrench, date: isWorking ? booking.updatedAt : null },
-    { label: 'Calculating Service Fee', icon: DollarSign, date: booking.serviceFeeConfirmedAt || null },
-    { label: 'Fixed', icon: CheckCircle2, date: isFixed ? (booking.fixedAt || booking.updatedAt) : null },
-    { label: 'Completed', icon: ShieldCheck, date: isCompleted ? (booking.paidAt || booking.updatedAt) : null },
-    { label: isRated ? 'Rated' : 'Rate Service', icon: Star, date: booking.customerReviewedAt || null },
+    {
+      label: 'Booking Submitted',
+      icon: Calendar,
+      date: booking.createdAt,
+    },
+    {
+      label: isCancelled ? 'Booking Cancelled' : 'Booking Confirmed',
+      icon: isCancelled ? X : CheckCircle2,
+      date: isCancelled
+        ? (booking.cancelledAt || booking.updatedAt)
+        : (status === 'confirmed' || isWorking || isFixed || isCompleted ? booking.updatedAt : null),
+    },
+    {
+      label: 'Working',
+      icon: Wrench,
+      date: !isCancelled && isWorking ? booking.updatedAt : null,
+    },
+    {
+      label: 'Calculating Service Fee',
+      icon: DollarSign,
+      date: !isCancelled && booking.serviceFeeConfirmedAt ? booking.serviceFeeConfirmedAt : null,
+    },
+    {
+      label: 'Fixed',
+      icon: CheckCircle2,
+      date: !isCancelled && isFixed ? (booking.fixedAt || booking.updatedAt) : null,
+    },
+    {
+      label: 'Completed',
+      icon: ShieldCheck,
+      date: !isCancelled && isCompleted ? (booking.paidAt || booking.updatedAt) : null,
+    },
+    {
+      label: isRated ? 'Rated' : 'Rate Service',
+      icon: Star,
+      date: !isCancelled && booking.customerReviewedAt ? booking.customerReviewedAt : null,
+    },
   ]
 
   return (
@@ -898,7 +930,12 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isMapActive ? (
+                  {status === 'cancelled' ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-mono font-bold text-rose-300 bg-rose-950/70 border border-rose-500/40">
+                      <AlertCircle className="size-3 text-rose-400" />
+                      <span>Booking Cancelled</span>
+                    </span>
+                  ) : isMapActive ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-[11px] font-mono font-bold text-emerald-300 bg-emerald-950/70 border border-emerald-500/40">
                       <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span>{isHomeService ? 'Home Service GPS: Active' : 'In-Shop GPS: Ready'}</span>
@@ -1030,13 +1067,13 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
               <div className="flex items-start justify-between min-w-[780px] sm:min-w-[840px] px-2">
                 {steps.map((s, idx) => {
                   const Icon = s.icon
-                  const isCancelled = status === 'cancelled' && idx === 0
-                  const isDone = idx <= currentStepIndex
+                  const isCancelledStep = isCancelled && idx === 1
+                  const isDone = isCancelled ? idx === 0 : idx <= currentStepIndex
                   const isCurrent = idx === currentStepIndex
-                  const lineActive = idx < currentStepIndex
+                  const lineActive = isCancelled ? idx === 0 : idx < currentStepIndex
 
-                  const boxClass = isCancelled
-                    ? 'bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/30'
+                  const boxClass = isCancelledStep
+                    ? 'bg-rose-600 text-white border-rose-600 shadow-lg shadow-rose-600/30 ring-4 ring-rose-100 scale-105'
                     : isCurrent
                       ? 'bg-gradient-to-r from-indigo-600 to-blue-700 text-white border-indigo-600 shadow-lg shadow-indigo-600/30 ring-4 ring-indigo-100 scale-105'
                       : isDone
@@ -1050,7 +1087,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                         <div
                           className={cn(
                             'absolute top-6 sm:top-7 left-1/2 w-full h-1 -translate-y-1/2 z-0 transition-colors duration-300',
-                            lineActive ? 'bg-indigo-600' : 'bg-slate-200'
+                            lineActive ? (isCancelled ? 'bg-rose-500' : 'bg-indigo-600') : 'bg-slate-200'
                           )}
                         />
                       )}
@@ -1058,11 +1095,11 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                       {/* Step Box */}
                       <div
                         className={cn(
-                          'relative z-10 size-12 sm:size-14 rounded-none border-2 flex items-center justify-center transition-all bg-white',
+                          'relative z-10 size-12 sm:size-14 rounded-none border-2 flex items-center justify-center transition-all',
                           boxClass
                         )}
                       >
-                        <Icon className="size-5 sm:size-6" />
+                        <Icon className={cn('size-5 sm:size-6 shrink-0', isCancelledStep ? 'text-white' : '')} strokeWidth={isCancelledStep ? 2.5 : 2} />
                       </div>
 
                       {/* Status Label */}
@@ -1070,11 +1107,13 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                         <span
                           className={cn(
                             'text-xs sm:text-[13px] font-black leading-tight',
-                            isCurrent
-                              ? 'text-indigo-900'
-                              : isDone
-                                ? 'text-slate-900'
-                                : 'text-slate-400'
+                            isCancelledStep
+                              ? 'text-rose-600'
+                              : isCurrent
+                                ? 'text-indigo-900'
+                                : isDone
+                                  ? 'text-slate-900'
+                                  : 'text-slate-400'
                           )}
                         >
                           {s.label}
@@ -1084,7 +1123,12 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                       {/* Date Timestamp */}
                       <div className="mt-1">
                         {s.date ? (
-                          <span className="text-[11px] sm:text-xs font-mono font-semibold text-slate-500 block">
+                          <span
+                            className={cn(
+                              'text-[11px] sm:text-xs font-mono font-semibold block',
+                              isCancelledStep ? 'text-rose-600 font-bold' : 'text-slate-500'
+                            )}
+                          >
                             {formatDateTime(s.date)}
                           </span>
                         ) : (
@@ -1257,7 +1301,15 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                       <div className="size-6 rounded-none flex items-center justify-center bg-indigo-600 text-white">
                         <Calendar className="size-3.5" />
                       </div>
-                      <div className="absolute left-1/2 -translate-x-1/2 w-px bg-slate-200" style={{ top: '1.5rem', height: 'calc(100% + 12px)' }} />
+                      {(status === 'confirmed' || isWorking || isCompleted || status === 'cancelled') && (
+                        <div
+                          className={cn(
+                            'absolute left-1/2 -translate-x-1/2 w-px',
+                            status === 'cancelled' ? 'bg-rose-300' : 'bg-slate-200'
+                          )}
+                          style={{ top: '1.5rem', height: 'calc(100% + 12px)' }}
+                        />
+                      )}
                     </div>
                     <div className="font-mono text-[10px] sm:text-[11px] text-slate-500 whitespace-nowrap pt-0.5">
                       {formatDateTime(booking.createdAt)}
@@ -1472,15 +1524,15 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                     <div className="grid grid-cols-[24px_95px_1fr] sm:grid-cols-[24px_120px_1fr] items-start gap-2.5 text-xs">
                       <div className="relative flex justify-center">
                         <div className="size-6 rounded-none flex items-center justify-center bg-rose-600 text-white">
-                          <AlertCircle className="size-3.5" />
+                          <X className="size-3.5" />
                         </div>
                       </div>
-                      <div className="font-mono text-[10px] sm:text-[11px] text-slate-500 whitespace-nowrap pt-0.5">
-                        {formatDateTime(booking.updatedAt)}
+                      <div className="font-mono text-[10px] sm:text-[11px] text-rose-600 font-bold whitespace-nowrap pt-0.5">
+                        {formatDateTime(booking.cancelledAt || booking.updatedAt)}
                       </div>
                       <div>
                         <div className="font-extrabold text-slate-900 text-xs text-rose-600">Booking Cancelled</div>
-                        <div className="text-[11px] text-slate-600">{booking.rejectionReason || 'Booking was cancelled.'}</div>
+                        <div className="text-[11px] text-slate-600">{booking.rejectionReason || booking.cancellationReason || 'Booking was cancelled.'}</div>
                       </div>
                     </div>
                   )}
@@ -1807,14 +1859,16 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
             )}
 
             {/* Cancellation Note */}
-            {status === 'cancelled' && booking.rejectionReason && (
+            {status === 'cancelled' && (
               <div className="mt-4 pt-4 border-t-2 border-rose-200">
                 <div className="bg-rose-50 border border-rose-200 rounded-none p-4">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="size-5 text-rose-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-xs font-bold text-rose-900 uppercase tracking-wider mb-1">Cancellation / Rejection Note</h4>
-                      <p className="text-xs text-slate-800 bg-white p-2.5 rounded-none border border-rose-200">{booking.rejectionReason}</p>
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-rose-900 uppercase tracking-wider">Cancellation Notice</h4>
+                      <p className="text-xs text-slate-800 bg-white p-2.5 rounded-none border border-rose-200">
+                        {booking.rejectionReason || booking.cancellationReason || 'This booking has been cancelled.'}
+                      </p>
                     </div>
                   </div>
                 </div>

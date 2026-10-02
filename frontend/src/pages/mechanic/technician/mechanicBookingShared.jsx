@@ -5,6 +5,7 @@ import {
   Bike,
   CalendarClock,
   ChevronDown,
+  ChevronRight,
   Home,
   LogOut,
   MapPin,
@@ -19,36 +20,61 @@ import {
   Wrench,
 } from 'lucide-react'
 import { NotificationBellIndicator } from '../../../components/notifications/NotificationFeed.jsx'
+import { cn } from '../../../lib/utils'
 
 export const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
 export const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20'
+  'h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#04133d]/30 dark:text-slate-100'
 
 export const REQUEST_STAT_GRADIENT = {
-  pending: 'bg-linear-to-br from-amber-500 via-orange-500 to-amber-900',
-  confirmed: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
-  working: 'bg-linear-to-br from-violet-600 via-purple-600 to-indigo-800',
-  completed: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-800',
-  total: 'bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600',
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  pending: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  confirmed: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
+  working: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
+  today: "from-sky-600 via-cyan-700 to-slate-950 border-cyan-400/30",
+  completed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+  cancelled: "from-slate-600 via-slate-700 to-slate-950 border-slate-400/30",
 }
 
-export function StatGradientCard({ label, value, icon: Icon, variant, helper, className = '' }) {
+export function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
   const gradient = REQUEST_STAT_GRADIENT[variant] ?? REQUEST_STAT_GRADIENT.total
+  const helperText = helper || sub
   return (
     <div
-      className={`group relative min-w-0 overflow-hidden rounded-none border border-white/20 p-2.5 sm:p-5 shadow-md transition-all duration-300 hover:shadow-lg sm:min-h-[120px] ${gradient} ${className}`}
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/15 to-transparent" />
-      <Icon className="pointer-events-none absolute -right-1 -top-1 size-12 sm:size-16 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110" />
-      <div className="relative z-10 flex items-start justify-between gap-1.5 sm:gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-white/90 truncate">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl font-black tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-0.5 sm:mt-1 line-clamp-1 text-[10px] sm:text-[11px] text-white/80 font-medium truncate">{helper}</p> : null}
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-none border border-white/25 bg-white/15 p-1.5 sm:p-2.5 shadow-inner backdrop-blur-xs">
-          <Icon className="size-3.5 sm:size-4 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -68,6 +94,7 @@ export function mapBookingFromApi(row) {
   return {
     id: String(row.id),
     ref: row.ref || '',
+    isWalkIn: Boolean(row.isWalkIn),
     status: row.status,
     contactName: row.contactName || '',
     contactPhone: row.contactPhone || '',

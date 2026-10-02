@@ -10,6 +10,8 @@ import {
   CalendarClock,
   CheckCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   Clock,
   DollarSign,
   FileText,
@@ -25,10 +27,12 @@ import {
   Store,
   Tag,
   User,
+  UserPlus,
   WashingMachine,
   Wrench,
 } from 'lucide-react'
 import { completionOutcomeLabel } from '../../mechanic/technician/mechanicBookingShared.jsx'
+import { ServiceReceiptDialog } from '../../../components/bookings/ServiceReceiptDialog.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -46,25 +50,48 @@ function formatPhp(amount) {
 }
 
 const HISTORY_STAT_GRADIENT = {
-  completed: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-800',
-  total: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
+  completed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper, className }) {
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
   const gradient = HISTORY_STAT_GRADIENT[variant] ?? HISTORY_STAT_GRADIENT.total
+  const helperText = helper || sub
   return (
     <div
-      className={`relative min-h-[88px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3.5 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg ${gradient} ${className || ''}`}
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] sm:text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-0.5 line-clamp-1 text-[10px] sm:text-[11px] text-white/80">{helper}</p> : null}
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -72,17 +99,14 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper, className
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
 
 function BookingSearchBar({ value, onChange }) {
-  const { state: sidebarState } = useSidebar()
-  const lgWidthClass = sidebarState === 'collapsed' ? 'lg:w-[500px] lg:max-w-[520px]' : 'lg:w-[360px] lg:max-w-[360px]'
-
   return (
-    <div className={`flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none ${lgWidthClass}`}>
-      <div className="relative h-9 w-full min-w-0 shrink-0">
+    <div className="relative min-w-0 w-full max-w-full lg:max-w-lg lg:flex-1">
+      <div className="relative w-full min-w-0 max-w-full">
         <Input
-          className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-[13px] shadow-sm sm:text-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+          className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
           placeholder="Search by name, phone, service, notes…"
           value={value}
           onChange={onChange}
@@ -91,11 +115,10 @@ function BookingSearchBar({ value, onChange }) {
         <Button
           type="button"
           size="icon-sm"
-          className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
-          aria-hidden
-          tabIndex={-1}
+          className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95 cursor-pointer"
+          aria-label="Search"
         >
-          <Search className="h-4 w-4 text-white" />
+          <Search className="h-3.5 w-3.5 text-white" />
         </Button>
       </div>
     </div>
@@ -170,6 +193,7 @@ function mapBookingFromApi(row) {
   return {
     id: String(row.id),
     ref: String(row.ref || ''),
+    isWalkIn: Boolean(row.isWalkIn),
     status: row.status,
     contactName: row.contactName || '',
     contactPhone: row.contactPhone || '',
@@ -186,6 +210,37 @@ function mapBookingFromApi(row) {
     updatedAt: row.updatedAt,
     customer: row.customer || null,
     shopService: row.shopService || null,
+    shopOwner: row.shopOwner || null,
+    shopName: row.shopName || row.shopOwner?.shopName || '',
+    serviceName: row.serviceName || row.shopService?.name || '',
+    serviceCategory: row.serviceCategory || row.shopService?.category || '',
+    serviceFeeLaborRateAtCalc:
+      row.serviceFeeLaborRateAtCalc != null && Number.isFinite(Number(row.serviceFeeLaborRateAtCalc))
+        ? Number(row.serviceFeeLaborRateAtCalc)
+        : null,
+    serviceFeeMaterialsAmount:
+      row.serviceFeeMaterialsAmount != null && Number.isFinite(Number(row.serviceFeeMaterialsAmount))
+        ? Number(row.serviceFeeMaterialsAmount)
+        : null,
+    serviceFeeMaterialsDescription:
+      typeof row.serviceFeeMaterialsDescription === 'string' ? row.serviceFeeMaterialsDescription : '',
+    serviceFeeReplacementParts: Array.isArray(row.serviceFeeReplacementParts)
+      ? row.serviceFeeReplacementParts
+          .map((x) => ({
+            name: typeof x?.name === 'string' ? x.name : '',
+            price: Number.isFinite(Number(x?.price)) ? Number(x.price) : 0,
+          }))
+          .filter((x) => x.name)
+      : [],
+    serviceFeeConfirmedAt: row.serviceFeeConfirmedAt || null,
+    fixedAt: row.fixedAt || null,
+    completedAt: row.completedAt || row.paidAt || (row.status === 'completed' ? row.updatedAt : null),
+    warrantyClaim: row.warrantyClaim || null,
+    warrantySettings: row.warrantySettings || row.shopOwner?.warrantySettings || null,
+    paymentStatus: row.paymentStatus || 'paid',
+    paymentMethod: row.paymentMethod || '',
+    paymentProofImage: row.paymentProofImage || '',
+    paidAt: row.paidAt || null,
   }
 }
 
@@ -204,6 +259,7 @@ export function OnCallMechanicServiceHistory() {
   const [sortBy, setSortBy] = useState('completedRecent')
   const [search, setSearch] = useState('')
   const [highlightId, setHighlightId] = useState('')
+  const [receiptBooking, setReceiptBooking] = useState(null)
   const clearedFocusRef = useRef(false)
 
   const loadBookings = useCallback(async () => {
@@ -344,11 +400,11 @@ export function OnCallMechanicServiceHistory() {
         </div>
 
         {/* Filter Controls & Search Bar */}
-        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="grid w-full min-w-0 max-w-full grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:flex-1 lg:flex-nowrap">
+        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+          <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:gap-3 min-w-0 w-full max-w-full">
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[240px]">
               <select
-                className={`${selectShell} text-neutral-900 dark:text-neutral-100`}
+                className={selectShell}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -356,7 +412,7 @@ export function OnCallMechanicServiceHistory() {
                 <option value="completedOldest">Sort: Oldest completion</option>
                 <option value="schedule">Sort: By preferred date</option>
               </select>
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
 
@@ -434,6 +490,12 @@ export function OnCallMechanicServiceHistory() {
                                 Ref: #{b.ref}
                               </span>
                             ) : null}
+                            {b.isWalkIn && (
+                              <span className="text-[10px] sm:text-[11px] font-extrabold bg-amber-100 text-amber-900 px-1.5 sm:px-2 py-0.5 rounded-none border border-amber-300 inline-flex items-center gap-1">
+                                <UserPlus className="size-3 text-amber-700 shrink-0" />
+                                Walk-in Customer
+                              </span>
+                            )}
                           </div>
                           <p className="text-[11px] text-slate-500 font-semibold flex items-center gap-1 mt-0.5">
                             <Phone className="size-3 text-[#081F5C] shrink-0" />
@@ -487,11 +549,32 @@ export function OnCallMechanicServiceHistory() {
                             {completionOutcomeLabel(b.shopService?.category)}
                           </p>
                         </div>
-                        <div className="bg-white p-2 border border-slate-200 space-y-0.5 text-[11px]">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
-                          <div className="flex items-center gap-1 font-bold text-slate-800">
-                            <CalendarClock className="size-3 text-indigo-600 shrink-0" />
-                            <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
+                        <div className="bg-white p-2 border border-slate-200 space-y-1 text-[11px]">
+                          <div className="space-y-0.5">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 block">Preferred Schedule</span>
+                            <div className="flex items-center gap-1 font-bold text-slate-800">
+                              <CalendarClock className="size-3 text-indigo-600 shrink-0" />
+                              <span>{formatPreferredDate(b.preferredDate)} · {formatTime12h(b.preferredTime)}</span>
+                            </div>
+                          </div>
+                          {(b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null) && (
+                            <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[11px]">
+                              <span className="text-slate-600 font-medium">Total Fee:</span>
+                              <span className="font-bold text-indigo-700">
+                                {formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center pt-1 border-t border-slate-100 text-[11px]">
+                            <span className="text-slate-600 font-medium">Official Receipt:</span>
+                            <button
+                              type="button"
+                              onClick={() => setReceiptBooking(b)}
+                              className="text-indigo-600 hover:text-indigo-800 font-bold underline text-[11px] inline-flex items-center gap-1 cursor-pointer bg-transparent border-0 p-0"
+                            >
+                              <FileText className="size-3 text-indigo-600" />
+                              <span>View Receipt</span>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -539,6 +622,15 @@ export function OnCallMechanicServiceHistory() {
           )}
         </div>
       </main>
+
+      {/* Official Service E-Receipt Dialog */}
+      <ServiceReceiptDialog
+        open={Boolean(receiptBooking)}
+        onOpenChange={(open) => {
+          if (!open) setReceiptBooking(null)
+        }}
+        booking={receiptBooking}
+      />
     </OnCallMechanicLayout>
   )
 }

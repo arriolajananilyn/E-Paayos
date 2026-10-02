@@ -19,8 +19,11 @@ import { Label } from '../../components/ui/label'
 import { Switch } from '../../components/ui/switch'
 import { Textarea } from '../../components/ui/textarea'
 import { useSidebar } from '../../components/ui/sidebar.jsx'
+import { toast } from 'sonner'
 import {
   CheckCircle,
+  ChevronDown,
+  ChevronRight,
   Clock,
   DollarSign,
   FileText,
@@ -35,6 +38,7 @@ import {
   SlidersHorizontal,
   Tag,
   Trash2,
+  UserPlus,
   Users,
   Wrench,
 } from 'lucide-react'
@@ -271,25 +275,50 @@ function initialsFromName(name) {
 }
 
 const STAT_CARD_GRADIENT = {
-  services: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
-  active: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-800',
-  inactive: 'bg-linear-to-br from-slate-600 via-slate-700 to-slate-900',
-  booked: 'bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600',
+  services: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  active: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+  inactive: "from-slate-600 via-slate-700 to-slate-900 border-slate-500/30",
+  booked: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services
+  const helperText = helper || sub
   return (
-    <div className={`relative min-h-[84px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}>
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium tracking-wide text-white/85 sm:text-xs truncate">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-0.5 sm:mt-1 line-clamp-1 text-[10px] sm:text-[11px] text-white/80">{helper}</p> : null}
+    <div
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -297,7 +326,7 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
 
 const emptyForm = {
   name: '',
@@ -312,15 +341,12 @@ const emptyForm = {
 }
 
 function ServicesSearchBar({ value, onChange }) {
-  const { state: sidebarState } = useSidebar()
-  const lgWidthClass = sidebarState === 'collapsed' ? 'lg:w-[500px] lg:max-w-[520px]' : 'lg:w-[360px] lg:max-w-[360px]'
-
   return (
-    <div className={`flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none ${lgWidthClass}`}>
-      <div className="relative h-9 w-full min-w-0 shrink-0">
+    <div className="relative min-w-0 w-full max-w-full lg:max-w-lg lg:flex-1">
+      <div className="relative w-full min-w-0 max-w-full">
         <Input
-          className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-3 sm:pl-4 text-xs sm:text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
-          placeholder="Search services…"
+          className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
+          placeholder="Search services by title, category, subcategory…"
           value={value}
           onChange={onChange}
           aria-label="Search services"
@@ -328,11 +354,10 @@ function ServicesSearchBar({ value, onChange }) {
         <Button
           type="button"
           size="icon-sm"
-          className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
-          aria-hidden
-          tabIndex={-1}
+          className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95 cursor-pointer"
+          aria-label="Search"
         >
-          <Search className="h-4 w-4 text-white" />
+          <Search className="h-3.5 w-3.5 text-white" />
         </Button>
       </div>
     </div>
@@ -374,6 +399,84 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
   const [viewing, setViewing] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [saving, setSaving] = useState(false)
+
+  // Walk-in Customer Dialog State
+  const [walkInTarget, setWalkInTarget] = useState(null)
+  const [walkInSubmitting, setWalkInSubmitting] = useState(false)
+  const [walkInError, setWalkInError] = useState('')
+  const [walkInForm, setWalkInForm] = useState({
+    contactName: '',
+    contactPhone: '',
+    preferredDate: '',
+    preferredTime: '',
+    serviceMode: 'in-shop',
+    serviceAddress: '',
+    status: 'confirmed',
+    assignedTechnician: '',
+    problemDescription: '',
+    notes: '',
+  })
+
+  const openWalkIn = (service) => {
+    setWalkInTarget(service)
+    setWalkInError('')
+    const now = new Date()
+    const ymd = now.toISOString().slice(0, 10)
+    const hhmm = now.toTimeString().slice(0, 5)
+    setWalkInForm({
+      contactName: '',
+      contactPhone: '',
+      preferredDate: ymd,
+      preferredTime: hhmm,
+      serviceMode: service.location === 'home' ? 'home' : 'in-shop',
+      serviceAddress: '',
+      status: 'confirmed',
+      assignedTechnician: '',
+      problemDescription: '',
+      notes: '',
+    })
+  }
+
+  const submitWalkIn = async () => {
+    if (!walkInTarget) return
+    setWalkInSubmitting(true)
+    setWalkInError('')
+    try {
+      const endpoint =
+        variant === 'independent'
+          ? `${API_URL}/api/mechanic/bookings/walkin`
+          : `${API_URL}/api/shop/bookings/walkin`
+      const payload = {
+        shopServiceId: walkInTarget.id,
+        contactName: walkInForm.contactName.trim(),
+        contactPhone: walkInForm.contactPhone.trim(),
+        preferredDate: walkInForm.preferredDate,
+        preferredTime: walkInForm.preferredTime,
+        serviceMode: walkInForm.serviceMode,
+        serviceAddress: walkInForm.serviceMode === 'home' ? walkInForm.serviceAddress.trim() : '',
+        status: walkInForm.status,
+        assignedTechnician: walkInForm.assignedTechnician,
+        problemDescription: walkInForm.problemDescription.trim(),
+        notes: walkInForm.notes.trim(),
+      }
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.message || 'Could not record walk-in customer.')
+      }
+      setWalkInTarget(null)
+      toast.success('Walk-in customer recorded successfully! It is now saved in Service Requests.')
+      void loadCatalog()
+    } catch (err) {
+      setWalkInError(err?.message || 'Could not record walk-in customer.')
+    } finally {
+      setWalkInSubmitting(false)
+    }
+  }
 
   const loadCatalog = useCallback(async () => {
     setListError('')
@@ -625,6 +728,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             value={stats.total}
             helper={variant === 'independent' ? 'Your listings as an independent provider' : 'Items listed in your catalog'}
             icon={Wrench}
+            onClick={() => setStatusFilter('')}
           />
           <StatGradientCard
             variant="active"
@@ -632,6 +736,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             value={stats.active}
             helper="Visible to customers"
             icon={CheckCircle}
+            onClick={() => setStatusFilter(statusFilter === 'active' ? '' : 'active')}
           />
           <StatGradientCard
             variant="inactive"
@@ -639,6 +744,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             value={stats.inactive}
             helper="Not bookable right now"
             icon={PauseCircle}
+            onClick={() => setStatusFilter(statusFilter === 'inactive' ? '' : 'inactive')}
           />
           <StatGradientCard
             variant="booked"
@@ -649,68 +755,68 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
           />
         </div>
 
-        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap lg:flex-nowrap min-w-0 w-full max-w-full flex-1">
+        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:gap-3 min-w-0 w-full max-w-full">
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
               <select
-                className={`${selectShell} ${categoryFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+                className={selectShell}
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value === '' ? '__' : e.target.value)}
               >
                 <option value="__" disabled hidden>
                   Category
                 </option>
-                <option value="">All</option>
+                <option value="">All categories</option>
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
               </select>
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[130px] sm:flex-1 sm:max-w-[180px]">
               <select
-                className={`${selectShell} ${statusFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+                className={selectShell}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value === '' ? '__' : e.target.value)}
               >
                 <option value="__" disabled hidden>
                   Status
                 </option>
-                <option value="">All</option>
+                <option value="">All statuses</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
-              <Clock className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[210px]">
               <select
-                className={`${selectShell} ${locationFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+                className={selectShell}
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value === '' ? '__' : e.target.value)}
               >
                 <option value="__" disabled hidden>
                   Service type
                 </option>
-                <option value="">All</option>
+                <option value="">All service types</option>
                 {serviceLocations.map((x) => (
                   <option key={x.value} value={x.value}>
                     {x.label}
                   </option>
                 ))}
               </select>
-              <Home className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
-              <select className={`${selectShell} text-neutral-900 dark:text-neutral-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <select className={selectShell} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <option value="most-booked">Sort: Most booked</option>
                 <option value="newest">Sort: Newest</option>
               </select>
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
 
@@ -796,7 +902,12 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                             <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 rounded-none text-xs">
+                        <DropdownMenuContent align="end" className="w-48 rounded-none text-xs">
+                          <DropdownMenuItem className="gap-2 text-xs cursor-pointer text-amber-700 font-semibold" onClick={() => openWalkIn(service)}>
+                            <UserPlus className="size-4 text-amber-600" />
+                            Record Walk-in
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem className="gap-2 text-xs cursor-pointer" onClick={() => setViewing(service)}>
                             <Wrench className="size-4 text-indigo-600" />
                             View Details
@@ -886,6 +997,15 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
 
                   {/* Action Controls Footer */}
                   <div className="pt-2 flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => openWalkIn(service)}
+                      className="flex-1 sm:flex-none justify-center rounded-none bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs cursor-pointer shadow-2xs border border-amber-600/30"
+                    >
+                      <UserPlus className="size-3.5 mr-1" />
+                      <span>Walk-in Customer</span>
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
@@ -1221,6 +1341,191 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Record Walk-in Customer Dialog */}
+      <Dialog open={!!walkInTarget} onOpenChange={(open) => !open && setWalkInTarget(null)}>
+        <DialogContent
+          className="flex max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-4 overflow-hidden sm:max-w-xl rounded-none border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl"
+          showCloseButton
+        >
+          {walkInTarget && (
+            <>
+              <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-none bg-amber-100 text-amber-900 border border-amber-300">
+                    <UserPlus className="size-5 text-amber-700" />
+                  </span>
+                  <div>
+                    <DialogTitle className="text-xl font-black tracking-tight text-slate-900">
+                      Record Walk-in Customer
+                    </DialogTitle>
+                    <DialogDescription className="text-xs font-semibold text-slate-500 mt-0.5">
+                      Service: <span className="font-extrabold text-indigo-700">{walkInTarget.name}</span> ({walkInTarget.category})
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {walkInError && (
+                <div className="rounded-none border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+                  {walkInError}
+                </div>
+              )}
+
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="walkin-name" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                      Customer Name <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="walkin-name"
+                      placeholder="e.g. Juan Dela Cruz"
+                      value={walkInForm.contactName}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, contactName: e.target.value }))}
+                      className="rounded-none border-slate-300 text-xs font-semibold focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="walkin-phone" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                      Contact Phone <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="walkin-phone"
+                      placeholder="e.g. 0912 345 6789"
+                      value={walkInForm.contactPhone}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, contactPhone: e.target.value }))}
+                      className="rounded-none border-slate-300 text-xs font-semibold focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="walkin-date" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                      Date <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="walkin-date"
+                      type="date"
+                      value={walkInForm.preferredDate}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, preferredDate: e.target.value }))}
+                      className="rounded-none border-slate-300 text-xs font-semibold focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="walkin-time" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                      Time <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="walkin-time"
+                      type="time"
+                      value={walkInForm.preferredTime}
+                      onChange={(e) => setWalkInForm((f) => ({ ...f, preferredTime: e.target.value }))}
+                      className="rounded-none border-slate-300 text-xs font-semibold focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="walkin-status" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                      Initial Status
+                    </Label>
+                    <div className="relative">
+                      <select
+                        id="walkin-status"
+                        className={selectShell}
+                        value={walkInForm.status}
+                        onChange={(e) => setWalkInForm((f) => ({ ...f, status: e.target.value }))}
+                      >
+                        <option value="confirmed">Confirmed (In Queue)</option>
+                        <option value="working">Working (In Progress)</option>
+                        <option value="pending">Pending</option>
+                      </select>
+                      <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
+
+                  {variant !== 'independent' && (
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="walkin-tech" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                        Assign Technician (Optional)
+                      </Label>
+                      <div className="relative">
+                        <select
+                          id="walkin-tech"
+                          className={selectShell}
+                          value={walkInForm.assignedTechnician}
+                          onChange={(e) => setWalkInForm((f) => ({ ...f, assignedTechnician: e.target.value }))}
+                        >
+                          <option value="">-- Assign Later --</option>
+                          {employees.map((emp) => (
+                            <option key={emp.id} value={emp.id} disabled={emp.assignDisabled}>
+                              {emp.name} {emp.jobTitle ? `(${emp.jobTitle})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <Users className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="walkin-problem" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                    Issue / Service Description <span className="text-rose-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="walkin-problem"
+                    rows={2}
+                    placeholder="Describe issue, procedure, or request requested by walk-in customer..."
+                    value={walkInForm.problemDescription}
+                    onChange={(e) => setWalkInForm((f) => ({ ...f, problemDescription: e.target.value }))}
+                    className="rounded-none border-slate-300 text-xs font-medium focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  />
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label htmlFor="walkin-notes" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
+                    Additional Notes / Device or Vehicle Details (Optional)
+                  </Label>
+                  <Input
+                    id="walkin-notes"
+                    placeholder="e.g. Model, Plate Number, Serial Number, or special instructions"
+                    value={walkInForm.notes}
+                    onChange={(e) => setWalkInForm((f) => ({ ...f, notes: e.target.value }))}
+                    className="rounded-none border-slate-300 text-xs font-medium focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 border-t border-slate-100 pt-3.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setWalkInTarget(null)}
+                  className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2 cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void submitWalkIn()}
+                  disabled={
+                    walkInSubmitting ||
+                    !walkInForm.contactName.trim() ||
+                    !walkInForm.contactPhone.trim() ||
+                    !walkInForm.problemDescription.trim()
+                  }
+                  className="w-full sm:w-auto rounded-none bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-5 py-2 shadow-md shadow-amber-900/20 cursor-pointer disabled:opacity-50"
+                >
+                  {walkInSubmitting ? 'Recording…' : 'Save Walk-in Record'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

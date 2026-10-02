@@ -2,6 +2,7 @@ import express from "express"
 import { protect } from "../middleware/authMiddleware.js"
 import { requireMechanicTechnician } from "../middleware/requireMechanicTechnician.js"
 import {
+  createWalkInBooking,
   listMechanicReviewsRatings,
   listTechnicianBookings,
   patchMechanicBookingReviewResponse,
@@ -14,6 +15,7 @@ const router = express.Router()
 
 router.use(protect, requireMechanicTechnician)
 router.get("/bookings", listTechnicianBookings)
+router.post("/bookings/walkin", createWalkInBooking)
 router.get("/reviews-ratings", listMechanicReviewsRatings)
 router.patch("/bookings/:id/review-response", patchMechanicBookingReviewResponse)
 router.patch("/bookings/:id/service-fee", patchMechanicBookingServiceFee)

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Register from './pages/auth/registration.jsx'
 import LandingPage from './pages/landingpage.jsx'
 import Login from './pages/auth/login.jsx'
+import ResetPassword from './pages/auth/resetPassword.jsx'
 import CustomerDashboard from './pages/customer/dashboard.jsx'
 import CustomerMyBookings from './pages/customer/myBookings.jsx'
 import CustomerBookingDetails from './pages/customer/bookingdetails.jsx'
@@ -90,6 +91,8 @@ function App() {
         return <Register />
       case '#/login':
         return <Login />
+      case '#/reset-password':
+        return <ResetPassword />
       case '#/customer/dashboard':
         return <CustomerDashboard />
       case '#/customer/my-bookings':

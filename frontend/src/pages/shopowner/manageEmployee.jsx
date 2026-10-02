@@ -51,6 +51,7 @@ import {
   UserMinus,
   Users,
 } from 'lucide-react'
+import { cn } from '../../lib/utils'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -187,29 +188,53 @@ function roleBadge(role) {
 
 const STAT_CARD_GRADIENT = {
   /** Headcount — brand navy */
-  total: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
   /** On duty — success greens */
-  active: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-800',
+  active: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
   /** Away — warm amber */
-  'on-leave': 'bg-linear-to-br from-amber-500 via-orange-600 to-amber-800',
+  'on-leave': "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
   /** Not on roster — cool neutral */
-  inactive: 'bg-linear-to-br from-slate-600 via-slate-700 to-slate-900',
+  inactive: "from-slate-600 via-slate-700 to-slate-950 border-slate-400/30",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant }) {
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
+  const helperText = helper || sub
   return (
     <div
-      className={`relative min-h-[84px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg sm:min-h-[128px] sm:p-6 ${gradient}`}
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] sm:text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl sm:text-3xl font-bold tracking-tight text-white tabular-nums">{value}</p>
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -217,7 +242,7 @@ function StatGradientCard({ label, value, icon: Icon, variant }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  'h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#04133d]/30 dark:text-slate-100'
 
 const emptyForm = {
   fullName: '',
@@ -444,10 +469,38 @@ function ManageEmployeePage() {
     >
       <main className="w-full min-w-0 max-w-full space-y-3 sm:space-y-4 overflow-x-hidden">
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
-          <StatGradientCard variant="total" label="Total staff" value={stats.total} icon={Users} />
-          <StatGradientCard variant="active" label="Active" value={stats.active} icon={CheckCircle} />
-          <StatGradientCard variant="on-leave" label="On leave" value={stats.onLeave} icon={Clock} />
-          <StatGradientCard variant="inactive" label="Inactive" value={stats.inactive} icon={UserMinus} />
+          <StatGradientCard
+            variant="total"
+            label="Total staff"
+            value={stats.total}
+            helper="All staff"
+            icon={Users}
+            onClick={() => setStatusFilter('__')}
+          />
+          <StatGradientCard
+            variant="active"
+            label="Active"
+            value={stats.active}
+            helper="Ready on duty"
+            icon={CheckCircle}
+            onClick={() => setStatusFilter((curr) => (curr === 'active' ? '__' : 'active'))}
+          />
+          <StatGradientCard
+            variant="on-leave"
+            label="On leave"
+            value={stats.onLeave}
+            helper="Scheduled away"
+            icon={Clock}
+            onClick={() => setStatusFilter((curr) => (curr === 'on-leave' ? '__' : 'on-leave'))}
+          />
+          <StatGradientCard
+            variant="inactive"
+            label="Inactive"
+            value={stats.inactive}
+            helper="Off roster"
+            icon={UserMinus}
+            onClick={() => setStatusFilter((curr) => (curr === 'inactive' ? '__' : 'inactive'))}
+          />
         </div>
 
         {listError ? (
@@ -474,7 +527,7 @@ function ManageEmployeePage() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
@@ -491,7 +544,7 @@ function ManageEmployeePage() {
                 <option value="on-leave">On leave</option>
                 <option value="inactive">Inactive</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             <div className="relative min-w-0 w-full col-span-2 sm:col-span-1 sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[220px]">
@@ -511,14 +564,14 @@ function ManageEmployeePage() {
                 <option value="this-year">This year</option>
                 <option value="last-year">Last year</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
 
           <div className="relative min-w-0 w-full max-w-full lg:max-w-lg lg:flex-1">
             <div className="relative w-full min-w-0 max-w-full">
               <Input
-                className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-10 pl-3.5 sm:pr-12 sm:pl-4 text-xs sm:text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+                className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-10 pl-3.5 sm:pr-12 sm:pl-4 text-xs sm:text-sm font-medium shadow-xs placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#04133d]/25"
                 placeholder="Search by name, email, or role…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -527,10 +580,10 @@ function ManageEmployeePage() {
               <Button
                 type="button"
                 size="icon-sm"
-                className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95 cursor-pointer"
+                className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95 cursor-pointer"
                 aria-label="Search"
               >
-                <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                <Search className="h-3.5 w-3.5 text-white" />
               </Button>
             </div>
           </div>

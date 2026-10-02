@@ -17,6 +17,8 @@ import {
   Camera,
   CheckCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   ClipboardList,
   Clock,
   DollarSign,
@@ -40,6 +42,7 @@ import {
   Tag,
   Upload,
   User,
+  UserPlus,
   WashingMachine,
   Wrench,
   X,
@@ -69,26 +72,52 @@ function formatPhp(amount) {
 }
 
 const REQUEST_STAT_GRADIENT = {
-  pending: 'bg-linear-to-br from-amber-500 via-orange-500 to-amber-900',
-  confirmed: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
-  working: 'bg-linear-to-br from-violet-600 via-purple-600 to-indigo-800',
-  completed: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-800',
-  total: 'bg-linear-to-br from-sky-500 via-blue-500 to-indigo-600',
+  pending: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  confirmed: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
+  working: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
+  fixed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+  completed: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, helper, className }) {
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
   const gradient = REQUEST_STAT_GRADIENT[variant] ?? REQUEST_STAT_GRADIENT.total
+  const helperText = helper || sub
   return (
-    <div className={`relative min-h-[88px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-sm border border-white/15 p-3.5 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg ${gradient} ${className || ''}`}>
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/12 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] sm:text-xs font-medium tracking-wide text-white/85">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
-          {helper ? <p className="mt-0.5 line-clamp-1 text-[10px] sm:text-[11px] text-white/80">{helper}</p> : null}
+    <div
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
+    >
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-sm border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -96,17 +125,14 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper, className
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-sm border border-[#081F5C]/15 bg-white/95 px-3 py-2 pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30'
+  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
 
 function BookingSearchBar({ value, onChange }) {
-  const { state: sidebarState } = useSidebar()
-  const lgWidthClass = sidebarState === 'collapsed' ? 'lg:w-[500px] lg:max-w-[520px]' : 'lg:w-[360px] lg:max-w-[360px]'
-
   return (
-    <div className={`flex w-full min-w-0 flex-1 flex-col gap-2 self-stretch lg:flex-none ${lgWidthClass}`}>
-      <div className="relative h-9 w-full min-w-0 shrink-0">
+    <div className="relative min-w-0 w-full max-w-full lg:max-w-lg lg:flex-1">
+      <div className="relative w-full min-w-0 max-w-full">
         <Input
-          className="h-9 w-full min-w-0 rounded-sm border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-[13px] shadow-sm sm:text-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+          className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
           placeholder="Search by name, phone, service, notes…"
           value={value}
           onChange={onChange}
@@ -115,11 +141,10 @@ function BookingSearchBar({ value, onChange }) {
         <Button
           type="button"
           size="icon-sm"
-          className="pointer-events-none absolute top-1/2 right-1.5 z-10 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm"
-          aria-hidden
-          tabIndex={-1}
+          className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95 cursor-pointer"
+          aria-label="Search"
         >
-          <Search className="h-4 w-4 text-white" />
+          <Search className="h-3.5 w-3.5 text-white" />
         </Button>
       </div>
     </div>
@@ -434,6 +459,7 @@ function mapBookingFromApi(row) {
   return {
     id: String(row.id),
     ref: String(row.ref || ''),
+    isWalkIn: Boolean(row.isWalkIn),
     status: row.status,
     contactName: row.contactName || '',
     contactPhone: row.contactPhone || '',
@@ -511,6 +537,7 @@ function ServiceRequestPage() {
   const [workingProofPhotos, setWorkingProofPhotos] = useState([])
   const [workingProofError, setWorkingProofError] = useState('')
   const [confirmCompletedBooking, setConfirmCompletedBooking] = useState(null)
+  const [completionPaymentMethod, setCompletionPaymentMethod] = useState('cash')
   const [completionProofPhotos, setCompletionProofPhotos] = useState([])
   const [completionNotes, setCompletionNotes] = useState('')
   const [completionProofError, setCompletionProofError] = useState('')
@@ -1178,12 +1205,15 @@ function ServiceRequestPage() {
     const ok = await patchBooking(confirmCompletedBooking.id, 'completed', {
       completionProofPhotos,
       completionNotes: completionNotes.trim(),
+      paymentMethod: completionPaymentMethod || confirmCompletedBooking.paymentMethod || 'cash',
+      markPaid: true,
     })
     if (ok) {
       setConfirmCompletedBooking(null)
       setCompletionProofPhotos([])
       setCompletionNotes('')
       setCompletionProofError('')
+      setCompletionPaymentMethod('cash')
     }
   }
 
@@ -1217,6 +1247,7 @@ function ServiceRequestPage() {
             value={counts.pending}
             helper="Needs your response"
             icon={CalendarClock}
+            onClick={() => setStatusFilter(statusFilter === 'pending' ? '' : 'pending')}
           />
           <StatGradientCard
             variant="confirmed"
@@ -1224,6 +1255,7 @@ function ServiceRequestPage() {
             value={counts.confirmed}
             helper="Accepted, ready to start"
             icon={CalendarCheck}
+            onClick={() => setStatusFilter(statusFilter === 'confirmed' ? '' : 'confirmed')}
           />
           <StatGradientCard
             variant="working"
@@ -1231,13 +1263,15 @@ function ServiceRequestPage() {
             value={counts.working}
             helper="Service in progress"
             icon={Wrench}
+            onClick={() => setStatusFilter(statusFilter === 'working' ? '' : 'working')}
           />
           <StatGradientCard
-            variant="completed"
+            variant="fixed"
             label="Fixed"
             value={counts.fixed}
             helper="Fixed / Awaiting pay"
             icon={CheckCircle}
+            onClick={() => setStatusFilter(statusFilter === 'fixed' ? '' : 'fixed')}
           />
           <StatGradientCard
             className="col-span-2 sm:col-span-1 lg:col-span-1"
@@ -1246,21 +1280,22 @@ function ServiceRequestPage() {
             value={counts.completed}
             helper={`${counts.all} total requests`}
             icon={ClipboardList}
+            onClick={() => setStatusFilter(statusFilter === 'completed' ? '' : 'completed')}
           />
         </div>
 
-        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div className="grid w-full min-w-0 max-w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:flex-1 lg:flex-nowrap">
-            <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
+        <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch lg:justify-between">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:gap-3 min-w-0 w-full max-w-full">
+            <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[220px]">
               <select
-                className={`${selectShell} ${statusFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+                className={selectShell}
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value === '' ? '__' : e.target.value)}
               >
                 <option value="__" disabled hidden>
                   Status
                 </option>
-                <option value="">All</option>
+                <option value="">All statuses</option>
                 <option value="pending">Booking Submitted</option>
                 <option value="confirmed">Booking Confirmed</option>
                 <option value="working">Working</option>
@@ -1269,16 +1304,16 @@ function ServiceRequestPage() {
                 <option value="refix">Refix / Re-repair Request</option>
                 <option value="cancelled">Cancelled</option>
               </select>
-              <Clock className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
 
             <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[220px]">
-              <select className={`${selectShell} text-neutral-900 dark:text-neutral-100`} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <select className={selectShell} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <option value="newest">Sort: Newest request</option>
                 <option value="oldest">Sort: Oldest request</option>
                 <option value="schedule">Sort: By preferred date</option>
               </select>
-              <SlidersHorizontal className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
 
@@ -1353,6 +1388,12 @@ function ServiceRequestPage() {
                               <User className="size-3 text-indigo-600 shrink-0" />
                               {b.contactName || 'Customer'}
                             </span>
+                            {b.isWalkIn && (
+                              <span className="text-[10px] sm:text-[11px] font-extrabold bg-amber-100 text-amber-900 px-1.5 sm:px-2 py-0.5 rounded-none border border-amber-300 inline-flex items-center gap-1">
+                                <UserPlus className="size-3 text-amber-700 shrink-0" />
+                                Walk-in Customer
+                              </span>
+                            )}
                           </div>
                           <span className="text-[10px] sm:text-[11px] text-slate-500 block mt-0.5">
                             Submitted {formatSubmittedLine(b.createdAt)}
@@ -1861,6 +1902,29 @@ function ServiceRequestPage() {
                                     setCompletionProofError('')
                                     setCompletionProofPhotos([])
                                     setCompletionNotes('')
+                                    setCompletionPaymentMethod(b.paymentMethod || 'cash')
+                                    setConfirmCompletedBooking(b)
+                                  }}
+                                  className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-4 py-2 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-md shadow-emerald-900/20 transition-colors cursor-pointer disabled:opacity-50"
+                                >
+                                  {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5 shrink-0" />}
+                                  <span>Mark as Paid (Completed)</span>
+                                </button>
+                              </>
+                            ) : b.isWalkIn ? (
+                              <>
+                                <span className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 text-amber-900 border border-amber-300 text-[11px] sm:text-xs font-bold rounded-none">
+                                  <UserPlus className="size-3.5 text-amber-700 shrink-0" />
+                                  <span>Fixed (Walk-in Customer)</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    setCompletionProofError('')
+                                    setCompletionProofPhotos([])
+                                    setCompletionNotes('')
+                                    setCompletionPaymentMethod(b.paymentMethod || 'cash')
                                     setConfirmCompletedBooking(b)
                                   }}
                                   className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-4 py-2 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-md shadow-emerald-900/20 transition-colors cursor-pointer disabled:opacity-50"
@@ -2328,33 +2392,81 @@ function ServiceRequestPage() {
           </DialogHeader>
 
           <div className="min-h-0 flex-1 overflow-y-auto pr-1 space-y-3 text-xs sm:text-sm">
-            {/* Payment & Turnover Summary Note */}
-            <div className="rounded-none border border-emerald-200 bg-emerald-50/80 p-2.5 sm:p-3 text-xs text-emerald-950 space-y-1">
-              <div className="flex items-center justify-between">
-                <p className="font-bold flex items-center gap-1.5 text-emerald-900 text-xs">
-                  <DollarSign className="size-3.5 text-emerald-600 shrink-0" />
-                  <span>Customer Payment Confirmed</span>
-                </p>
-                <span className="text-[10px] font-extrabold uppercase bg-emerald-600 text-white px-1.5 py-0.5">
-                  Paid
-                </span>
+            {/* Payment Method / Summary */}
+            {confirmCompletedBooking?.isWalkIn || confirmCompletedBooking?.paymentStatus !== 'paid' ? (
+              <div className="rounded-none border border-amber-200 bg-amber-50/90 p-3 text-xs text-amber-950 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-extrabold flex items-center gap-1.5 text-amber-950 text-xs uppercase tracking-wider">
+                    <DollarSign className="size-3.5 text-amber-700 shrink-0" />
+                    <span>Payment Method Received <span className="text-rose-500">*</span></span>
+                  </p>
+                  <span className="text-[10px] font-extrabold uppercase bg-amber-600 text-white px-2 py-0.5">
+                    Walk-in Payment
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+                  {[
+                    { value: 'cash', label: 'Cash' },
+                    { value: 'gcash', label: 'GCash' },
+                    { value: 'maya', label: 'Maya' },
+                    { value: 'bank_transfer', label: 'Bank Transfer' },
+                  ].map((m) => (
+                    <button
+                      key={m.value}
+                      type="button"
+                      onClick={() => setCompletionPaymentMethod(m.value)}
+                      className={cn(
+                        "p-2 text-center text-xs font-bold border transition-all cursor-pointer rounded-none",
+                        completionPaymentMethod === m.value
+                          ? "border-amber-700 bg-amber-600 text-white shadow-xs"
+                          : "border-amber-300/80 bg-white text-slate-800 hover:bg-amber-100/50"
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between items-center pt-2 text-[11px] text-amber-900 font-semibold border-t border-amber-200">
+                  <span>Total Service Fee:</span>
+                  <span className="font-black text-slate-900 text-xs sm:text-sm">
+                    {formatPhp(
+                      (confirmCompletedBooking?.serviceFeeLaborRateAtCalc || 0) +
+                      (confirmCompletedBooking?.serviceFeeMaterialsAmount || 0)
+                    )}
+                  </span>
+                </div>
               </div>
-              <p className="text-emerald-900/85 leading-relaxed text-[11px]">
-                Please attach at least 1 photo of the item handover / release (e.g. customer receiving the item or finished product turnover) to complete this service request.
-              </p>
-            </div>
+            ) : (
+              <div className="rounded-none border border-emerald-200 bg-emerald-50/80 p-2.5 sm:p-3 text-xs text-emerald-950 space-y-1">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold flex items-center gap-1.5 text-emerald-900 text-xs">
+                    <DollarSign className="size-3.5 text-emerald-600 shrink-0" />
+                    <span>Customer Payment Confirmed</span>
+                  </p>
+                  <span className="text-[10px] font-extrabold uppercase bg-emerald-600 text-white px-1.5 py-0.5">
+                    Paid ({confirmCompletedBooking?.paymentMethod?.toUpperCase() || 'PAID'})
+                  </span>
+                </div>
+                <p className="text-emerald-900/85 leading-relaxed text-[11px]">
+                  Payment has already been confirmed. Please attach the product handover photo proof to finalize.
+                </p>
+              </div>
+            )}
 
             {/* Handover / Completion Photo Proof Section */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
                   <Camera className="size-3.5 text-emerald-600 shrink-0" />
-                  <span>Item Handover Photo Proof <span className="text-rose-500">*</span></span>
+                  <span>Item Handover / Claiming Photo Proof <span className="text-rose-500">*</span></span>
                 </Label>
                 <span className="text-[11px] font-semibold text-slate-500">
                   {completionProofPhotos.length} / 5 photos
                 </span>
               </div>
+              <p className="text-[11px] text-slate-500 leading-snug">
+                Upload proof confirming that the customer claimed and received the repaired product.
+              </p>
 
               {/* Upload Dropzone Button */}
               <label

@@ -442,6 +442,11 @@ const userSchema = new mongoose.Schema(
     },
     approvalRejectionReason: { type: String, default: "" },
 
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date },
+    resetPasswordOtp: { type: String },
+    resetPasswordOtpExpire: { type: Date },
+
     idType: { type: String, required: true },
     validIdPath: { type: String }, // legacy disk path
     selfiePath: { type: String },

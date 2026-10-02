@@ -30,20 +30,34 @@ import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 import { resolvePsgcField } from '@/lib/psgcResolve'
 import { AdminRegistrationDetailView } from '@/pages/admin/AdminUserRegistrationDetail.jsx'
 import {
+  AlertTriangle,
   Building2,
+  Calendar,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Copy,
+  ExternalLink,
   Eye,
+  FileText,
   HardHat,
+  Mail,
+  MapPin,
   MoreHorizontal,
+  Phone,
   Search,
+  ShieldCheck,
   User,
+  UserCheck,
   Users,
+  UserX,
   Wrench,
+  X,
   XCircle,
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const API_URL = getApiBaseUrl()
 
@@ -64,6 +78,15 @@ function authHeaders() {
   }
 }
 
+function formatRegisteredUnder(emp) {
+  if (!emp) return ''
+  if (typeof emp === 'string') return emp
+  const shop = emp.shopName ? String(emp.shopName).trim() : ''
+  const name = emp.fullName ? String(emp.fullName).trim() : ''
+  if (shop && name) return `${shop} (${name})`
+  return shop || name || emp.email || ''
+}
+
 function mapUserFromApi(u) {
   if (!u || !u._id) return null
   const phone = [u.phoneCode, u.phoneNumber].filter(Boolean).join(' ').trim() || '—'
@@ -81,6 +104,7 @@ function mapUserFromApi(u) {
     subtitle = [u.cityMunicipality, u.province].filter(Boolean).join(', ') || 'Customer'
   }
   const rosterStatus = u.shopManagedStatus || 'active'
+  const registeredUnder = formatRegisteredUnder(u.employedByShopOwner)
   const rawApproval = u.accountApprovalStatus
   const accountApprovalStatus =
     rawApproval === 'pending' || rawApproval === 'rejected' ? rawApproval : 'approved'
@@ -92,6 +116,8 @@ function mapUserFromApi(u) {
     role,
     roleRaw,
     rosterStatus,
+    registeredUnder,
+    employedByShopOwner: u.employedByShopOwner,
     accountApprovalStatus,
     joinedAt: joined,
     subtitle,
@@ -169,34 +195,38 @@ function accountApprovalBadge(status) {
   switch (status) {
     case 'pending':
       return (
-        <Badge className="border border-amber-500/30 bg-amber-500/10 font-medium text-amber-950 hover:bg-amber-500/15 dark:border-amber-500/35 dark:bg-amber-500/15 dark:text-amber-100">
+        <span className="inline-flex items-center rounded-none border border-amber-200 bg-amber-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-700">
           Pending approval
-        </Badge>
+        </span>
       )
     case 'rejected':
       return (
-        <Badge className="border border-rose-500/30 bg-rose-500/10 font-medium text-rose-900 hover:bg-rose-500/15 dark:border-rose-500/35 dark:bg-rose-500/15 dark:text-rose-100">
+        <span className="inline-flex items-center rounded-none border border-rose-200 bg-rose-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-rose-700">
           Rejected
-        </Badge>
+        </span>
       )
     case 'approved':
     default:
       return (
-        <Badge className="border border-emerald-500/25 bg-emerald-500/10 font-medium text-emerald-900 hover:bg-emerald-500/15 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-100">
+        <span className="inline-flex items-center rounded-none border border-emerald-200 bg-emerald-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-700">
           Approved
-        </Badge>
+        </span>
       )
   }
 }
 
 function statusCell(row) {
-  const showRoster =
-    row.roleRaw === 'mechanic-technician' && row.accountApprovalStatus === 'approved'
+  const isMechanic = row.roleRaw === 'mechanic-technician'
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
       {accountApprovalBadge(row.accountApprovalStatus)}
-      {showRoster ? (
-        <div className="text-[10px] leading-tight text-muted-foreground">Roster: {row.rosterStatus}</div>
+      {isMechanic ? (
+        <div
+          className="max-w-[200px] break-words text-[10px] leading-tight text-slate-500 font-medium"
+          title={row.registeredUnder || '—'}
+        >
+          Registered under: <span className="font-semibold text-slate-800">{row.registeredUnder || '—'}</span>
+        </div>
       ) : null}
     </div>
   )
@@ -204,37 +234,58 @@ function statusCell(row) {
 
 function roleBadge(role) {
   return (
-    <Badge
-      variant="outline"
-      className="border-[#1447a6]/25 bg-white/90 capitalize text-[#081F5C] dark:border-[#1447a6]/35 dark:bg-[#04133d]/40 dark:text-blue-100"
-    >
+    <span className="inline-flex items-center rounded-none border border-blue-200 bg-blue-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-blue-700 capitalize">
       {role}
-    </Badge>
+    </span>
   )
 }
 
 const STAT_CARD_GRADIENT = {
-  total: 'bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]',
-  customer: 'bg-linear-to-br from-sky-600 via-blue-600 to-indigo-900',
-  'shop-owner': 'bg-linear-to-br from-violet-600 via-purple-700 to-fuchsia-950',
-  independent: 'bg-linear-to-br from-amber-600 via-orange-600 to-amber-950',
-  mechanic: 'bg-linear-to-br from-emerald-600 via-teal-600 to-emerald-900',
+  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  customer: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
+  'shop-owner': "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
+  independent: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  mechanic: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
 }
 
-function StatGradientCard({ label, value, icon: Icon, variant, className }) {
+function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
   const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
+  const helperText = helper || sub
   return (
     <div
-      className={`relative min-h-[84px] sm:min-h-[112px] min-w-0 overflow-hidden rounded-lg border border-white/15 p-3 sm:p-5 shadow-md transition-shadow duration-300 hover:shadow-lg ${gradient} ${className || ''}`}
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
+        onClick ? "cursor-pointer" : "",
+        gradient,
+        className
+      )}
     >
-      <div className="pointer-events-none absolute inset-0 bg-linear-to-br from-white/10 to-transparent" />
-      <div className="relative z-10 flex items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] sm:text-xs font-medium tracking-wide text-white/85 truncate">{label}</p>
-          <p className="mt-0.5 sm:mt-1 text-xl font-bold tracking-tight text-white tabular-nums sm:text-3xl">{value}</p>
+      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
+      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+
+      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
+            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
+            <span className="truncate">{label}</span>
+          </span>
+          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
+            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-        <div className="shrink-0 rounded-md border border-white/25 bg-white/15 p-2 sm:p-3 shadow-inner backdrop-blur-sm">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
+
+        <div>
+          <div className="flex items-baseline gap-1.5 sm:gap-2">
+            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
+              {value}
+            </span>
+          </div>
+          {helperText ? (
+            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+              {helperText}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -242,7 +293,7 @@ function StatGradientCard({ label, value, icon: Icon, variant, className }) {
 }
 
 const selectShell =
-  'h-9 w-full appearance-none rounded-md border border-[#081F5C]/15 bg-white/95 px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-xs sm:text-sm shadow-sm outline-none focus-visible:border-[#1447a6]/50 focus-visible:ring-2 focus-visible:ring-[#081F5C]/20 dark:border-white/10 dark:bg-[#04133d]/30 truncate'
+  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
 
 /** Admin: platform users (customers, shop owners, mechanics) — UI aligned with shop owner Manage Employee. */
 export default function AdminUserManagement() {
@@ -274,6 +325,14 @@ export default function AdminUserManagement() {
   const [rejectReason, setRejectReason] = useState('')
   const [rejectFieldError, setRejectFieldError] = useState('')
   const [acting, setActing] = useState(false)
+  const [copiedId, setCopiedId] = useState(false)
+
+  const handleCopyText = (text) => {
+    if (!text) return
+    navigator.clipboard?.writeText(text)
+    setCopiedId(true)
+    setTimeout(() => setCopiedId(false), 2000)
+  }
 
   const loadUsers = useCallback(async () => {
     const token = localStorage.getItem('token')
@@ -412,7 +471,8 @@ export default function AdminUserManagement() {
         e.fullName.toLowerCase().includes(query) ||
         e.email.toLowerCase().includes(query) ||
         e.role.toLowerCase().includes(query) ||
-        (e.subtitle && e.subtitle.toLowerCase().includes(query))
+        (e.subtitle && e.subtitle.toLowerCase().includes(query)) ||
+        (e.registeredUnder && e.registeredUnder.toLowerCase().includes(query))
       )
     })
   }, [users, roleFilter, approvalFilter, mechanicRosterFilter, dateRange, q])
@@ -544,24 +604,75 @@ export default function AdminUserManagement() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-full space-y-3 overflow-x-hidden">
-      <div className="space-y-1">
-        <h1 className="text-lg font-semibold tracking-tight text-foreground md:text-xl">User management</h1>
-        <p className="text-sm text-muted-foreground">
+    <div className="w-full min-w-0 max-w-full space-y-3.5 sm:space-y-4 overflow-x-hidden">
+      <div className="space-y-0.5 min-w-0 flex-1">
+        <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 truncate">User management</h1>
+        <p className="text-xs text-slate-500 font-medium">
           Customers, shop owners, and mechanics registered on E-Paayos (admin view).
         </p>
       </div>
 
-      <div className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-        <StatGradientCard variant="total" label="Total users" value={stats.total} icon={Users} />
-        <StatGradientCard variant="customer" label="Customers" value={stats.customers} icon={User} />
-        <StatGradientCard variant="shop-owner" label="Shop owners" value={stats.owners} icon={Building2} />
-        <StatGradientCard variant="independent" label="On-call providers" value={stats.independents} icon={HardHat} />
-        <StatGradientCard variant="mechanic" label="Mechanics" value={stats.mechanics} icon={Wrench} className="col-span-2 sm:col-span-1 lg:col-span-1" />
+      <div className="grid w-full grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3.5">
+        <StatGradientCard
+          variant="total"
+          label="Total users"
+          value={stats.total}
+          helper="All registered accounts"
+          icon={Users}
+          onClick={() => {
+            setRoleFilter('')
+            setPage(1)
+          }}
+        />
+        <StatGradientCard
+          variant="customer"
+          label="Customers"
+          value={stats.customers}
+          helper="Service buyers"
+          icon={User}
+          onClick={() => {
+            setRoleFilter('customer')
+            setPage(1)
+          }}
+        />
+        <StatGradientCard
+          variant="shop-owner"
+          label="Shop owners"
+          value={stats.owners}
+          helper="Repair shop owners"
+          icon={Building2}
+          onClick={() => {
+            setRoleFilter('shop-owner')
+            setPage(1)
+          }}
+        />
+        <StatGradientCard
+          variant="independent"
+          label="On-call providers"
+          value={stats.independents}
+          helper="Independent mechanics"
+          icon={HardHat}
+          onClick={() => {
+            setRoleFilter('oncall-mechanic-technician')
+            setPage(1)
+          }}
+        />
+        <StatGradientCard
+          variant="mechanic"
+          label="Mechanics"
+          value={stats.mechanics}
+          helper="Shop technicians"
+          icon={Wrench}
+          className="col-span-2 sm:col-span-1 xl:col-span-1"
+          onClick={() => {
+            setRoleFilter('mechanic-technician')
+            setPage(1)
+          }}
+        />
       </div>
 
       {listError ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
+        <div className="rounded-none border border-rose-300 bg-rose-50 px-4 py-3 text-xs font-semibold text-rose-800">
           {listError}
         </div>
       ) : null}
@@ -570,66 +681,66 @@ export default function AdminUserManagement() {
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:gap-3 min-w-0 w-full max-w-full">
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
             <select
-              className={`${selectShell} ${roleFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+              className={selectShell}
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value === '' ? '__' : e.target.value)}
             >
               <option value="__" disabled hidden>
                 Role
               </option>
-              <option value="">All</option>
+              <option value="">All roles</option>
               <option value="customer">Customer</option>
               <option value="shop-owner">Shop owner</option>
               <option value="oncall-mechanic-technician">On-call Mechanic/Technician</option>
               <option value="mechanic-technician">Mechanic / technician</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
 
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
             <select
-              className={`${selectShell} ${approvalFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+              className={selectShell}
               value={approvalFilter}
               onChange={(e) => setApprovalFilter(e.target.value === '' ? '__' : e.target.value)}
             >
               <option value="__" disabled hidden>
                 Approval
               </option>
-              <option value="">All</option>
+              <option value="">All statuses</option>
               <option value="pending">Pending approval</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
 
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
             <select
-              className={`${selectShell} ${mechanicRosterFilter !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+              className={selectShell}
               value={mechanicRosterFilter}
               onChange={(e) => setMechanicRosterFilter(e.target.value === '' ? '__' : e.target.value)}
             >
               <option value="__" disabled hidden>
                 Mechanic roster
               </option>
-              <option value="">All</option>
+              <option value="">All roster</option>
               <option value="active">Active roster</option>
               <option value="on-leave">On leave</option>
               <option value="inactive">Inactive</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
 
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[160px] sm:flex-1 sm:max-w-[220px]">
             <select
-              className={`${selectShell} ${dateRange !== '__' ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500'}`}
+              className={selectShell}
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value === '' ? '__' : e.target.value)}
             >
               <option value="__" disabled hidden>
                 Date joined
               </option>
-              <option value="">All</option>
+              <option value="">All time</option>
               <option value="today">Today</option>
               <option value="this-week">This week</option>
               <option value="this-month">This month</option>
@@ -637,14 +748,14 @@ export default function AdminUserManagement() {
               <option value="this-year">This year</option>
               <option value="last-year">Last year</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
         </div>
 
         <div className="relative min-w-0 w-full max-w-full lg:max-w-lg lg:flex-1">
           <div className="relative w-full min-w-0 max-w-full">
             <Input
-              className="h-9 w-full min-w-0 rounded-md border-[#081F5C]/15 bg-white/95 pr-12 pl-4 text-sm shadow-sm focus-visible:border-[#1447a6]/45 focus-visible:ring-[#081F5C]/15 dark:border-white/10 dark:bg-[#04133d]/25"
+              className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
               placeholder="Search by name, email, role, or notes…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -653,17 +764,17 @@ export default function AdminUserManagement() {
             <Button
               type="button"
               size="icon-sm"
-              className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-sm bg-linear-to-r from-[#081F5C] to-[#1447a6] p-0 shadow-sm hover:opacity-95"
+              className="absolute top-1/2 right-1 h-7 w-7 -translate-y-1/2 rounded-none bg-gradient-to-br from-[#081F5C] to-[#1447a6] p-0 shadow-xs hover:opacity-95"
               aria-label="Search"
             >
-              <Search className="h-4 w-4 text-white" />
+              <Search className="h-3.5 w-3.5 text-white" />
             </Button>
           </div>
         </div>
       </div>
 
-      <Card className="mt-3 min-w-0 max-w-full overflow-hidden rounded-lg border border-[#081F5C]/12 bg-white shadow-lg ring-1 ring-black/3 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90 dark:ring-white/6">
-        <CardContent className="min-w-0 p-0">
+      <div className="mt-3 min-w-0 max-w-full overflow-hidden rounded-none border border-slate-200/60 bg-white/90 shadow-sm ring-1 ring-slate-200/45 backdrop-blur-sm dark:border-white/10 dark:bg-[#0c1929]/90">
+        <div className="min-w-0 p-0">
           {/* Desktop Table View */}
           <div
             id="admin-um-table-x-scroll"
@@ -671,23 +782,23 @@ export default function AdminUserManagement() {
           >
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead className="[&_tr]:border-0">
-                <tr className="border-0 bg-linear-to-r from-[#081F5C] to-[#1447a6]">
-                  <th className="w-[26%] border-0 px-4 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                <tr className="border-0 bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6]">
+                  <th className="w-[26%] border-0 px-4 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     User
                   </th>
-                  <th className="w-[20%] border-0 px-3 py-3.5 pr-4 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[20%] border-0 px-3 py-3 pr-4 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Email
                   </th>
-                  <th className="w-[16%] border-0 px-3 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[16%] border-0 px-3 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Role
                   </th>
-                  <th className="w-[14%] border-0 px-3 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[14%] border-0 px-3 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Status
                   </th>
-                  <th className="w-[14%] border-0 px-3 py-3.5 text-left text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[14%] border-0 px-3 py-3 text-left text-[11px] font-black tracking-wider text-white uppercase">
                     Joined
                   </th>
-                  <th className="w-[72px] border-0 px-3 py-3.5 text-center text-[11px] font-semibold tracking-widest text-white/95 uppercase">
+                  <th className="w-[72px] border-0 px-3 py-3 text-center text-[11px] font-black tracking-wider text-white uppercase">
                     Actions
                   </th>
                 </tr>
@@ -696,7 +807,7 @@ export default function AdminUserManagement() {
                 {listLoading ? (
                   <tr>
                     <td
-                      className="rounded-b-lg px-6 py-14 text-center text-sm text-muted-foreground"
+                      className="px-6 py-14 text-center text-xs font-semibold text-slate-500"
                       colSpan={6}
                     >
                       Loading users…
@@ -705,7 +816,7 @@ export default function AdminUserManagement() {
                 ) : pageSlice.length === 0 ? (
                   <tr>
                     <td
-                      className="rounded-b-lg px-6 py-14 text-center text-sm text-muted-foreground"
+                      className="px-6 py-14 text-center text-xs font-semibold text-slate-500"
                       colSpan={6}
                     >
                       {users.length === 0
@@ -717,31 +828,31 @@ export default function AdminUserManagement() {
                   pageSlice.map((row, idx) => (
                     <tr
                       key={row.id}
-                      className={`transition-colors duration-150 hover:bg-[#081F5C]/5 dark:hover:bg-white/6 ${idx % 2 === 1 ? 'bg-[#081F5C]/2.5 dark:bg-white/2' : ''} ${idx < pageSlice.length - 1 ? 'border-b border-[#081F5C]/8 dark:border-white/5' : ''}`}
+                      className={`transition-colors duration-150 hover:bg-slate-50/80 ${idx % 2 === 1 ? 'bg-slate-50/40' : ''} ${idx < pageSlice.length - 1 ? 'border-b border-slate-100' : ''}`}
                     >
-                      <td className="px-4 py-3.5">
-                        <div className="flex min-w-0 items-center gap-3">
+                      <td className="px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                           <Avatar
-                            className="size-10 shrink-0 ring-2 ring-white shadow-md ring-offset-2 ring-offset-background dark:ring-[#04133d] dark:ring-offset-[#04133d]/50"
+                            className="size-9 shrink-0 ring-2 ring-white shadow-xs"
                             size="sm"
                           >
-                            <AvatarFallback className="bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-semibold text-white">
+                            <AvatarFallback className="bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white">
                               {initials(row.fullName)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <div className="truncate font-semibold text-foreground">{row.fullName}</div>
-                            <div className="truncate text-xs text-muted-foreground">{row.subtitle}</div>
+                            <div className="truncate font-semibold text-xs text-slate-900">{row.fullName}</div>
+                            <div className="truncate text-[11px] text-slate-500 font-medium">{row.subtitle}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-3.5 pr-4 align-middle">
-                        <div className="truncate text-sm text-foreground">{row.email}</div>
-                        <div className="truncate text-xs text-muted-foreground">{row.phone}</div>
+                      <td className="px-3 py-3 pr-4 align-middle">
+                        <div className="truncate text-xs font-semibold text-slate-800">{row.email}</div>
+                        <div className="truncate text-[11px] text-slate-500 font-medium">{row.phone}</div>
                       </td>
-                      <td className="px-3 py-3.5 align-middle">{roleBadge(row.role)}</td>
-                      <td className="px-3 py-3.5 align-middle">{statusCell(row)}</td>
-                      <td className="px-3 py-3.5 align-middle text-sm tabular-nums text-muted-foreground">
+                      <td className="px-3 py-3 align-middle">{roleBadge(row.role)}</td>
+                      <td className="px-3 py-3 align-middle">{statusCell(row)}</td>
+                      <td className="px-3 py-3 align-middle text-xs tabular-nums text-slate-600 font-medium">
                         {formatJoined(row.joinedAt)}
                       </td>
                       <td className="px-2 py-3 text-center align-middle">
@@ -750,19 +861,19 @@ export default function AdminUserManagement() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="mx-auto h-9 w-9 rounded-md p-0 text-[#081F5C]/70 opacity-80 hover:bg-[#081F5C]/10 hover:text-[#081F5C] hover:opacity-100 dark:text-blue-200/80 dark:hover:bg-white/10"
+                              className="mx-auto h-7 w-7 rounded-none p-0 text-[#081F5C] hover:bg-slate-100 transition-colors"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44 text-xs">
+                          <DropdownMenuContent align="end" className="w-44 text-xs rounded-none">
                             <DropdownMenuItem className="gap-2 text-xs" onClick={() => openDetail(row)}>
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3.5 w-3.5" />
                               View
                             </DropdownMenuItem>
                             {row.accountApprovalStatus === 'pending' || row.accountApprovalStatus === 'rejected' ? (
                               <DropdownMenuItem className="gap-2 text-xs" onClick={() => openApproveFlow(row)}>
-                                <Check className="h-4 w-4" />
+                                <Check className="h-3.5 w-3.5" />
                                 Approve
                               </DropdownMenuItem>
                             ) : null}
@@ -774,7 +885,7 @@ export default function AdminUserManagement() {
                                   className="gap-2 text-xs"
                                   onClick={() => openRejectFlow(row)}
                                 >
-                                  <XCircle className="h-4 w-4" />
+                                  <XCircle className="h-3.5 w-3.5" />
                                   Reject
                                 </DropdownMenuItem>
                               </>
@@ -790,33 +901,33 @@ export default function AdminUserManagement() {
           </div>
 
           {/* Mobile User Cards View */}
-          <div className="block divide-y divide-[#081F5C]/8 dark:divide-white/5 md:hidden">
+          <div className="block divide-y divide-slate-100 dark:divide-white/5 md:hidden">
             {listLoading ? (
-              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+              <div className="px-4 py-12 text-center text-xs font-medium text-slate-500">
                 Loading users…
               </div>
             ) : pageSlice.length === 0 ? (
-              <div className="px-4 py-12 text-center text-sm text-muted-foreground">
+              <div className="px-4 py-12 text-center text-xs font-medium text-slate-500">
                 {users.length === 0
                   ? 'No users yet, or you may not have admin access to this list.'
                   : 'No results match your filters. Try a different keyword or filter.'}
               </div>
             ) : (
               pageSlice.map((row) => (
-                <div key={row.id} className="p-3 sm:p-4 space-y-2.5 transition-colors hover:bg-[#081F5C]/3 dark:hover:bg-white/3">
+                <div key={row.id} className="p-3 sm:p-3.5 space-y-2.5 transition-colors bg-gradient-to-r from-white via-slate-50/40 to-blue-50/20 hover:bg-slate-50/80">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar
-                        className="size-10 shrink-0 ring-2 ring-white shadow-sm ring-offset-1 ring-offset-background dark:ring-[#04133d]"
+                        className="size-9 sm:size-10 shrink-0 ring-2 ring-white shadow-xs"
                         size="sm"
                       >
-                        <AvatarFallback className="bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-semibold text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-xs font-bold text-white">
                           {initials(row.fullName)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <div className="truncate font-semibold text-sm text-foreground">{row.fullName}</div>
-                        <div className="truncate text-xs text-muted-foreground">{row.subtitle}</div>
+                        <div className="truncate font-semibold text-xs sm:text-sm text-slate-900">{row.fullName}</div>
+                        <div className="truncate text-[11px] text-slate-500 font-medium">{row.subtitle}</div>
                       </div>
                     </div>
 
@@ -825,19 +936,19 @@ export default function AdminUserManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 rounded-md p-0 text-[#081F5C]/70 hover:bg-[#081F5C]/10 dark:text-blue-200/80 shrink-0"
+                          className="h-7 w-7 rounded-none p-0 text-[#081F5C] hover:bg-white border border-slate-200 shadow-xs shrink-0"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44 text-xs z-50">
+                      <DropdownMenuContent align="end" className="w-44 text-xs z-50 rounded-none">
                         <DropdownMenuItem className="gap-2 text-xs" onClick={() => openDetail(row)}>
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3.5 w-3.5" />
                           View
                         </DropdownMenuItem>
                         {row.accountApprovalStatus === 'pending' || row.accountApprovalStatus === 'rejected' ? (
                           <DropdownMenuItem className="gap-2 text-xs" onClick={() => openApproveFlow(row)}>
-                            <Check className="h-4 w-4" />
+                            <Check className="h-3.5 w-3.5" />
                             Approve
                           </DropdownMenuItem>
                         ) : null}
@@ -849,7 +960,7 @@ export default function AdminUserManagement() {
                               className="gap-2 text-xs"
                               onClick={() => openRejectFlow(row)}
                             >
-                              <XCircle className="h-4 w-4" />
+                              <XCircle className="h-3.5 w-3.5" />
                               Reject
                             </DropdownMenuItem>
                           </>
@@ -859,10 +970,10 @@ export default function AdminUserManagement() {
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100 dark:border-white/5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1.5 border-t border-slate-100">
                     <div className="space-y-0.5 min-w-0">
-                      <div className="truncate font-medium text-foreground">{row.email}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{row.phone}</div>
+                      <div className="truncate font-semibold text-xs text-slate-800">{row.email}</div>
+                      <div className="truncate text-[11px] text-slate-500 font-medium">{row.phone}</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">
                       {roleBadge(row.role)}
@@ -870,22 +981,22 @@ export default function AdminUserManagement() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                    <span>Joined: {formatJoined(row.joinedAt)}</span>
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                    <span className="font-medium text-[10px] sm:text-[11px]">Joined: {formatJoined(row.joinedAt)}</span>
                     <button
                       type="button"
                       onClick={() => openDetail(row)}
-                      className="inline-flex items-center gap-1 font-semibold text-[#1447a6] hover:underline"
+                      className="inline-flex items-center gap-1 font-bold text-xs text-[#1447a6] hover:underline"
                     >
-                      View details <ChevronRight className="size-3" />
+                      View details <ChevronRight className="size-3.5" />
                     </button>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {filtered.length > 0 && (
         <div className="mt-4 flex min-w-0 max-w-full flex-col items-center justify-between gap-3 sm:flex-row sm:gap-4">
@@ -951,25 +1062,64 @@ export default function AdminUserManagement() {
         </div>
       )}
 
+      {/* 1. Approve Confirmation Dialog */}
       <Dialog open={approveConfirmOpen} onOpenChange={(open) => !open && closeModerationDialogs()}>
-        <DialogContent className="sm:max-w-md" showCloseButton>
-          <DialogHeader>
-            <DialogTitle>Approve this user?</DialogTitle>
-            <DialogDescription className="text-left text-gray-600 dark:text-gray-400">
-              Are you sure you want to approve this user?
-            </DialogDescription>
-          </DialogHeader>
-          {moderationUser ? (
-            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {moderationUser.fullName}{' '}
-              <span className="font-normal text-gray-500 dark:text-gray-400">({moderationUser.email})</span>
-            </p>
-          ) : null}
-          <DialogFooter className="mx-0 mb-0 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+        <DialogContent
+          className="max-h-[90vh] max-w-[calc(100vw-1.5rem)] sm:max-w-md overflow-hidden flex flex-col p-0 border border-slate-200 bg-white shadow-2xl rounded-none dark:border-slate-800 dark:bg-slate-900"
+          showCloseButton
+        >
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 sm:size-8 items-center justify-center bg-white/15 text-white border border-white/20 shrink-0">
+                <CheckCircle2 className="size-4 text-emerald-300" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                  Approve User Registration
+                </DialogTitle>
+                <DialogDescription className="text-[10px] sm:text-[11px] text-blue-100/75 font-normal">
+                  Grant full verified access to the platform
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 space-y-3.5 text-xs sm:text-sm">
+            {moderationUser ? (
+              <div className="border border-slate-200 bg-slate-50/80 p-3.5 space-y-2 rounded-none dark:border-slate-800 dark:bg-slate-800/40">
+                <div className="flex items-center gap-2.5">
+                  <Avatar className="size-9 rounded-none border border-slate-300">
+                    <AvatarFallback className="rounded-none bg-[#1447a6] text-white font-bold text-xs">
+                      {moderationUser.fullName ? moderationUser.fullName.slice(0, 2).toUpperCase() : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-900 dark:text-white truncate text-sm">
+                      {moderationUser.fullName}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {moderationUser.email}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase shrink-0">
+                    {moderationUser.role}
+                  </Badge>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="bg-emerald-50/70 border border-emerald-200/80 p-3 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-800/60 dark:text-emerald-200 text-xs leading-relaxed">
+              <p className="font-bold mb-0.5">Verification Note:</p>
+              Approving this user will verify their account immediately. They will be permitted to log in and use all corresponding features in E-Paayos.
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end shrink-0 dark:border-slate-800 dark:bg-slate-950">
             <Button
               type="button"
               variant="outline"
               disabled={acting}
+              className="h-8 px-4 text-xs font-bold rounded-none border-slate-300 hover:bg-slate-100 dark:border-slate-700"
               onClick={() => {
                 setApproveConfirmOpen(false)
                 setModerationUser(null)
@@ -980,15 +1130,16 @@ export default function AdminUserManagement() {
             <Button
               type="button"
               disabled={acting || !moderationUser}
-              className="bg-green-600 text-white hover:bg-green-700"
+              className="h-8 px-4 text-xs font-bold rounded-none bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
               onClick={() => void doApprove()}
             >
-              {acting ? 'Approving...' : 'Approve'}
+              {acting ? 'Approving...' : 'Confirm Approval'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* 2. Reject Form Dialog */}
       <Dialog
         open={rejectOpen}
         onOpenChange={(open) => {
@@ -1000,31 +1151,83 @@ export default function AdminUserManagement() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md" showCloseButton>
-          <DialogHeader>
-            <DialogTitle>Reject user</DialogTitle>
-            <DialogDescription className="text-left text-gray-600 dark:text-gray-400">
-              Provide a reason for rejection. The user will see this message when they try to sign in.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2">
-            <Textarea
-              className="min-h-[120px] resize-none"
-              placeholder="Enter reason for rejection (required)"
-              value={rejectReason}
-              onChange={(e) => {
-                setRejectReason(e.target.value)
-                if (rejectFieldError) setRejectFieldError('')
-              }}
-              aria-invalid={!!rejectFieldError}
-            />
-            {rejectFieldError ? <p className="text-sm text-rose-600 dark:text-rose-400">{rejectFieldError}</p> : null}
+        <DialogContent
+          className="max-h-[90vh] max-w-[calc(100vw-1.5rem)] sm:max-w-lg overflow-hidden flex flex-col p-0 border border-rose-200 bg-white shadow-2xl rounded-none dark:border-rose-900/60 dark:bg-slate-900"
+          showCloseButton
+        >
+          <div className="bg-gradient-to-r from-rose-900 via-red-800 to-slate-950 px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-rose-700/30">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 sm:size-8 items-center justify-center bg-white/15 text-white border border-white/20 shrink-0">
+                <XCircle className="size-4 text-rose-300" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                  Reject User Registration
+                </DialogTitle>
+                <DialogDescription className="text-[10px] sm:text-[11px] text-rose-100/75 font-normal">
+                  Provide a specific reason for rejection
+                </DialogDescription>
+              </div>
+            </div>
           </div>
-          <DialogFooter className="mx-0 mb-0 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+
+          <div className="p-4 sm:p-5 space-y-3.5 text-xs sm:text-sm">
+            {moderationUser ? (
+              <div className="border border-slate-200 bg-slate-50/80 p-3.5 space-y-2 rounded-none dark:border-slate-800 dark:bg-slate-800/40">
+                <div className="flex items-center gap-2.5">
+                  <Avatar className="size-9 rounded-none border border-slate-300">
+                    <AvatarFallback className="rounded-none bg-rose-700 text-white font-bold text-xs">
+                      {moderationUser.fullName ? moderationUser.fullName.slice(0, 2).toUpperCase() : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-slate-900 dark:text-white truncate text-sm">
+                      {moderationUser.fullName}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {moderationUser.email}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase shrink-0">
+                    {moderationUser.role}
+                  </Badge>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                Reason for Rejection <span className="text-rose-600">*</span>
+              </label>
+              <Textarea
+                className="min-h-[110px] resize-none text-xs rounded-none border-slate-200 focus-visible:ring-rose-500 dark:border-slate-700"
+                placeholder="e.g. Unclear or invalid government ID submitted, unverified business permit, mismatched name and documentation..."
+                value={rejectReason}
+                onChange={(e) => {
+                  setRejectReason(e.target.value)
+                  if (rejectFieldError) setRejectFieldError('')
+                }}
+                aria-invalid={!!rejectFieldError}
+              />
+              {rejectFieldError ? (
+                <p className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1 mt-1">
+                  <AlertTriangle className="size-3 shrink-0" />
+                  <span>{rejectFieldError}</span>
+                </p>
+              ) : (
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                  The applicant will see this explanation message when attempting to log into the platform.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end shrink-0 dark:border-slate-800 dark:bg-slate-950">
             <Button
               type="button"
               variant="outline"
               disabled={acting}
+              className="h-8 px-4 text-xs font-bold rounded-none border-slate-300 hover:bg-slate-100 dark:border-slate-700"
               onClick={() => {
                 setRejectOpen(false)
                 setRejectReason('')
@@ -1037,15 +1240,16 @@ export default function AdminUserManagement() {
             <Button
               type="button"
               disabled={acting || !moderationUser}
-              className="bg-rose-600 text-white hover:bg-rose-700"
+              className="h-8 px-4 text-xs font-bold rounded-none bg-rose-600 text-white hover:bg-rose-700 shadow-xs"
               onClick={() => void doReject()}
             >
-              {acting ? 'Rejecting...' : 'Reject user'}
+              {acting ? 'Rejecting...' : 'Confirm Rejection'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* 3. User Registration Profile Modal */}
       <Dialog
         open={detailOpen}
         onOpenChange={(open) => {
@@ -1059,56 +1263,125 @@ export default function AdminUserManagement() {
         }}
       >
         <DialogContent
-          className="flex max-h-[90vh] max-w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden border-gray-200 bg-white p-0 sm:max-w-3xl dark:border-white/10 dark:bg-popover"
+          className="max-h-[90vh] max-w-[calc(100vw-1.5rem)] sm:max-w-3xl lg:max-w-4xl overflow-hidden flex flex-col p-0 border border-slate-200 bg-white shadow-2xl rounded-none dark:border-slate-800 dark:bg-slate-900"
           showCloseButton
         >
-          <DialogHeader className="shrink-0 space-y-1 border-b border-gray-200 px-4 py-4 text-left sm:px-6 dark:border-white/10">
-            <DialogTitle className="text-lg text-gray-900 dark:text-gray-100">User registration</DialogTitle>
-            <DialogDescription className="text-gray-600 dark:text-gray-400">
-              {detailUser
-                ? `${detailUser.fullName} — full registration data as submitted on sign-up.`
-                : 'Read-only view.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 sm:px-6 dark:bg-transparent">
+          {/* Sleek Compact Header Banner */}
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pr-6">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-7 sm:size-8 items-center justify-center bg-white/15 text-white border border-white/20 shrink-0">
+                  <User className="size-3.5 sm:size-4 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                      User Registration Profile
+                    </DialogTitle>
+                    {detailUser ? (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(detailUser.id)}
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white/15 hover:bg-white/25 text-white border border-white/30 transition-colors"
+                        title="Click to copy User ID"
+                      >
+                        <span>ID: {detailUser.id ? detailUser.id.slice(-8).toUpperCase() : '—'}</span>
+                        {copiedId ? (
+                          <Check className="size-2.5 text-emerald-300" />
+                        ) : (
+                          <Copy className="size-2.5 text-white/70" />
+                        )}
+                      </button>
+                    ) : null}
+                  </div>
+                  <DialogDescription className="text-[10px] sm:text-[11px] text-blue-100/75 font-normal">
+                    {detailUser ? `${detailUser.fullName} (${detailUser.email})` : 'Read-only profile view'}
+                  </DialogDescription>
+                </div>
+              </div>
+
+              {/* Badges in same compact row */}
+              {detailUser ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-white/15 text-white border-white/30">
+                    {detailUser.role}
+                  </Badge>
+                  {accountApprovalBadge(detailUser.accountApprovalStatus)}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Scrollable Profile Body */}
+          <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 p-4 sm:p-6 dark:bg-slate-950/40">
             {detailProfileLoading ? (
-              <p className="py-16 text-center text-sm text-muted-foreground">Loading registration data…</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center space-y-2">
+                <div className="size-8 border-3 border-[#1447a6] border-t-transparent animate-spin rounded-full" />
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Loading registration data…</p>
+              </div>
             ) : detailProfileError ? (
-              <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
-                {detailProfileError}
+              <div className="border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 dark:border-rose-900/40 dark:bg-rose-950/40 dark:text-rose-200 flex items-start gap-2">
+                <AlertTriangle className="size-4 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Failed to load registration data:</span>
+                  <p className="mt-0.5">{detailProfileError}</p>
+                </div>
               </div>
             ) : (
-              <div className="rounded-md border border-gray-200 bg-white p-4 shadow-sm sm:p-6 dark:border-white/10 dark:bg-gray-950/30">
-                <AdminRegistrationDetailView profile={detailProfile} apiBaseUrl={API_URL} />
-              </div>
+              <AdminRegistrationDetailView profile={detailProfile} apiBaseUrl={API_URL} />
             )}
           </div>
-          {!detailProfileLoading && !detailProfileError && detailUser && detailProfile ? (
-            (() => {
-              const st = detailProfile.accountApprovalStatus
-              const isPending = st === 'pending'
-              const isRejected = st === 'rejected'
-              if (!isPending && !isRejected) return null
-              return (
-                <DialogFooter className="mx-0 mb-0 shrink-0 rounded-none border-t border-gray-200 bg-white px-4 py-3 flex flex-col-reverse sm:flex-row sm:justify-end sm:px-6 dark:border-white/10 dark:bg-gray-950/80">
-                  <div className="flex w-full flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                    {isPending ? (
-                      <Button type="button" variant="secondary" onClick={() => openRejectFlow(detailUser)}>
-                        Reject
+
+          {/* Dialog Footer with Action Controls */}
+          <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-5 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0 dark:border-slate-800 dark:bg-slate-950">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400">
+              {detailUser?.joinedAt ? `Account created ${detailUser.joinedAt}` : 'User Management System'}
+            </p>
+
+            <div className="flex w-full sm:w-auto items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto h-8 px-4 text-xs font-bold rounded-none border-slate-300 hover:bg-slate-100 dark:border-slate-700"
+                onClick={() => setDetailOpen(false)}
+              >
+                Close
+              </Button>
+
+              {!detailProfileLoading && !detailProfileError && detailUser && detailProfile ? (
+                (() => {
+                  const st = detailProfile.accountApprovalStatus
+                  const isPending = st === 'pending'
+                  const isRejected = st === 'rejected'
+
+                  if (!isPending && !isRejected) return null
+
+                  return (
+                    <div className="flex items-center gap-2">
+                      {isPending ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-8 px-3.5 text-xs font-bold rounded-none border-rose-300 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400"
+                          onClick={() => openRejectFlow(detailUser)}
+                        >
+                          Reject
+                        </Button>
+                      ) : null}
+
+                      <Button
+                        type="button"
+                        className="h-8 px-4 text-xs font-bold rounded-none bg-emerald-600 text-white hover:bg-emerald-700 shadow-xs"
+                        onClick={() => openApproveFlow(detailUser)}
+                      >
+                        {isRejected ? 'Re-evaluate & Approve' : 'Approve'}
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      className="bg-linear-to-r from-blue-600 to-purple-600 text-white shadow-sm hover:opacity-95"
-                      onClick={() => openApproveFlow(detailUser)}
-                    >
-                      Approve
-                    </Button>
-                  </div>
-                </DialogFooter>
-              )
-            })()
-          ) : null}
+                    </div>
+                  )
+                })()
+              ) : null}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

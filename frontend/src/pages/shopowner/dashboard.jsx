@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts"
 import {
   Sidebar,
@@ -25,18 +35,28 @@ import {
   BarChart3,
   Bell,
   Building2,
+  Calendar,
+  Check,
   CheckCircle,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   ClipboardList,
   Clock,
+  Copy,
+  CreditCard,
   DollarSign,
+  ExternalLink,
+  Eye,
+  FileText,
   LayoutDashboard,
   LogOut,
+  Mail,
+  MapPin,
   Menu,
   MessageSquare,
   Package,
+  Phone,
   PlayCircle,
   Plus,
   Settings,
@@ -44,6 +64,7 @@ import {
   ShoppingCart,
   Star,
   Store,
+  User,
   Users,
   Wallet,
   Wrench,
@@ -112,6 +133,66 @@ function normalizeStatus(s) {
   return String(s || "").toLowerCase()
 }
 
+function formatPreferredDate(val) {
+  if (!val) return "Flexible / Any day"
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return String(val)
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
+}
+
+function formatDateTime(val) {
+  if (!val) return "—"
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return String(val)
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function bookingStatusBadgeClass(status) {
+  const s = String(status || "").toLowerCase()
+  switch (s) {
+    case "pending":
+      return "bg-amber-100 text-amber-900 border-amber-300"
+    case "confirmed":
+      return "bg-sky-100 text-sky-900 border-sky-300"
+    case "working":
+    case "in_progress":
+      return "bg-purple-100 text-purple-900 border-purple-300"
+    case "completed":
+      return "bg-emerald-100 text-emerald-900 border-emerald-300"
+    case "cancelled":
+    case "rejected":
+      return "bg-rose-100 text-rose-900 border-rose-300"
+    default:
+      return "bg-slate-100 text-slate-800 border-slate-300"
+  }
+}
+
+function paymentBadgeClass(status) {
+  const s = String(status || "").toLowerCase()
+  switch (s) {
+    case "paid":
+      return "bg-emerald-100 text-emerald-900 border-emerald-300"
+    case "pending":
+    case "unpaid":
+      return "bg-amber-100 text-amber-900 border-amber-300"
+    case "failed":
+      return "bg-rose-100 text-rose-900 border-rose-300"
+    default:
+      return "bg-slate-100 text-slate-800 border-slate-300"
+  }
+}
+
 const STAT_CARD_GRADIENT = {
   services: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
   pending: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
@@ -125,7 +206,7 @@ function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick, 
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-sm border cursor-pointer",
+        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border cursor-pointer",
         gradient,
         className
       )}
@@ -181,6 +262,16 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
   const [services, setServices] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
+  const [selectedBooking, setSelectedBooking] = useState(null)
+  const [copiedRef, setCopiedRef] = useState(false)
+
+  const handleCopyRef = useCallback((refText) => {
+    if (!refText) return
+    navigator.clipboard?.writeText(refText).then(() => {
+      setCopiedRef(true)
+      setTimeout(() => setCopiedRef(false), 2000)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -389,8 +480,9 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
         const sp = o.serviceFee || o.shopService?.startingPrice
         const hasPrice = sp != null && Number(sp) > 0
         return {
-          rowKey: o.id,
-          id: `BK-${String(o.id).slice(-8).toUpperCase()}`,
+          raw: o,
+          rowKey: o.id || o._id,
+          id: o.ref || `BK-${String(o.id || o._id || "").slice(-8).toUpperCase()}`,
           buyer: o.contactName || o.customer?.fullName || "Customer",
           serviceName: o.shopService?.name || "Service Repair",
           amount: hasPrice ? currencyPhilippinePeso(sp) : "—",
@@ -745,11 +837,12 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
               return (
                 <div
                   key={o.rowKey}
-                  className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-2.5 sm:p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                  onClick={() => setSelectedBooking(o.raw)}
+                  className="group flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-2.5 sm:p-3 border border-slate-200/60 shadow-xs transition-all hover:border-[#1447a6]/40 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between cursor-pointer"
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-slate-900 text-xs sm:text-sm line-clamp-1">
+                      <span className="font-semibold text-slate-900 text-xs sm:text-sm line-clamp-1 group-hover:text-[#1447a6] transition-colors">
                         {o.id} • {o.buyer}
                       </span>
                       <span className={cn("inline-flex items-center rounded-none border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", badgeClass)}>
@@ -760,13 +853,28 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
                       {o.serviceName}
                     </div>
                   </div>
-                  <div className="mt-2 flex flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 sm:mt-0 sm:flex-col sm:items-end sm:gap-0.5 sm:pt-0 sm:border-0">
-                    <div className="text-sm sm:text-base font-bold text-slate-900 tabular-nums">
-                      {o.amount}
+                  <div className="mt-2 flex flex-row items-center justify-between gap-3 pt-2 border-t border-slate-100 sm:mt-0 sm:flex-row sm:items-center sm:gap-3.5 sm:pt-0 sm:border-0">
+                    <div className="text-left sm:text-right">
+                      <div className="text-sm sm:text-base font-bold text-slate-900 tabular-nums">
+                        {o.amount}
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {o.when}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-slate-400">
-                      {o.when}
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedBooking(o.raw)
+                      }}
+                      className="h-7 px-2.5 text-xs font-semibold text-slate-700 hover:text-[#081F5C] hover:bg-slate-100 shrink-0"
+                    >
+                      <Eye className="size-3.5 mr-1 text-slate-500" />
+                      View
+                    </Button>
                   </div>
                 </div>
               )
@@ -868,6 +976,355 @@ export function ShopOwnerDashboardHome({ variant = "shop" }) {
           </div>
         </div>
       </footer>
+
+      {/* Modernized Booking Details Modal */}
+      <Dialog open={Boolean(selectedBooking)} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+        <DialogContent
+          className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden p-0 border border-slate-200 bg-white shadow-2xl rounded-none flex flex-col duration-200 focus:outline-none"
+        >
+          {selectedBooking ? (
+            <>
+              {/* Compact Modern Header */}
+              <DialogHeader className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] text-white px-4 py-3 sm:px-5 sm:py-3.5 space-y-1 shrink-0 text-left">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex size-7 sm:size-8 items-center justify-center rounded-none bg-white/10 text-white border border-white/20 shrink-0">
+                      <FileText className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug">
+                        Booking Details
+                      </DialogTitle>
+                      <DialogDescription className="text-white/70 text-[11px] font-normal leading-tight">
+                        Complete overview of customer service request
+                      </DialogDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border shadow-xs", bookingStatusBadgeClass(selectedBooking?.status))}>
+                      {selectedBooking?.status || "pending"}
+                    </Badge>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              {/* Ref and Meta Sub-header */}
+              <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 sm:px-5 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ref:</span>
+                  <span className="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 border border-slate-200">
+                    {selectedBooking?.ref || (selectedBooking?.id ? `BK-${String(selectedBooking.id).slice(-8).toUpperCase()}` : "BK-N/A")}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopyRef(selectedBooking?.ref || `BK-${String(selectedBooking?.id || selectedBooking?._id || "").slice(-8).toUpperCase()}`)}
+                    className="h-6 px-1.5 text-[11px] text-slate-600 hover:text-slate-900"
+                  >
+                    {copiedRef ? <Check className="size-3 text-emerald-600" /> : <Copy className="size-3" />}
+                    <span className="ml-1 text-[10px]">{copiedRef ? "Copied" : "Copy"}</span>
+                  </Button>
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Created: <span className="font-medium text-slate-700">{formatDateTime(selectedBooking?.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* Scrollable Content Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs text-left">
+                {/* 1. Service Details Highlight Card */}
+                <div className="border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/40 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Store className="size-4 text-[#1447a6]" />
+                      <span className="text-sm font-bold text-slate-900">
+                        {selectedBooking.shopService?.name || "Service Repair"}
+                      </span>
+                    </div>
+                    {selectedBooking.shopService?.category ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-white border border-slate-200 text-slate-700 px-2 py-0.5">
+                        {selectedBooking.shopService.category}
+                      </span>
+                    ) : null}
+                  </div>
+                  {selectedBooking.shopService?.startingPrice != null ? (
+                    <div className="text-xs text-slate-600">
+                      Starting Rate: <span className="font-bold text-slate-900">{currencyPhilippinePeso(selectedBooking.shopService.startingPrice)}</span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 2. Customer & Schedule Information Cards (2 Columns) */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {/* Customer Contact Card */}
+                  <div className="border border-slate-200 bg-slate-50/70 p-3.5 space-y-2.5">
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                      <User className="size-3.5 text-[#1447a6] shrink-0" />
+                      <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800">
+                        Customer Details
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-[11px]">
+                      <div className="font-bold text-slate-900 text-xs">
+                        {selectedBooking.contactName || selectedBooking.customer?.fullName || "Unnamed Customer"}
+                      </div>
+
+                      {selectedBooking.contactPhone || selectedBooking.customer?.phone ? (
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <Phone className="size-3 text-slate-400 shrink-0" />
+                          <a
+                            href={`tel:${selectedBooking.contactPhone || selectedBooking.customer?.phone}`}
+                            className="hover:text-[#1447a6] hover:underline font-medium"
+                          >
+                            {selectedBooking.contactPhone || selectedBooking.customer?.phone}
+                          </a>
+                        </div>
+                      ) : null}
+
+                      {selectedBooking.customer?.email ? (
+                        <div className="flex items-center gap-1.5 text-slate-600 truncate">
+                          <Mail className="size-3 text-slate-400 shrink-0" />
+                          <a href={`mailto:${selectedBooking.customer.email}`} className="hover:text-[#1447a6] hover:underline truncate">
+                            {selectedBooking.customer.email}
+                          </a>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Schedule & Mode Card */}
+                  <div className="border border-slate-200 bg-slate-50/70 p-3.5 space-y-2.5">
+                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                      <Calendar className="size-3.5 text-[#1447a6] shrink-0" />
+                      <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800">
+                        Schedule &amp; Mode
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 text-[11px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Preferred Date:</span>
+                        <span className="font-bold text-slate-900">
+                          {formatPreferredDate(selectedBooking.preferredDate)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Preferred Time:</span>
+                        <span className="font-semibold text-slate-800">
+                          {selectedBooking.preferredTime || "Shop hours"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">Service Mode:</span>
+                        <span className="font-bold capitalize text-slate-800">
+                          {selectedBooking.serviceMode === "home" ? "Home Service" : "In-Shop Service"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedBooking.serviceMode === "home" && selectedBooking.serviceAddress ? (
+                      <div className="pt-1 border-t border-slate-200/80">
+                        <div className="flex items-start gap-1.5 text-[11px] text-slate-700">
+                          <MapPin className="size-3 text-rose-500 shrink-0 mt-0.5" />
+                          <span className="leading-snug">{selectedBooking.serviceAddress}</span>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* 3. Problem Description & Notes */}
+                <div className="border border-slate-200 bg-white p-3.5 space-y-3">
+                  <div className="flex items-center gap-1.5 pb-1 border-b border-slate-200">
+                    <ClipboardList className="size-3.5 text-[#1447a6] shrink-0" />
+                    <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800">
+                      Problem Description &amp; Notes
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-semibold text-slate-500 block mb-1">
+                      Customer Problem Description:
+                    </span>
+                    <div className="bg-slate-50 border-l-2 border-[#1447a6] p-3 text-xs text-slate-800 whitespace-pre-wrap font-normal leading-relaxed">
+                      {selectedBooking.problemDescription || "No description provided."}
+                    </div>
+                  </div>
+
+                  {selectedBooking.notes ? (
+                    <div>
+                      <span className="text-[11px] font-semibold text-slate-500 block mb-1">
+                        Additional Notes:
+                      </span>
+                      <div className="bg-amber-50/60 border border-amber-200/70 p-2.5 text-xs text-amber-900 whitespace-pre-wrap leading-relaxed">
+                        {selectedBooking.notes}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {selectedBooking.status === "cancelled" && selectedBooking.rejectionReason ? (
+                    <div className="bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 flex items-start gap-2">
+                      <AlertTriangle className="size-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block">Cancellation / Rejection Reason:</span>
+                        <p className="mt-0.5">{selectedBooking.rejectionReason}</p>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* 4. Billing Breakdown */}
+                {(selectedBooking.serviceFeeLaborRateAtCalc != null ||
+                  selectedBooking.serviceFeeMaterialsAmount != null ||
+                  selectedBooking.serviceFeeReplacementParts?.length > 0 ||
+                  selectedBooking.serviceFee != null ||
+                  selectedBooking.paymentMethod ||
+                  selectedBooking.paidAt) ? (
+                  <div className="border border-slate-200 bg-slate-50/80 p-3.5 space-y-3">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+                      <div className="flex items-center gap-1.5">
+                        <CreditCard className="size-3.5 text-[#1447a6] shrink-0" />
+                        <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800">
+                          Billing &amp; Cost Breakdown
+                        </span>
+                      </div>
+                      <Badge className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border", paymentBadgeClass(selectedBooking.paymentStatus))}>
+                        {selectedBooking.paymentStatus || "unpaid"}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs">
+                      {selectedBooking.serviceFeeLaborRateAtCalc != null ? (
+                        <div className="flex justify-between py-1 border-b border-slate-200/60">
+                          <span className="text-slate-600 font-medium">Labor Service Fee:</span>
+                          <span className="font-bold text-slate-900">
+                            {currencyPhilippinePeso(selectedBooking.serviceFeeLaborRateAtCalc)}
+                          </span>
+                        </div>
+                      ) : selectedBooking.serviceFee != null ? (
+                        <div className="flex justify-between py-1 border-b border-slate-200/60">
+                          <span className="text-slate-600 font-medium">Agreed Service Fee:</span>
+                          <span className="font-bold text-slate-900">
+                            {currencyPhilippinePeso(selectedBooking.serviceFee)}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      {Array.isArray(selectedBooking.serviceFeeReplacementParts) && selectedBooking.serviceFeeReplacementParts.length > 0 ? (
+                        <div className="space-y-1 pt-1">
+                          <span className="text-[11px] font-bold text-slate-600 block">
+                            Replacement Parts &amp; Materials:
+                          </span>
+                          <div className="border border-slate-200 bg-white divide-y divide-slate-100 text-[11px]">
+                            {selectedBooking.serviceFeeReplacementParts.map((part, pIdx) => {
+                              const partPrice = Number(part?.price ?? part?.unitPrice) || 0
+                              const partQty = Number(part?.quantity ?? part?.qty) || 1
+                              return (
+                                <div key={pIdx} className="flex justify-between p-2">
+                                  <span className="text-slate-700">
+                                    {part?.name || part?.description || `Part #${pIdx + 1}`}
+                                    {partQty > 1 ? ` × ${partQty}` : ""}
+                                  </span>
+                                  <span className="font-semibold text-slate-900">
+                                    {currencyPhilippinePeso(partPrice * partQty)}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ) : selectedBooking.serviceFeeMaterialsAmount != null ? (
+                        <div className="flex justify-between py-1 border-b border-slate-200/60">
+                          <span className="text-slate-600 font-medium">
+                            Materials {selectedBooking.serviceFeeMaterialsDescription ? `(${selectedBooking.serviceFeeMaterialsDescription})` : ""}:
+                          </span>
+                          <span className="font-bold text-slate-900">
+                            {currencyPhilippinePeso(selectedBooking.serviceFeeMaterialsAmount)}
+                          </span>
+                        </div>
+                      ) : null}
+
+                      {/* Total Amount */}
+                      <div className="flex justify-between pt-2 border-t-2 border-slate-300 text-sm">
+                        <span className="font-extrabold text-slate-900">Total Amount:</span>
+                        <span className="font-black text-emerald-600 text-base">
+                          {currencyPhilippinePeso(
+                            (Number(selectedBooking.serviceFeeLaborRateAtCalc ?? selectedBooking.serviceFee) || 0) +
+                              (Number(selectedBooking.serviceFeeMaterialsAmount) || 0)
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Payment Meta */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 text-[11px] text-slate-500 border-t border-slate-200/60">
+                        <div>
+                          <span>Payment Method:</span>{" "}
+                          <span className="font-semibold text-slate-800 uppercase">
+                            {selectedBooking.paymentMethod || "—"}
+                          </span>
+                        </div>
+                        {selectedBooking.paidAt ? (
+                          <div className="text-right">
+                            <span>Paid On:</span>{" "}
+                            <span className="font-medium text-slate-800">
+                              {formatDateTime(selectedBooking.paidAt)}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* 5. Customer Review & Rating */}
+                {selectedBooking.customerReviewRating ? (
+                  <div className="border border-amber-200 bg-amber-50/50 p-3.5 space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-amber-200/80">
+                      <div className="flex items-center gap-1.5">
+                        <Star className="size-3.5 text-amber-500 fill-amber-500" />
+                        <span className="font-extrabold uppercase tracking-wider text-[11px] text-amber-900">
+                          Customer Review &amp; Rating
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-0.5 text-amber-600 font-bold text-xs">
+                        <span>{selectedBooking.customerReviewRating} / 5</span>
+                      </div>
+                    </div>
+                    {selectedBooking.customerReviewComment ? (
+                      <p className="text-xs text-amber-900 italic bg-white/70 p-2.5 border border-amber-200/60">
+                        "{selectedBooking.customerReviewComment}"
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Compact Footer */}
+              <DialogFooter className="bg-slate-50 border-t border-slate-200 px-4 py-2.5 sm:px-5 flex flex-row items-center justify-between gap-2 shrink-0">
+                <a
+                  href={serviceRequestHref}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#1447a6] hover:underline"
+                >
+                  Manage in Service Requests <ExternalLink className="size-3" />
+                </a>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedBooking(null)}
+                  className="h-8 px-4 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
