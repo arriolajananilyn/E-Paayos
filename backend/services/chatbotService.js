@@ -126,146 +126,410 @@ async function generateContentWithFallback(ai, options, contents) {
   throw lastError
 }
 /* ------------------------------------------------------------------ */
-/*  Local Intelligent Database Fallback (when Gemini API is down/403) */
+/*  Advanced Context-Aware Database & Semantic Intelligence Engine     */
 /* ------------------------------------------------------------------ */
+
+const MUNICIPALITIES = ["boac", "gasan", "mogpog", "santa cruz", "sta cruz", "torrijos", "buenavista"]
+
+function extractMunicipality(text) {
+  const t = (text || "").toLowerCase()
+  for (const m of MUNICIPALITIES) {
+    if (t.includes(m)) {
+      return m === "sta cruz" ? "santa cruz" : m
+    }
+  }
+  return null
+}
+
+function detectIsTagalog(text) {
+  const t = (text || "").toLowerCase()
+  const tagalogMarkers = [
+    "ano", "saan", "paano", "sino", "bakit", "magkano", "meron", "ba", "pwede",
+    "may", "yung", "ang", "mga", "po", "opo", "salamat", "naman", "kasi", "kayo",
+    "dito", "dyan", "namin", "ko", "mo", "siya", "nila", "pagawa", "pagawaan",
+    "ayos", "ayusin", "magpaayos", "magpagawa", "pumunta", "bili", "sirang", "sira",
+    "kumusta", "musta", "magandang", "araw", "tanghali", "gabi", "oras", "benta",
+  ]
+  const words = t.split(/[\s,?.!]+/).filter(Boolean)
+  const tagalogCount = words.filter((w) => tagalogMarkers.includes(w)).length
+  return tagalogCount >= 1 || t.includes("paano") || t.includes("magkano") || t.includes("saan")
+}
+
+function extractConversationContext(conversationHistory) {
+  let ctxCategory = null
+  let ctxMunicipality = null
+  let ctxKeyword = null
+
+  if (Array.isArray(conversationHistory)) {
+    const recent = conversationHistory.slice(-6)
+    for (const msg of recent) {
+      const text = (msg.content || "").toLowerCase()
+      const mun = extractMunicipality(text)
+      if (mun) ctxMunicipality = mun
+
+      if (text.includes("phone") || text.includes("cellphone") || text.includes("lcd") || text.includes("screen") || text.includes("cp")) {
+        ctxCategory = "cellphone"
+        ctxKeyword = "cellphone"
+      } else if (text.includes("laptop") || text.includes("computer") || text.includes("pc")) {
+        ctxCategory = "laptop"
+        ctxKeyword = "laptop"
+      } else if (text.includes("motor") || text.includes("motorcycle") || text.includes("scooter") || text.includes("change oil")) {
+        ctxCategory = "motorcycle"
+        ctxKeyword = "motorcycle"
+      } else if (text.includes("aircon") || text.includes("cleaning") || text.includes("freon")) {
+        ctxCategory = "aircon"
+        ctxKeyword = "aircon"
+      } else if (text.includes("ref") || text.includes("refrigerator") || text.includes("washing") || text.includes("appliance")) {
+        ctxCategory = "appliance"
+        ctxKeyword = "appliance"
+      } else if (text.includes("electrical") || text.includes("kuryente") || text.includes("wiring")) {
+        ctxCategory = "electrical"
+        ctxKeyword = "electrical"
+      } else if (text.includes("plumbing") || text.includes("tubo") || text.includes("gripo")) {
+        ctxCategory = "plumbing"
+        ctxKeyword = "plumbing"
+      }
+    }
+  }
+
+  return { ctxCategory, ctxMunicipality, ctxKeyword }
+}
 
 /**
  * Generates an intelligent, real-time database-driven answer when Gemini API is unavailable (403/offline).
  */
-async function generateLocalDatabaseFallback(userMessage, userId) {
-  const q = (userMessage || "").toLowerCase().trim()
+async function generateLocalDatabaseFallback(userMessage, conversationHistory, userId) {
+  const rawQ = userMessage || ""
+  const q = rawQ.toLowerCase().trim()
+  const isTagalog = detectIsTagalog(rawQ)
+  const { ctxCategory, ctxMunicipality, ctxKeyword } = extractConversationContext(conversationHistory)
 
-  // 1. Greetings
-  if (/^(hi|hello|hey|kumusta|magandang|good\s*(morning|afternoon|evening)|yo|sup)\b/i.test(q)) {
+  const detectedMun = extractMunicipality(q) || ctxMunicipality
+  const effectiveCategory =
+    (q.includes("phone") || q.includes("cellphone") || q.includes("screen") || q.includes("lcd") || q.includes("battery") || q.includes("touchscreen") || q.includes("cp")) ? "cellphone" :
+    (q.includes("laptop") || q.includes("computer") || q.includes("pc") || q.includes("macbook") || q.includes("reformat")) ? "laptop" :
+    (q.includes("motor") || q.includes("motorcycle") || q.includes("scooter") || q.includes("change oil") || q.includes("tune up") || q.includes("gulong")) ? "motorcycle" :
+    (q.includes("aircon") || q.includes("cleaning") || q.includes("freon") || q.includes("air conditioner")) ? "aircon" :
+    (q.includes("ref") || q.includes("refrigerator") || q.includes("freezer") || q.includes("washing") || q.includes("appliance")) ? "appliance" :
+    (q.includes("electrical") || q.includes("wiring") || q.includes("kuryente") || q.includes("breaker")) ? "electrical" :
+    (q.includes("plumbing") || q.includes("tubo") || q.includes("gripo") || q.includes("tubero")) ? "plumbing" :
+    ctxCategory || null
+
+  // ------------------------------------------------------------------
+  // 1. GREETINGS & CHITCHAT
+  // ------------------------------------------------------------------
+  if (/^(hi|hello|hey|kumusta|musta|magandang|good\s*(morning|afternoon|evening)|yo|sup|uy|test)\b/i.test(q) && q.length < 35) {
+    if (isTagalog) {
+      return (
+        "Kumusta! 👋 Ako ang iyong **E-Paayos Virtual Assistant**.\n\n" +
+        "Nandito ako para tulungan kang maghanap ng pinakamagagaling at rehistradong repair shops at mekaniko sa Marinduque.\n\n" +
+        "💡 **Maaari mo akong tanungin tungkol sa:**\n" +
+        "• 🔍 **Naghahanap ng Pagawaan**: *'Saan may pagawaan ng cellphone sa Boac?'* o *'May repair ba ng aircon sa Gasan?'*\n" +
+        "• 💵 **Presyo at Labor**: *'Magkano magpa-change oil ng motor?'* o *'Magkano magpalit ng LCD?'*\n" +
+        "• 📋 **Subaybayan ang Repair**: *'Kumusta ang booking ko?'* o *'Tingnan ang repairs ko'*\n" +
+        "• 📖 **Gabay**: *'Paano mag-book ng home service?'* o *'May warranty ba?'*\n\n" +
+        "Ano ang gusto mong ipaayos o malaman ngayon?"
+      )
+    }
     return (
-      "Kumusta! 👋 I'm your **E-Paayos Assistant**.\n\n" +
-      "I can help you with:\n" +
-      "• 🔍 **Search Services**: Looking for phone, laptop, aircon, electrical, or automotive repair?\n" +
-      "• 🏪 **Find Repair Shops**: Discover verified repair shops in Marinduque.\n" +
-      "• 📋 **Check Bookings**: Track the status of your current repairs.\n" +
-      "• 💡 **Platform Guidance**: Learn how to book, pay, or request warranty coverage.\n\n" +
-      "What would you like assistance with today?"
+      "Hello! 👋 I am your **E-Paayos Virtual Assistant**.\n\n" +
+      "I'm here to connect you with verified repair shops and skilled technicians across Marinduque.\n\n" +
+      "💡 **You can ask me:**\n" +
+      "• 🔍 **Find Shops & Services**: *'Recommend a phone repair shop in Boac'* or *'Aircon cleaning in Gasan'*\n" +
+      "• 💵 **Pricing & Labor**: *'How much is a motorcycle tune-up?'* or *'Laptop screen replacement cost'*\n" +
+      "• 📋 **Track Bookings**: *'Check my repair bookings'*\n" +
+      "• 📖 **Platform Help**: *'How does home service booking work?'* or *'Warranty coverage terms'*\n\n" +
+      "How can I help you today?"
     )
   }
 
-  // 2. User Bookings inquiry
-  if (/\b(my booking|my bookings|my repair|my repairs|track|booking status|check booking|order status|status of my repair)\b/i.test(q)) {
+  // ------------------------------------------------------------------
+  // 2. USER BOOKINGS / REPAIR STATUS
+  // ------------------------------------------------------------------
+  if (/\b(my booking|my bookings|my repair|my repairs|track|booking status|check booking|order status|status ng repair|pinagawa|nasaan na|kumusta ang booking|mga booking)\b/i.test(q)) {
     if (!userId) {
-      return "Please log in to view your repair bookings and tracking status."
-    }
-    const userBookings = await getUserBookings({ userId })
-    if (!userBookings.bookings || userBookings.bookings.length === 0) {
-      return (
-        "You don't have any bookings yet! 📋\n\n" +
-        "To book a repair service, go to **Find Services**, browse our verified providers, and click **Book Now**."
-      )
+      return isTagalog
+        ? "Mangyaring mag-log in muna upang makita ang iyong mga aktibong repair bookings."
+        : "Please log in first to view your active repair bookings and live tracking."
     }
 
-    let reply = `Here are your recent repair bookings (${userBookings.bookings.length}):\n\n`
-    for (const b of userBookings.bookings.slice(0, 5)) {
-      const statusEmoji =
-        b.status === "completed"
-          ? "✅"
-          : b.status === "working"
-          ? "🔧"
-          : b.status === "confirmed"
-          ? "📅"
-          : b.status === "cancelled"
-          ? "❌"
-          : "⏳"
-      reply += `• **${b.serviceName}** (${b.shopName})\n`
-      reply += `  Status: ${statusEmoji} **${b.status.toUpperCase()}** | Date: ${b.preferredDate || "Not scheduled"}\n`
-      reply += `  Mode: ${b.serviceMode === "home" ? "Home Service" : "In-Shop"}\n\n`
+    const userBookings = await getUserBookings({ userId })
+    if (!userBookings.bookings || userBookings.bookings.length === 0) {
+      return isTagalog
+        ? "Wala ka pang aktibong repair booking sa ngayon. 📋\n\nKung may kailangan kang ipaayos, pumunta lamang sa **Find Services** tab, pumili ng serbisyo, at i-click ang **Book Now**."
+        : "You don't have any bookings yet. 📋\n\nWhen you need a repair, simply visit the **Find Services** page and click **Book Now** on any listing!"
     }
-    reply += "You can click on your **Bookings** page for complete details and live chat with your technician."
+
+    let reply = isTagalog
+      ? `Narito ang iyong kasalukuyang mga repair booking (${userBookings.bookings.length}):\n\n`
+      : `Here are your recent repair bookings (${userBookings.bookings.length}):\n\n`
+
+    for (const b of userBookings.bookings.slice(0, 5)) {
+      const statusBadge =
+        b.status === "completed" ? "✅ Completed (Tapos na)" :
+        b.status === "working" ? "🔧 Working (Kasalukuyang Inaayos)" :
+        b.status === "confirmed" ? "📅 Confirmed (Kumpirmado)" :
+        b.status === "cancelled" ? "❌ Cancelled (Kinansela)" :
+        "⏳ Pending (Naghihintay ng Kumpirmasyon)"
+
+      reply += `📌 **${b.serviceName}**\n`
+      reply += `  • **Shop / Provider**: ${b.shopName}\n`
+      reply += `  • **Status**: ${statusBadge}\n`
+      reply += `  • **Schedule**: ${b.preferredDate || "Not set"} (${b.preferredTime || "Any time"})\n`
+      reply += `  • **Service Mode**: ${b.serviceMode === "home" ? "🏠 Home Service" : "🏬 In-Shop Visit"}\n\n`
+    }
+
+    reply += isTagalog
+      ? "Maaari mong buksan ang iyong **Bookings** page para makita ang kumpletong detalye, service fee breakdown, at direktang makipag-chat sa shop."
+      : "You can view full details, cost breakdown, and live message your provider on the **Bookings** page."
     return reply
   }
 
-  // 3. How to book / How it works
-  if (/\b(how to book|how do i book|booking process|how it works|paano mag-book|paano magbook)\b/i.test(q)) {
-    return (
-      "Here is how you can easily book a repair on **E-Paayos**:\n\n" +
-      "1. 🔍 **Find a Service**: Go to the **Find Services** page to explore available repairs (appliances, gadgets, vehicles, etc.).\n" +
-      "2. 🏬 **Select a Provider**: Choose an approved shop or freelance mechanic with high ratings.\n" +
-      "3. 📝 **Fill out the Details**: Select Home Service or In-Shop, pick your preferred date and time, and upload photos of the issue.\n" +
-      "4. 💬 **Wait for Confirmation**: The shop owner or technician will review and confirm your schedule.\n" +
-      "5. 💳 **Payment & Warranty**: Pay securely upon service completion and enjoy warranty coverage for approved repairs!"
-    )
-  }
+  // ------------------------------------------------------------------
+  // 3. RECOMMENDATION & SHOP SEARCH (e.g. "Saan may pagawaan", "Recommend a shop")
+  // ------------------------------------------------------------------
+  const isShopRecommendation = /\b(recommend|rekomenda|pinakamaganda|magaling|saan|saan may|may pagawaan|tindahan|shop|shops|provider|mechanic|mekaniko|technician|available|who can fix|looking for shop)\b/i.test(q)
+  
+  if (isShopRecommendation || effectiveCategory || detectedMun) {
+    const cleanKw = q
+      .replace(/\b(recommend|rekomenda|pinakamaganda|magaling|saan|meron|may|ba|sa|ang|mga|shop|shops|pagawaan|looking for|i need|can you|help with|repair|service|services|please|po)\b/gi, "")
+      .trim()
 
-  // 4. Payment methods
-  if (/\b(payment|pay|how to pay|gcash|cash|magbayad|presyo|cost|bayad)\b/i.test(q)) {
-    return (
-      "💳 **Payment Options on E-Paayos**:\n\n" +
-      "• **Cash on Hand**: Pay directly to the technician or at the shop upon inspection/completion.\n" +
-      "• **GCash / Online Transfer**: Pay via GCash using the provider's payment details and upload your payment receipt directly in the booking screen.\n\n" +
-      "All service fees include breakdown of labor rate and replacement parts for complete transparency."
-    )
-  }
+    const searchKeyword = cleanKw || effectiveCategory || ctxKeyword || ""
 
-  // 5. Warranty & Guarantees
-  if (/\b(warranty|guarantee|refund|claim|re-repair|garantiya)\b/i.test(q)) {
-    return (
-      "🛡️ **E-Paayos Warranty Protection**:\n\n" +
-      "Verified shops on E-Paayos provide warranty coverage for completed repair jobs.\n" +
-      "• If an issue persists within the warranty period, go to **My Bookings** > **Completed**, and click **Submit Warranty Claim**.\n" +
-      "• You can request a free re-repair or warranty refund based on the shop's warranty terms."
-    )
-  }
+    // 1. Search specific shops
+    const matchedShops = await searchShops({
+      keyword: searchKeyword,
+      municipality: detectedMun || undefined,
+    })
 
-  // 6. Shop queries
-  if (/\b(shop|shops|store|mechanic|technician|tindahan|marinduque|boac|gasan|mogpog|santa cruz|torrijos|buenavista)\b/i.test(q)) {
-    const shops = await searchShops({ keyword: q.replace(/\b(shop|shops|find|search|near|me|list)\b/gi, "").trim() })
-    if (shops && shops.length > 0) {
-      let reply = `Here are verified shops and repair providers on E-Paayos:\n\n`
-      for (const s of shops.slice(0, 4)) {
-        reply += `🏢 **${s.shopName}** (⭐ ${s.rating > 0 ? s.rating.toFixed(1) : "New"})\n`
-        reply += `  📍 Address: ${s.address}\n`
-        reply += `  🕒 Hours: ${s.operatingHours} (${s.daysOfOperation})\n`
-        reply += `  🔧 Services: ${s.servicesOffered}\n\n`
+    // 2. Search specific services
+    const matchedServices = await searchServices({
+      keyword: searchKeyword,
+      municipality: detectedMun || undefined,
+    })
+
+    if (matchedShops.length > 0 || matchedServices.length > 0) {
+      let reply = ""
+
+      if (isTagalog) {
+        reply += `Narito ang mga inirerekomendang rehistrado at aprubadong repair providers sa E-Paayos`
+        if (detectedMun) reply += ` sa **${detectedMun.toUpperCase()}**`
+        if (effectiveCategory) reply += ` para sa **${effectiveCategory.toUpperCase()}**`
+        reply += `:\n\n`
+      } else {
+        reply += `Here are the top recommended verified repair providers on E-Paayos`
+        if (detectedMun) reply += ` in **${detectedMun.toUpperCase()}**`
+        if (effectiveCategory) reply += ` for **${effectiveCategory.toUpperCase()}**`
+        reply += `:\n\n`
       }
-      reply += "Visit the **Find Services** tab to see all shop locations and book directly!"
+
+      // Display top shops
+      const displayedShops = matchedShops.slice(0, 3)
+      for (const s of displayedShops) {
+        const ratingStr = s.rating > 0 ? `⭐ ${s.rating.toFixed(1)} (${s.reviewCount || 0} reviews)` : "⭐ Bagong Rehistro (New)"
+        reply += `🏪 **${s.shopName}** ${ratingStr}\n`
+        reply += `  📍 **Lokasyon**: ${s.address}\n`
+        reply += `  🕒 **Oras ng Operasyon**: ${s.operatingHours} (${s.daysOfOperation})\n`
+        reply += `  🛠️ **Mga Serbisyo**: ${s.servicesOffered}\n`
+        reply += `  🚗 **Uri ng Serbisyo**: ${s.serviceType || "Home Service & Shop Visit"}\n`
+        if (s.yearsOfOperation) {
+          reply += `  ⏳ **Karanasan**: ${s.yearsOfOperation} taon sa industriya\n`
+        }
+        reply += `\n`
+      }
+
+      // If matched services have pricing, show them
+      if (matchedServices.length > 0) {
+        reply += isTagalog
+          ? `💵 **Mga Kaugnay na Serbisyo at Presyo sa E-Paayos:**\n`
+          : `💵 **Matching Services & Rates on E-Paayos:**\n`
+
+        for (const svc of matchedServices.slice(0, 4)) {
+          const locBadge = svc.serviceLocation === "both" ? "Home Service & In-Shop" : svc.serviceLocation === "home" ? "Home Service" : "In-Shop"
+          reply += `• **${svc.serviceName}** (${svc.shopName})\n`
+          reply += `  Starting Price: **${svc.startingPrice}**`
+          if (svc.laborRateMin) reply += ` | Labor Rate: **${svc.laborRateMin}${svc.laborRateMax ? ` - ${svc.laborRateMax}` : ""}**`
+          reply += ` [${locBadge}]\n`
+        }
+        reply += `\n`
+      }
+
+      reply += isTagalog
+        ? `👉 **Paano Mag-book:** Pumunta sa **Find Services** o i-click ang shop listing para pumili ng iyong gustong petsa, oras, at i-upload ang litrato ng sirang gamit!`
+        : `👉 **Next Step:** Go to **Find Services** to select your preferred provider, schedule a repair, and upload photos of the issue!`
+
       return reply
     }
   }
 
-  // 7. Service Search by keyword / category
-  const serviceResults = await searchServices({
-    keyword: q.replace(/\b(i need|looking for|help with|fix|repair|service|services|how much|price|cost|can you)\b/gi, "").trim(),
-  })
+  // ------------------------------------------------------------------
+  // 4. PRICING & LABOR INQUIRIES
+  // ------------------------------------------------------------------
+  if (/\b(magkano|presyo|halaga|singil|labor|cost|price|how much|rates|fee|bayad)\b/i.test(q)) {
+    const allServices = await searchServices({ keyword: effectiveCategory || q })
+    let reply = ""
 
-  if (serviceResults && serviceResults.length > 0) {
-    let reply = `Here are matching repair services on E-Paayos:\n\n`
-    for (const s of serviceResults.slice(0, 4)) {
-      reply += `🔧 **${s.serviceName}**\n`
-      reply += `  🏪 Shop: ${s.shopName} (⭐ ${s.rating > 0 ? s.rating.toFixed(1) : "New"})\n`
-      reply += `  📍 Location: ${s.serviceLocation === "both" ? "Home Service & In-Shop" : s.serviceLocation === "home" ? "Home Service" : "In-Shop"}\n`
-      reply += `  💵 Starting Price: ${s.startingPrice} ${s.laborRateMin ? `| Labor: ${s.laborRateMin}` : ""}\n\n`
+    if (isTagalog) {
+      reply += "💵 **Talaan ng Presyo at Labor sa E-Paayos**:\n\n"
+      reply += "Ang kabuuang bayad sa repair ay binubuo ng dalawang bahagi:\n"
+      reply += "1. **Labor Fee**: Singil ng technician para sa pagsusuri, paggawa, o pag-install.\n"
+      reply += "2. **Replacement Parts**: Halaga ng pyesa (kung may kinakailangang palitan na materyales).\n\n"
+      if (allServices.length > 0) {
+        reply += "Narito ang ilang sample starting prices sa aming platform:\n"
+        for (const s of allServices.slice(0, 3)) {
+          reply += `• **${s.serviceName}** (${s.shopName}): **${s.startingPrice}**\n`
+        }
+        reply += "\n"
+      }
+      reply += "Maaari mong tingnan ang kumpletong serbisyo sa **Find Services** upang makita ang eksaktong labor rate range ng bawat shop bago mag-book!"
+    } else {
+      reply += "💵 **Pricing and Labor Rates on E-Paayos**:\n\n"
+      reply += "The total repair cost consists of:\n"
+      reply += "1. **Labor Fee**: Professional fee for diagnosis, labor, and servicing.\n"
+      reply += "2. **Replacement Parts**: Cost of spare parts (if any hardware components are replaced).\n\n"
+      if (allServices.length > 0) {
+        reply += "Here are some starting rates from active listings:\n"
+        for (const s of allServices.slice(0, 3)) {
+          reply += `• **${s.serviceName}** (${s.shopName}): **${s.startingPrice}**\n`
+        }
+        reply += "\n"
+      }
+      reply += "You can browse all active listings on the **Find Services** page to see verified labor rates!"
     }
-    reply += "Go to the **Find Services** page to book any of these services!"
     return reply
   }
 
-  // 8. General fallback with active service sample
-  const popularServices = await searchServices({ keyword: "" })
-  let fallbackMsg =
-    "I'm here to help you connect with verified repair shops and mechanics on E-Paayos! 🛠️\n\n"
-
-  if (popularServices && popularServices.length > 0) {
-    fallbackMsg += "Here are some of our popular repair services:\n"
-    for (const s of popularServices.slice(0, 3)) {
-      fallbackMsg += `• **${s.serviceName}** by *${s.shopName}* (${s.startingPrice})\n`
+  // ------------------------------------------------------------------
+  // 5. HOW TO BOOK / PLATFORM PROCESS
+  // ------------------------------------------------------------------
+  if (/\b(how to book|paano mag-book|paano magbook|paano magpagawa|booking process|how does it work|paano gamitin)\b/i.test(q)) {
+    if (isTagalog) {
+      return (
+        "Madali lang magpaayos sa **E-Paayos**! Sundin lamang ang mga hakbang na ito:\n\n" +
+        "1. 🔍 **Pumili ng Serbisyo**: Pumunta sa **Find Services** at maghanap ng angkop na kategorya (Appliances, Cellphone, Laptop, Motor, atbp.).\n" +
+        "2. 🏬 **Pumili ng Shop**: Tingnan ang ratings, reviews, address, at labor rates ng provider.\n" +
+        "3. 📝 **I-fill out ang Booking Form**:\n" +
+        "   • Piliin kung **Home Service** (pupuntahan ka sa bahay) o **In-Shop** (ikaw ang dadalaw sa shop).\n" +
+        "   • Piliin ang iyong nais na petsa at oras.\n" +
+        "   • Ilagay ang deskripsyon ng sira at mag-upload ng litrato ng gamit.\n" +
+        "4. 💬 **Kumpirmasyon**: Aabisuhan ka kapag nakumpirma na ng shop ang iyong booking. Maaari mo rin silang makausap sa Chat.\n" +
+        "5. 💳 **Bayad at Garantiya**: Magbayad gamit ang Cash o GCash pagkatapos ng serbisyo at mag-enjoy ng warranty protection!"
+      )
     }
-    fallbackMsg += "\n"
+    return (
+      "Booking a repair on **E-Paayos** is simple and secure! Follow these steps:\n\n" +
+      "1. 🔍 **Find a Service**: Go to the **Find Services** page and browse by category (Electronics, Appliances, Automotive, etc.).\n" +
+      "2. 🏬 **Select a Provider**: Check verified reviews, ratings, and operating hours.\n" +
+      "3. 📝 **Fill out Booking Details**:\n" +
+      "   • Choose **Home Service** or **In-Shop Visit**.\n" +
+      "   • Select your preferred date and time.\n" +
+      "   • Provide a problem description and attach photos of the issue.\n" +
+      "4. 💬 **Confirmation & Live Tracking**: The provider will review and accept your booking. You can chat with them directly.\n" +
+      "5. 💳 **Payment & Warranty**: Pay securely upon completion via Cash or GCash and enjoy warranty coverage!"
+    )
   }
 
-  fallbackMsg +=
-    "You can ask me about:\n" +
-    "• Finding specific repairs (e.g. *'laptop repair'*, *'aircon cleaning'*, *'motorcycle mechanic'*)\n" +
-    "• Checking your booking status (e.g. *'my bookings'*)\n" +
-    "• How to book or warranty coverage"
+  // ------------------------------------------------------------------
+  // 6. PAYMENT METHODS & WARRANTY
+  // ------------------------------------------------------------------
+  if (/\b(payment|gcash|cash|maya|garantiya|warranty|refund|claim|bayad)\b/i.test(q)) {
+    if (isTagalog) {
+      return (
+        "🛡️ **Paraan ng Pagbabayad at Warranty sa E-Paayos**:\n\n" +
+        "• **Cash on Hand**: Direktang bayaran ang technician o shop pagkatapos magawa ang repair.\n" +
+        "• **GCash / Online Transfer**: Magbayad sa GCash account ng shop at i-upload ang resibo o proof of payment sa system.\n\n" +
+        "🛡️ **Garantiyang Proteksyon (Warranty)**:\n" +
+        "• Lahat ng natapos na repair ay may kaakibat na labor at parts warranty batay sa polisiya ng shop.\n" +
+        "• Kung bumalik ang parehong sira sa loob ng warranty period, magtungo sa **My Bookings** > **Completed** at pindutin ang **Submit Warranty Claim** para sa libreng re-repair o refund."
+      )
+    }
+    return (
+      "🛡️ **Payment Methods & Warranty Protection on E-Paayos**:\n\n" +
+      "• **Cash**: Pay directly to the technician or shop upon inspection/completion.\n" +
+      "• **GCash / Online**: Pay to the provider's verified account and upload the screenshot proof directly in your booking.\n\n" +
+      "🛡️ **Warranty Coverage**:\n" +
+      "• Completed repairs come with shop warranty for labor and replacement parts.\n" +
+      "• If issues reoccur during the warranty window, go to **My Bookings** > **Completed** and click **Submit Warranty Claim** for free service or refund."
+    )
+  }
 
-  return fallbackMsg
+  // ------------------------------------------------------------------
+  // 7. TROUBLESHOOTING TIPS (e.g. "ayaw mag-on", "di lumalamig")
+  // ------------------------------------------------------------------
+  if (/\b(ayaw mag-on|ayaw umandar|hindi lumalamig|maingay|basag|nag-init|lowbat|drain|hard starting|tumutulo|pumuputok|sira|broken|troubleshoot)\b/i.test(q)) {
+    const matched = await searchShops({ keyword: effectiveCategory || q })
+    let reply = ""
+
+    if (isTagalog) {
+      reply += "🛠️ **Paunang Payo at Pagsusuri:**\n\n"
+      reply += "• Siguraduhing ligtas ang kable o power source at huwag piliting gamitin kung may amoy sunog o kakaibang ingay.\n"
+      reply += "• Para sa mga sirang kailangan ng propesyonal na kagamitan (LCD replacement, engine tuning, compressor repair, freon leak), mas ligtas na ipatingin ito sa rehistradong technician upang maiwasan ang lalong pagkasira.\n\n"
+      if (matched.length > 0) {
+        reply += `Inirerekomenda naming ipasuri ito sa mga sumusunod na shop sa E-Paayos:\n`
+        for (const s of matched.slice(0, 3)) {
+          reply += `• **${s.shopName}** (${s.address}) - ⭐ ${s.rating > 0 ? s.rating.toFixed(1) : "Verified"}\n`
+        }
+        reply += `\nPumunta sa **Find Services** para makapag-book ng checkup o home inspection!`
+      }
+    } else {
+      reply += "🛠️ **Initial Diagnostic Advice:**\n\n"
+      reply += "• Check connections and power supply safely. Do not force operation if there is unusual noise, overheating, or burning smell.\n"
+      reply += "• For hardware issues requiring specialized tools, it is best to have a certified technician inspect the unit.\n\n"
+      if (matched.length > 0) {
+        reply += `Here are recommended repair shops on E-Paayos that can inspect your unit:\n`
+        for (const s of matched.slice(0, 3)) {
+          reply += `• **${s.shopName}** (${s.address}) - ⭐ ${s.rating > 0 ? s.rating.toFixed(1) : "Verified"}\n`
+        }
+        reply += `\nVisit **Find Services** to schedule an inspection or repair!`
+      }
+    }
+    return reply
+  }
+
+  // ------------------------------------------------------------------
+  // 8. GENERAL INTELLIGENT FALLBACK WITH REAL ACTIVE SHOPS
+  // ------------------------------------------------------------------
+  const allShops = await searchShops({ keyword: "" })
+  const allServices = await searchServices({ keyword: "" })
+
+  if (isTagalog) {
+    let reply = `Nandito ako upang gabayan ka sa mga serbisyo at pagawaan sa **E-Paayos**! 🛠️\n\n`
+    if (allShops.length > 0) {
+      reply += `🏢 **Mga Rehistradong Repair Shop sa Marinduque:**\n`
+      for (const s of allShops.slice(0, 3)) {
+        reply += `• **${s.shopName}** (${s.address}) — *${s.servicesOffered}*\n`
+      }
+      reply += `\n`
+    }
+    if (allServices.length > 0) {
+      reply += `🔧 **Mga Aktibong Serbisyo:**\n`
+      for (const svc of allServices.slice(0, 3)) {
+        reply += `• **${svc.serviceName}** (${svc.shopName}) - ${svc.startingPrice}\n`
+      }
+      reply += `\n`
+    }
+    reply += `Maaari mong sabihin sa akin kung anong gamit ang ipapaayos mo (hal. *'Saan may pagawaan ng motor sa Boac?'* o *'Magkano magpalit ng LCD?'*), at agad kitang tutulungan!`
+    return reply
+  }
+
+  let reply = `I'm here to help you find the best repair shops and services on **E-Paayos**! 🛠️\n\n`
+  if (allShops.length > 0) {
+    reply += `🏢 **Featured Repair Providers in Marinduque:**\n`
+    for (const s of allShops.slice(0, 3)) {
+      reply += `• **${s.shopName}** (${s.address}) — *${s.servicesOffered}*\n`
+    }
+    reply += `\n`
+  }
+  if (allServices.length > 0) {
+    reply += `🔧 **Available Services:**\n`
+    for (const svc of allServices.slice(0, 3)) {
+      reply += `• **${svc.serviceName}** (${svc.shopName}) - ${svc.startingPrice}\n`
+    }
+    reply += `\n`
+  }
+  reply += `Let me know what device or vehicle you need assistance with (e.g. *'Phone repair in Boac'* or *'Aircon cleaning'*), and I will provide the best options!`
+  return reply
 }
 
 /**
@@ -282,6 +546,15 @@ export async function processChatMessage(userMessage, conversationHistory, userI
   }
 
   const trimmedMessage = userMessage.trim().slice(0, MAX_MESSAGE_LENGTH)
+
+  const apiKey = process.env.GEMINI_API_KEY || ""
+  const isLikelyValidKey = apiKey && apiKey.startsWith("AIzaSy") && apiKey.length > 25
+
+  if (!isLikelyValidKey) {
+    // Immediate intelligent database-driven semantic engine (zero lag)
+    const fallbackAnswer = await generateLocalDatabaseFallback(trimmedMessage, conversationHistory, userId)
+    return { message: fallbackAnswer }
+  }
 
   try {
     const ai = getGenAI()
@@ -373,11 +646,11 @@ export async function processChatMessage(userMessage, conversationHistory, userI
     }
 
     // Fallback if empty AI response
-    const fallbackAnswer = await generateLocalDatabaseFallback(trimmedMessage, userId)
+    const fallbackAnswer = await generateLocalDatabaseFallback(trimmedMessage, conversationHistory, userId)
     return { message: fallbackAnswer }
   } catch (err) {
-    console.warn(`[Chatbot] Gemini API unavailable (${err.status || err.message}). Using database fallback responder.`)
-    const fallbackAnswer = await generateLocalDatabaseFallback(trimmedMessage, userId)
+    console.warn(`[Chatbot] Generative model unavailable (${err.status || err.message}). Using database semantic assistant.`)
+    const fallbackAnswer = await generateLocalDatabaseFallback(trimmedMessage, conversationHistory, userId)
     return { message: fallbackAnswer }
   }
 }

@@ -4,6 +4,7 @@ import { ShopService } from "../models/shopServiceModel.js"
 import { ShopEmployee } from "../models/shopEmployeeModel.js"
 import { Booking } from "../models/bookingModel.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
+import { formatReadableShopAddress } from "../utils/psgcResolve.js"
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -13,23 +14,6 @@ function isApprovedProvider(u) {
   if (!u || !isServiceProviderRole(u.role)) return false
   const st = u.accountApprovalStatus
   return st === "approved" || st === undefined || st === null
-}
-
-function formatAddress(owner) {
-  if (!owner) return "—"
-  const parts = [
-    owner.shopBarangay,
-    owner.shopCityMunicipality,
-    owner.shopProvince,
-    owner.shopRegion,
-  ].filter(Boolean)
-  const line = parts.join(", ")
-  const detail =
-    typeof owner.shopDetailedAddress === "string"
-      ? owner.shopDetailedAddress.trim()
-      : ""
-  if (detail && line) return `${detail}, ${line}`
-  return detail || line || "—"
 }
 
 function formatPrice(val) {
@@ -42,10 +26,40 @@ const PROVIDER_SELECT =
   "fullName shopName role shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress shopLandmark operatingHours daysOfOperation repairServicesOffered serviceType yearsOfOperation numberOfEmployees laborRatingMin laborRatingMax providerRatingAvg providerRatingCount shopDescription accountApprovalStatus"
 
 /* ------------------------------------------------------------------ */
+/*  Synonym & Keyword Map for Smart Matching                           */
+/* ------------------------------------------------------------------ */
+
+const SYNONYMS = {
+  phone: ["phone", "cellphone", "mobile", "smartphone", "iphone", "android", "samsung", "xiaomi", "oppo", "vivo", "realme", "huawei", "lcd", "screen", "touchscreen", "battery", "charging port", "reformat"],
+  laptop: ["laptop", "computer", "pc", "desktop", "macbook", "keyboard", "motherboard", "ssd", "ram", "reformat", "os", "windows", "screen replacement", "lcd"],
+  motorcycle: ["motor", "motorcycle", "scooter", "motorista", "honda", "yamaha", "suzuki", "kawasaki", "vespa", "change oil", "tune up", "tune-up", "carburetor", "fi", "brake", "tire", "gulong", "vulcanizing", "overhaul"],
+  aircon: ["aircon", "air conditioner", "ac", "split type", "window type", "cleaning", "freon", "leak", "cool", "inverter"],
+  refrigerator: ["refrigerator", "fridge", "ref", "freezer", "chiller", "cooling", "compressor", "defrost"],
+  washing: ["washing machine", "washer", "dryer", "spin dryer", "drain", "motor"],
+  tv: ["tv", "television", "smart tv", "led", "lcd", "android tv", "display", "backlight", "power board"],
+  electrical: ["electrical", "electrician", "wiring", "outlet", "breaker", "short circuit", "lighting", "kuryente", "panel"],
+  plumbing: ["plumbing", "plumber", "tubero", "tubig", "pipe", "faucet", "drainage", "leak", "water pump", "clogged"],
+}
+
+function expandKeywords(query) {
+  const q = (query || "").toLowerCase()
+  const terms = new Set()
+  q.split(/\s+/).filter(Boolean).forEach((t) => terms.add(t))
+
+  for (const [, synonyms] of Object.entries(SYNONYMS)) {
+    const matches = synonyms.some((syn) => q.includes(syn))
+    if (matches) {
+      synonyms.forEach((syn) => terms.add(syn))
+    }
+  }
+  return [...terms]
+}
+
+/* ------------------------------------------------------------------ */
 /*  Tool: searchServices                                               */
 /* ------------------------------------------------------------------ */
 
-export async function searchServices({ keyword, category, location }) {
+export async function searchServices({ keyword, category, location, municipality }) {
   const filter = { status: "active" }
   if (category) filter.category = { $regex: category, $options: "i" }
   if (location && ["home", "in-shop", "both"].includes(location))
@@ -53,15 +67,41 @@ export async function searchServices({ keyword, category, location }) {
 
   let services = await ShopService.find(filter)
     .sort({ bookingsCount: -1, ratingAvg: -1 })
-    .limit(20)
+    .limit(30)
     .populate("shopOwner", PROVIDER_SELECT)
     .lean()
 
   services = services.filter((s) => s.shopOwner && isApprovedProvider(s.shopOwner))
 
+  // Resolve addresses
+  const addressMap = new Map()
+  await Promise.all(
+    services.map(async (s) => {
+      const oid = String(s.shopOwner?._id || "")
+      if (oid && !addressMap.has(oid)) {
+        const addr = await formatReadableShopAddress(s.shopOwner)
+        addressMap.set(oid, addr)
+      }
+    })
+  )
+
+  if (municipality) {
+    const mun = municipality.toLowerCase()
+    services = services.filter((s) => {
+      const oid = String(s.shopOwner?._id || "")
+      const resolvedAddr = (addressMap.get(oid) || "").toLowerCase()
+      const shopMun = (s.shopOwner?.shopCityMunicipality || "").toLowerCase()
+      const shopBar = (s.shopOwner?.shopBarangay || "").toLowerCase()
+      return resolvedAddr.includes(mun) || shopMun.includes(mun) || shopBar.includes(mun)
+    })
+  }
+
   if (keyword) {
+    const expanded = expandKeywords(keyword)
     const kw = keyword.toLowerCase()
     services = services.filter((s) => {
+      const oid = String(s.shopOwner?._id || "")
+      const resolvedAddr = (addressMap.get(oid) || "").toLowerCase()
       const blob = [
         s.name,
         s.description,
@@ -69,40 +109,48 @@ export async function searchServices({ keyword, category, location }) {
         s.subcategory,
         s.shopOwner?.shopName,
         s.shopOwner?.fullName,
+        resolvedAddr,
         ...(s.shopOwner?.repairServicesOffered || []),
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-      return blob.includes(kw)
+
+      return blob.includes(kw) || expanded.some((term) => term.length >= 3 && blob.includes(term))
     })
   }
 
-  return services.slice(0, 10).map((s) => ({
-    serviceId: String(s._id),
-    serviceName: s.name,
-    category: s.category,
-    subcategory: s.subcategory || "",
-    description: s.description,
-    serviceLocation: s.location,
-    startingPrice: formatPrice(s.startingPrice),
-    laborRateMin: s.laborRatingMin != null ? `₱${s.laborRatingMin}` : null,
-    laborRateMax: s.laborRatingMax != null ? `₱${s.laborRatingMax}` : null,
-    rating: s.ratingAvg || 0,
-    completedJobs: s.bookingsCount || 0,
-    shopName: s.shopOwner?.shopName || s.shopOwner?.fullName || "—",
-    shopOwner: s.shopOwner?.fullName || "—",
-    shopAddress: formatAddress(s.shopOwner),
-    operatingHours: s.shopOwner?.operatingHours || "—",
-    daysOfOperation: s.shopOwner?.daysOfOperation?.join(", ") || "—",
-  }))
+  return services.slice(0, 10).map((s) => {
+    const oid = String(s.shopOwner?._id || "")
+    const readableAddr = addressMap.get(oid) || "Marinduque"
+    return {
+      serviceId: String(s._id),
+      serviceName: s.name,
+      category: s.category,
+      subcategory: s.subcategory || "",
+      description: s.description,
+      serviceLocation: s.location,
+      startingPrice: formatPrice(s.startingPrice),
+      startingPriceRaw: s.startingPrice,
+      laborRateMin: s.laborRatingMin != null ? `₱${s.laborRatingMin}` : null,
+      laborRateMax: s.laborRatingMax != null ? `₱${s.laborRatingMax}` : null,
+      rating: s.ratingAvg || 0,
+      completedJobs: s.bookingsCount || 0,
+      shopOwnerId: oid,
+      shopName: s.shopOwner?.shopName || s.shopOwner?.fullName || "—",
+      shopOwner: s.shopOwner?.fullName || "—",
+      shopAddress: readableAddr,
+      operatingHours: s.shopOwner?.operatingHours || "—",
+      daysOfOperation: s.shopOwner?.daysOfOperation?.join(", ") || "—",
+    }
+  })
 }
 
 /* ------------------------------------------------------------------ */
 /*  Tool: searchShops                                                  */
 /* ------------------------------------------------------------------ */
 
-export async function searchShops({ keyword, location }) {
+export async function searchShops({ keyword, location, municipality }) {
   const filter = { accountApprovalStatus: "approved" }
   filter.$or = [
     { role: "shop-owner" },
@@ -111,35 +159,51 @@ export async function searchShops({ keyword, location }) {
 
   let owners = await User.find(filter).select(PROVIDER_SELECT).lean()
 
+  // Resolve readable addresses for all owners
+  const addressMap = new Map()
+  await Promise.all(
+    owners.map(async (o) => {
+      const oid = String(o._id)
+      const addr = await formatReadableShopAddress(o)
+      addressMap.set(oid, addr)
+    })
+  )
+
+  const targetMun = (municipality || location || "").toLowerCase()
+  if (targetMun) {
+    owners = owners.filter((o) => {
+      const oid = String(o._id)
+      const resolvedAddr = (addressMap.get(oid) || "").toLowerCase()
+      const rawAddr = [o.shopBarangay, o.shopCityMunicipality, o.shopProvince, o.shopRegion]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+      return resolvedAddr.includes(targetMun) || rawAddr.includes(targetMun)
+    })
+  }
+
   if (keyword) {
+    const expanded = expandKeywords(keyword)
     const kw = keyword.toLowerCase()
     owners = owners.filter((o) => {
+      const oid = String(o._id)
+      const resolvedAddr = (addressMap.get(oid) || "").toLowerCase()
       const blob = [
         o.shopName,
         o.fullName,
         o.shopDescription,
+        resolvedAddr,
         ...(o.repairServicesOffered || []),
-        o.shopBarangay,
-        o.shopCityMunicipality,
-        o.shopProvince,
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase()
-      return blob.includes(kw)
+      return blob.includes(kw) || expanded.some((term) => term.length >= 3 && blob.includes(term))
     })
   }
 
-  if (location) {
-    const loc = location.toLowerCase()
-    owners = owners.filter((o) => {
-      const addr = [o.shopBarangay, o.shopCityMunicipality, o.shopProvince, o.shopRegion]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-      return addr.includes(loc)
-    })
-  }
+  // Sort owners by ratingAvg and yearsOfOperation
+  owners.sort((a, b) => (b.providerRatingAvg || 0) - (a.providerRatingAvg || 0))
 
   // For each owner, count their active services
   const ownerIds = owners.slice(0, 10).map((o) => o._id)
@@ -149,22 +213,25 @@ export async function searchShops({ keyword, location }) {
   ])
   const countMap = new Map(serviceCounts.map((r) => [String(r._id), r.count]))
 
-  return owners.slice(0, 10).map((o) => ({
-    shopOwnerId: String(o._id),
-    shopName: o.shopName || o.fullName || "—",
-    ownerName: o.fullName || "—",
-    role: o.role,
-    address: formatAddress(o),
-    servicesOffered: (o.repairServicesOffered || []).join(", ") || "—",
-    serviceType: o.serviceType || "—",
-    operatingHours: o.operatingHours || "—",
-    daysOfOperation: (o.daysOfOperation || []).join(", ") || "—",
-    yearsOfOperation: o.yearsOfOperation || "—",
-    rating: o.providerRatingAvg || 0,
-    reviewCount: o.providerRatingCount || 0,
-    activeServiceListings: countMap.get(String(o._id)) || 0,
-    description: o.shopDescription || "",
-  }))
+  return owners.slice(0, 10).map((o) => {
+    const oid = String(o._id)
+    return {
+      shopOwnerId: oid,
+      shopName: o.shopName || o.fullName || "—",
+      ownerName: o.fullName || "—",
+      role: o.role,
+      address: addressMap.get(oid) || "Marinduque",
+      servicesOffered: (o.repairServicesOffered || []).join(", ") || "—",
+      serviceType: o.serviceType || "—",
+      operatingHours: o.operatingHours || "—",
+      daysOfOperation: (o.daysOfOperation || []).join(", ") || "—",
+      yearsOfOperation: o.yearsOfOperation || "—",
+      rating: o.providerRatingAvg || 0,
+      reviewCount: o.providerRatingCount || 0,
+      activeServiceListings: countMap.get(oid) || 0,
+      description: o.shopDescription || "",
+    }
+  })
 }
 
 /* ------------------------------------------------------------------ */
@@ -215,7 +282,7 @@ export async function getServiceDetails({ serviceId }) {
     technicians: techNames,
     shopName: svc.shopOwner?.shopName || svc.shopOwner?.fullName || "—",
     shopOwner: svc.shopOwner?.fullName || "—",
-    shopAddress: formatAddress(svc.shopOwner),
+    shopAddress: await formatReadableShopAddress(svc.shopOwner),
     operatingHours: svc.shopOwner?.operatingHours || "—",
     daysOfOperation: svc.shopOwner?.daysOfOperation?.join(", ") || "—",
     shopDescription: svc.shopOwner?.shopDescription || "",
@@ -241,7 +308,7 @@ export async function getShopDetails({ shopOwnerId }) {
     shopName: owner.shopName || owner.fullName || "—",
     ownerName: owner.fullName || "—",
     role: owner.role,
-    address: formatAddress(owner),
+    address: await formatReadableShopAddress(owner),
     servicesOffered: (owner.repairServicesOffered || []).join(", ") || "—",
     serviceType: owner.serviceType || "—",
     operatingHours: owner.operatingHours || "—",
