@@ -714,6 +714,106 @@ export const patchMyPaymentMethods = asyncHandler(async (req, res) => {
   return res.json({ acceptedPaymentMethods: user.acceptedPaymentMethods || [] })
 })
 
+export const patchMyDeliveryAddresses = asyncHandler(async (req, res) => {
+  const rawAddresses = Array.isArray(req.body?.deliveryAddresses)
+    ? req.body.deliveryAddresses
+    : Array.isArray(req.body)
+    ? req.body
+    : []
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+
+  const MUNICIPALITY_CODE_MAP = {
+    "174001000": "Boac",
+    "174002000": "Buenavista",
+    "174003000": "Gasan",
+    "174004000": "Mogpog",
+    "174005000": "Santa Cruz",
+    "174006000": "Torrijos",
+  }
+
+  const sanitized = rawAddresses.map((addr, index) => {
+    let rawCity = typeof addr?.city === "string" ? addr.city.trim().slice(0, 80) : "Boac"
+    if (MUNICIPALITY_CODE_MAP[rawCity]) rawCity = MUNICIPALITY_CODE_MAP[rawCity]
+    else if (/^\d+$/.test(rawCity)) rawCity = "Boac"
+
+    let rawProvince = typeof addr?.province === "string" ? addr.province.trim().slice(0, 80) : "Marinduque"
+    if (rawProvince === "174000000" || /^\d+$/.test(rawProvince)) rawProvince = "Marinduque"
+
+    return {
+      id: String(addr?.id || `addr-${Date.now()}-${index}`),
+      label: typeof addr?.label === "string" ? addr.label.trim().slice(0, 80) : "Service Address",
+      recipient: typeof addr?.recipient === "string" ? addr.recipient.trim().slice(0, 120) : user.fullName || "",
+      phone: typeof addr?.phone === "string" ? addr.phone.trim().slice(0, 30) : user.phoneNumber || "",
+      street: typeof addr?.street === "string" ? addr.street.trim().slice(0, 255) : "",
+      barangay: typeof addr?.barangay === "string" ? addr.barangay.trim().slice(0, 100) : "",
+      city: rawCity,
+      province: rawProvince,
+      postalCode: typeof addr?.postalCode === "string" ? addr.postalCode.trim().slice(0, 10) : "4900",
+      type: typeof addr?.type === "string" ? addr.type.trim().slice(0, 40) : "Home",
+      isDefault: Boolean(addr?.isDefault),
+    }
+  })
+
+  if (sanitized.length > 0 && !sanitized.some((a) => a.isDefault)) {
+    sanitized[0].isDefault = true
+  }
+
+  user.deliveryAddresses = sanitized
+  await user.save()
+
+  return res.json({ deliveryAddresses: user.deliveryAddresses || [] })
+})
+
+export const patchMyCustomerPaymentMethods = asyncHandler(async (req, res) => {
+  const rawMethods = Array.isArray(req.body?.customerPaymentMethods)
+    ? req.body.customerPaymentMethods
+    : Array.isArray(req.body)
+    ? req.body
+    : []
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+
+  const sanitized = rawMethods.map((m, index) => {
+    const rawType = typeof m?.type === "string" ? m.type.trim() : "GCash"
+    let badge = "bg-[#081F5C]"
+    if (rawType.toLowerCase().includes("gcash")) badge = "bg-blue-600"
+    else if (rawType.toLowerCase().includes("maya")) badge = "bg-indigo-700"
+    else if (rawType.toLowerCase().includes("cash")) badge = "bg-[#04133d]"
+    else if (rawType.toLowerCase().includes("card")) badge = "bg-emerald-700"
+    else if (rawType.toLowerCase().includes("bank")) badge = "bg-slate-700"
+
+    return {
+      id: String(m?.id || `pay-${Date.now()}-${index}`),
+      type: rawType,
+      accountName: typeof m?.accountName === "string" ? m.accountName.trim().slice(0, 120) : "",
+      accountNumber: typeof m?.accountNumber === "string" ? m.accountNumber.trim().slice(0, 80) : "",
+      isDefault: Boolean(m?.isDefault),
+      badgeColor: typeof m?.badgeColor === "string" && m.badgeColor ? m.badgeColor : badge,
+    }
+  })
+
+  if (sanitized.length > 0 && !sanitized.some((m) => m.isDefault)) {
+    sanitized[0].isDefault = true
+  }
+
+  user.customerPaymentMethods = sanitized
+  await user.save()
+
+  return res.json({
+    success: true,
+    customerPaymentMethods: user.customerPaymentMethods || [],
+  })
+})
+
 function normalizeWarrantyItemArray(raw, maxCount = 20) {
   if (!Array.isArray(raw)) return []
   const out = []

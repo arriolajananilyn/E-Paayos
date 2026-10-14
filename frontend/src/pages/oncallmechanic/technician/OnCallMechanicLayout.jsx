@@ -27,6 +27,8 @@ import {
   Menu,
   MessageSquare,
   Settings,
+  ShieldAlert,
+  ShieldCheck,
   Star,
   Store,
 } from 'lucide-react'
@@ -67,6 +69,8 @@ const ROUTES = {
   messages: '#/independent/technician/messages',
   ratingsReviews: '#/independent/technician/ratings-reviews',
   reportsAnalytics: '#/independent/technician/reports-analytics',
+  complaints: '#/independent/technician/complaints',
+  warranty: '#/independent/technician/manage-warranty',
   notification: '#/independent/technician/notification',
   accountSettings: '#/independent/technician/account-settings',
 }
@@ -186,6 +190,8 @@ export default function OnCallMechanicLayout({
   const isMessagesActive = activeSection === 'messages'
   const isRatingsReviewsActive = activeSection === 'ratings-reviews'
   const isReportsAnalyticsActive = activeSection === 'reports-analytics'
+  const isComplaintsActive = activeSection === 'complaints'
+  const isWarrantyActive = activeSection === 'manage-warranty' || activeSection === 'warranty'
   const isNotificationActive = activeSection === 'notification'
   const isAccountSettingsActive = activeSection === 'account-settings'
 
@@ -313,6 +319,28 @@ export default function OnCallMechanicLayout({
                       >
                         <BarChart3 className="size-[18px] opacity-90" />
                         <span className="whitespace-nowrap">Reports & Analytics</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isComplaintsActive}
+                        tooltip="Complaints & Reports"
+                        onClick={() => go(ROUTES.complaints)}
+                        className={sidebarMenuButtonClass}
+                      >
+                        <ShieldAlert className="size-[18px] opacity-90 text-amber-300" />
+                        <span className="whitespace-nowrap">Complaints & Reports</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isWarrantyActive}
+                        tooltip="Warranty Management"
+                        onClick={() => go(ROUTES.warranty)}
+                        className={sidebarMenuButtonClass}
+                      >
+                        <ShieldCheck className="size-[18px] opacity-90 text-emerald-300" />
+                        <span className="whitespace-nowrap">Warranty Management</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>

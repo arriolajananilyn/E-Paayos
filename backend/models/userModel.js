@@ -431,6 +431,41 @@ const userSchema = new mongoose.Schema(
       },
     },
 
+    /** Service and delivery addresses saved by customer accounts */
+    deliveryAddresses: {
+      type: [
+        {
+          id: { type: String, required: true },
+          label: { type: String, default: "Home" },
+          recipient: { type: String, default: "" },
+          phone: { type: String, default: "" },
+          street: { type: String, default: "" },
+          barangay: { type: String, default: "" },
+          city: { type: String, default: "Boac" },
+          province: { type: String, default: "Marinduque" },
+          postalCode: { type: String, default: "4900" },
+          type: { type: String, default: "Home" },
+          isDefault: { type: Boolean, default: false },
+        },
+      ],
+      default: [],
+    },
+
+    /** Payment methods linked by customer accounts */
+    customerPaymentMethods: {
+      type: [
+        {
+          id: { type: String, required: true },
+          type: { type: String, required: true },
+          accountName: { type: String, default: "" },
+          accountNumber: { type: String, default: "" },
+          isDefault: { type: Boolean, default: false },
+          badgeColor: { type: String, default: "" },
+        },
+      ],
+      default: [],
+    },
+
     email: { type: String, required: true, unique: true, lowercase: true, index: true },
     password: { type: String, required: true },
 

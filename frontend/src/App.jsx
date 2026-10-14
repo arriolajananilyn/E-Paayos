@@ -9,6 +9,7 @@ import CustomerMyBookings from './pages/customer/myBookings.jsx'
 import CustomerBookingDetails from './pages/customer/bookingdetails.jsx'
 import CustomerTrackRefix from './pages/customer/trackRefix.jsx'
 import CustomerBookingHistory from './pages/customer/bookingHistory.jsx'
+import CustomerViewWarranty from './pages/customer/viewWarranty.jsx'
 import CustomerMessages from './pages/customer/messages.jsx'
 import CustomerNotification from './pages/customer/notification.jsx'
 import CustomerAccountSettings from './pages/customer/accountSettings.jsx'
@@ -19,6 +20,7 @@ import CustomerViewShop from './pages/customer/viewshop.jsx'
 import AdminDashboard from './pages/admin/dashboard.jsx'
 import AdminNotification from './pages/admin/notification.jsx'
 import AdminReportsAnalyticsPage from './pages/admin/reportsAnalytics.jsx'
+import ComplaintAndReportPage from './pages/admin/complaint&Report.jsx'
 import ShopOwnerDashboard from './pages/shopowner/dashboard.jsx'
 import ManageEmployeePage from './pages/shopowner/manageEmployee.jsx'
 import TrackEmployeePage from './pages/shopowner/trackEmployee.jsx'
@@ -31,6 +33,7 @@ import NotificationPage from './pages/shopowner/notification.jsx'
 import AccountSettingsPage from './pages/shopowner/accountSettings.jsx'
 import ShopInfoPage from './pages/shopowner/shopInfo.jsx'
 import ReportsAnalyticsPage from './pages/shopowner/reportsAnalytics.jsx'
+import ProviderComplaintsPage from './pages/shopowner/providerComplaints.jsx'
 import MechanicTechnicianDashboard from './pages/mechanic/technician/dashboard.jsx'
 import MechanicTechnicianAssignedRequest from './pages/mechanic/technician/assignedRequest.jsx'
 import MechanicTechnicianServiceHistory from './pages/mechanic/technician/serviceHistory.jsx'
@@ -47,6 +50,8 @@ import OnCallMechanicRatingReviews from './pages/oncallmechanic/technician/ratin
 import OnCallMechanicReportsAnalyticsPage from './pages/oncallmechanic/technician/reportsAnalytics.jsx'
 import OnCallMechanicNotification from './pages/oncallmechanic/technician/notification.jsx'
 import OnCallMechanicAccountSettings from './pages/oncallmechanic/technician/accountSettings.jsx'
+import ShopOwnerManageWarranty from './pages/shopowner/manageWarranty.jsx'
+import OnCallMechanicManageWarranty from './pages/oncallmechanic/technician/manageWarranty.jsx'
 
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/')
@@ -103,6 +108,8 @@ function App() {
         return <CustomerTrackRefix />
       case '#/customer/booking-history':
         return <CustomerBookingHistory />
+      case '#/customer/view-warranty':
+        return <CustomerViewWarranty />
       case '#/customer/messages':
         return <CustomerMessages />
       case '#/customer/notification':
@@ -117,6 +124,11 @@ function App() {
         return <AdminDashboard />
       case '#/admin/reports-analytics':
         return <AdminReportsAnalyticsPage />
+      case '#/admin/complaint-report':
+      case '#/admin/complaint-reports':
+      case '#/admin/complaints':
+      case '#/admin/complaint&Report':
+        return <ComplaintAndReportPage />
       case '#/admin/notification':
         return <AdminNotification />
       case '#/provider/dashboard':
@@ -139,6 +151,14 @@ function App() {
         return <ReviewsRatingsPage />
       case '#/provider/reports-analytics':
         return <ReportsAnalyticsPage />
+      case '#/provider/complaints':
+      case '#/provider/complaint-reports':
+      case '#/mechanic/technician/complaints':
+      case '#/independent/technician/complaints':
+        return <ProviderComplaintsPage />
+      case '#/provider/manage-warranty':
+      case '#/provider/warranty':
+        return <ShopOwnerManageWarranty />
       case '#/provider/notification':
         return <NotificationPage />
       case '#/provider/account-settings':
@@ -173,6 +193,11 @@ function App() {
       case '#/independent/technician/reports-analytics':
       case '#/oncallmechanic/technician/reports-analytics':
         return <OnCallMechanicReportsAnalyticsPage />
+      case '#/independent/technician/manage-warranty':
+      case '#/independent/technician/warranty':
+      case '#/oncallmechanic/technician/manage-warranty':
+      case '#/oncallmechanic/technician/warranty':
+        return <OnCallMechanicManageWarranty />
       case '#/independent/technician/notification':
         return <OnCallMechanicNotification />
       case '#/independent/technician/account-settings':

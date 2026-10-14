@@ -75,6 +75,12 @@ const PAGE_TOP_BAR_CONFIG = {
     icon: Wrench,
     backUrl: '#/customer/my-bookings',
   },
+  'view-warranty': {
+    title: 'Service Warranties & Guarantees',
+    description: 'Monitor your active repair warranties, view certificates, and track time availability',
+    icon: ShieldCheck,
+    backUrl: '#/customer/my-bookings',
+  },
   'booking-details': {
     title: 'Booking Details',
     description: 'View real-time booking status, assigned staff, and service quote',
@@ -277,7 +283,7 @@ function CustomerBottomNav({ currentTab }) {
       onClick: () => {
         window.location.hash = '#/customer/my-bookings'
       },
-      isActive: currentTab === 'my-bookings' || currentTab === 'booking-history',
+      isActive: currentTab === 'my-bookings' || currentTab === 'booking-history' || currentTab === 'view-warranty',
     },
     {
       id: 'messages',
@@ -388,6 +394,8 @@ export default function CustomerLayout({ children, activePage, hideBottomNav = f
           ? 'my-bookings'
           : currentRoute.startsWith('#/customer/booking-history')
             ? 'booking-history'
+            : currentRoute.startsWith('#/customer/view-warranty')
+              ? 'view-warranty'
             : currentRoute.startsWith('#/customer/messages')
             ? 'messages'
             : currentRoute.startsWith('#/customer/notification')

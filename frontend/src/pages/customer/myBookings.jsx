@@ -46,6 +46,8 @@ import CustomerLayout, { readCustomerUserSession } from '../../layout/customerla
 import { toast } from 'sonner'
 import { SERVICE_TYPES } from './findServices.jsx'
 import { formatReadableShopAddress } from '../../lib/psgcResolve'
+import { ServiceWarrantyDialog } from '../../components/bookings/ServiceWarrantyDialog.jsx'
+import CustomerComplaintsModal from '../../components/complaints/CustomerComplaintsModal.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -309,6 +311,118 @@ function statusBadge(status, b = {}) {
   )
 }
 
+function getWarrantyAvailability(b) {
+  if (!b) return null
+  const statusStr = String(b.status || '').toLowerCase()
+  if (statusStr !== 'completed') return null
+
+  const ws = b.warrantySettings || b.shopOwner?.warrantySettings || {}
+  const laborWarrantyEnabled = ws.laborWarrantyEnabled !== false
+  const partsWarrantyEnabled = ws.partsWarrantyEnabled !== false
+
+  if (!laborWarrantyEnabled && !partsWarrantyEnabled) {
+    return {
+      isEnabled: false,
+      isActive: false,
+      isExpired: true,
+      daysLeft: 0,
+      label: 'No Warranty',
+    }
+  }
+
+  const laborDays = Number.isFinite(Number(ws.laborWarrantyDays)) ? Number(ws.laborWarrantyDays) : 30
+  const partsDays = Number.isFinite(Number(ws.partsWarrantyDays)) ? Number(ws.partsWarrantyDays) : 90
+  const primaryDays = laborWarrantyEnabled ? laborDays : partsDays
+
+  const baseDateRaw = b.completedAt || b.paidAt || b.updatedAt || b.createdAt
+  const baseDate = baseDateRaw ? new Date(baseDateRaw) : new Date()
+  const validBaseDate = Number.isNaN(baseDate.getTime()) ? new Date() : baseDate
+
+  const expiryDate = new Date(validBaseDate.getTime() + primaryDays * 24 * 60 * 60 * 1000)
+  const nowMs = Date.now()
+  const remainingMs = expiryDate.getTime() - nowMs
+
+  const isActive = remainingMs > 0
+  const daysLeft = isActive ? Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24))) : 0
+
+  return {
+    isEnabled: true,
+    isActive,
+    isExpired: !isActive,
+    daysLeft,
+    effectiveDays: primaryDays,
+    laborDays,
+    partsDays,
+    startDate: validBaseDate,
+    expiryDate,
+    expiryDateFormatted: expiryDate.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+  }
+}
+
+function renderWarrantyIndicator(b, onClick) {
+  const w = getWarrantyAvailability(b)
+  if (!w) return null
+
+  if (!w.isEnabled) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-bold uppercase rounded-none bg-slate-100 text-slate-500 border border-slate-300 shadow-2xs shrink-0"
+        title="No warranty coverage configured for this service"
+      >
+        <ShieldAlert className="size-3 sm:size-3.5 text-slate-400 shrink-0" />
+        <span>No Warranty</span>
+      </span>
+    )
+  }
+
+  if (w.isExpired) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          onClick?.(b)
+        }}
+        title={`Warranty expired on ${w.expiryDateFormatted}. Click to view warranty certificate.`}
+        className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 shadow-2xs transition-colors cursor-pointer shrink-0"
+      >
+        <ShieldAlert className="size-3 sm:size-3.5 text-slate-500 shrink-0" />
+        <span>Warranty Expired</span>
+      </button>
+    )
+  }
+
+  const isExpiringSoon = w.daysLeft <= 3
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick?.(b)
+      }}
+      title={`Warranty Active: Valid until ${w.expiryDateFormatted} (${w.daysLeft} days remaining). Click to view warranty certificate.`}
+      className={cn(
+        "inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 text-[10px] sm:text-xs font-extrabold uppercase rounded-none shadow-2xs transition-all cursor-pointer shrink-0",
+        isExpiringSoon
+          ? "bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 hover:border-amber-400"
+          : "bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border border-indigo-300 hover:border-indigo-400"
+      )}
+    >
+      <ShieldCheck className={cn("size-3 sm:size-3.5 shrink-0", isExpiringSoon ? "text-amber-600 animate-pulse" : "text-indigo-600")} />
+      <span className="inline-flex items-center gap-1">
+        <span>Warranty:</span>
+        <span className="font-black text-indigo-950">
+          {w.daysLeft > 0 ? `${w.daysLeft} ${w.daysLeft === 1 ? 'Day' : 'Days'} Left` : 'Expires Today'}
+        </span>
+      </span>
+    </button>
+  )
+}
+
 function bookingProgressHint() {
   return ''
 }
@@ -512,11 +626,13 @@ function CustomerMyBookings() {
 
   // Refix / Re-repair (Warranty Claim) States
   const [refixBooking, setRefixBooking] = useState(null)
+  const [warrantyDialogBooking, setWarrantyDialogBooking] = useState(null)
   const [refixReason, setRefixReason] = useState('Same issue persists (problem returned after repair)')
   const [refixDetails, setRefixDetails] = useState('')
   const [refixProofPhotos, setRefixProofPhotos] = useState([])
   const [refixError, setRefixError] = useState('')
   const [isSubmittingRefix, setIsSubmittingRefix] = useState(false)
+  const [showComplaintsModal, setShowComplaintsModal] = useState(false)
   const [bookings, setBookings] = useState([])
   const [readableShopAddresses, setReadableShopAddresses] = useState({})
   const [loading, setLoading] = useState(true)
@@ -880,16 +996,38 @@ function CustomerMyBookings() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                window.location.hash = '#/customer/booking-history'
-              }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-none border border-indigo-500 shadow-md shadow-indigo-900/30 transition-all cursor-pointer shrink-0"
-            >
-              <History className="size-4" />
-              <span>View Booking History</span>
-            </button>
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.hash = '#/customer/view-warranty'
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-none border border-emerald-500 shadow-md shadow-emerald-900/30 transition-all cursor-pointer shrink-0"
+              >
+                <ShieldCheck className="size-4" />
+                <span>View Warranty</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.hash = '#/customer/booking-history'
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-none border border-indigo-500 shadow-md shadow-indigo-900/30 transition-all cursor-pointer shrink-0"
+              >
+                <History className="size-4" />
+                <span>View Booking History</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowComplaintsModal(true)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 bg-rose-600 hover:bg-rose-500 active:scale-95 text-white text-xs font-bold rounded-none border border-rose-500 shadow-md shadow-rose-950/30 transition-all cursor-pointer shrink-0"
+              >
+                <ShieldAlert className="size-4 text-amber-300" />
+                <span>Damage &amp; Complaints</span>
+              </button>
+            </div>
           </div>
 
           {/* Booking Stats Summary Bar */}
@@ -1332,82 +1470,89 @@ function CustomerMyBookings() {
                     </div>
                   )}
 
-                  {/* Action Controls */}
-                  <div className="pt-2 flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
+                  {/* Action Controls & Bottom Status Info */}
+                  <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    {/* Bottom Left Part of Card: Warranty Indicator */}
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      {renderWarrantyIndicator(b, (target) => setWarrantyDialogBooking(target))}
+                    </div>
 
-                    {((String(b.status).toLowerCase() === 'fixed' || String(b.status).toLowerCase() === 'completed' || (String(b.status).toLowerCase() === 'working' && b.serviceFeeConfirmedAt)) && String(b.paymentStatus || '').toLowerCase() !== 'paid' && (b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null)) && (
+                    {/* Bottom Right Part of Card: Action Controls */}
+                    <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2 sm:ml-auto">
+                      {((String(b.status).toLowerCase() === 'fixed' || String(b.status).toLowerCase() === 'completed' || (String(b.status).toLowerCase() === 'working' && b.serviceFeeConfirmedAt)) && String(b.paymentStatus || '').toLowerCase() !== 'paid' && (b.serviceFeeLaborRateAtCalc != null || b.serviceFeeMaterialsAmount != null)) && (
+                        <button
+                          type="button"
+                          onClick={() => { setPayingBooking(b); setPayError('') }}
+                          className="inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
+                        >
+                          <CreditCard className="size-3.5" />
+                          <span>Pay Now ({formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))})</span>
+                        </button>
+                      )}
+
+                      {String(b.status).toLowerCase() === 'completed' && String(b.paymentStatus || '').toLowerCase() === 'paid' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.hash = `#/customer/reviews-ratings?tab=to-review&bookingId=${encodeURIComponent(b.id)}`
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
+                        >
+                          <Star className="size-3.5 text-amber-600" />
+                          <span>Rate Service</span>
+                        </button>
+                      )}
+
+                      {/* Refix / Re-repair request button (only when completed and no active refix claim) */}
+                      {String(b.status).toLowerCase() === 'completed' && (!b.warrantyClaim || !b.warrantyClaim.status || b.warrantyClaim.status === 'none') && (
+                        <button
+                          type="button"
+                          onClick={() => openRefixDialog(b)}
+                          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
+                        >
+                          <RotateCcw className="size-3.5 text-indigo-600" />
+                          <span>Refix / Re-repair</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
-                        onClick={() => { setPayingBooking(b); setPayError('') }}
-                        className="inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
-                      >
-                        <CreditCard className="size-3.5" />
-                        <span>Pay Now ({formatPhp((b.serviceFeeLaborRateAtCalc || 0) + (b.serviceFeeMaterialsAmount || 0))})</span>
-                      </button>
-                    )}
-
-                    {String(b.status).toLowerCase() === 'completed' && String(b.paymentStatus || '').toLowerCase() === 'paid' && (
-                      <button
-                        type="button"
+                        disabled={!b.shopServiceId?.trim()}
                         onClick={() => {
-                          window.location.hash = `#/customer/reviews-ratings?tab=to-review&bookingId=${encodeURIComponent(b.id)}`
+                          if (!b.shopServiceId?.trim()) return
+                          window.location.hash = `#/customer/view-shop/${encodeURIComponent(b.shopServiceId)}`
                         }}
-                        className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50 w-full sm:w-auto"
                       >
-                        <Star className="size-3.5 text-amber-600" />
-                        <span>Rate Service</span>
+                        <Store className="size-3.5 text-slate-500" />
+                        <span>View Shop</span>
                       </button>
-                    )}
 
-                    {/* Refix / Re-repair request button (only when completed and no active refix claim) */}
-                    {String(b.status).toLowerCase() === 'completed' && (!b.warrantyClaim || !b.warrantyClaim.status || b.warrantyClaim.status === 'none') && (
-                      <button
-                        type="button"
-                        onClick={() => openRefixDialog(b)}
-                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
-                      >
-                        <RotateCcw className="size-3.5 text-indigo-600" />
-                        <span>Refix / Re-repair</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      disabled={!b.shopServiceId?.trim()}
-                      onClick={() => {
-                        if (!b.shopServiceId?.trim()) return
-                        window.location.hash = `#/customer/view-shop/${encodeURIComponent(b.shopServiceId)}`
-                      }}
-                      className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer disabled:opacity-50 w-full sm:w-auto"
-                    >
-                      <Store className="size-3.5 text-slate-500" />
-                      <span>View Shop</span>
-                    </button>
-
-                    {/* Primary Button: If refix is active in progress, show Track Refix / Re-repair button; otherwise show Full Details */}
-                    {b.warrantyClaim && b.warrantyClaim.status && b.warrantyClaim.status !== 'none' ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          window.location.hash = `#/customer/track-refix/${encodeURIComponent(b.id)}`
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
-                      >
-                        <RotateCcw className="size-3.5" />
-                        <span>Track Refix / Re-repair</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          window.location.hash = `#/customer/booking-details/${encodeURIComponent(b.id)}`
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
-                      >
-                        <FileText className="size-3.5" />
-                        <span>Full Details</span>
-                      </button>
-                    )}
+                      {/* Primary Button: If refix is active in progress, show Track Refix / Re-repair button; otherwise show Full Details */}
+                      {b.warrantyClaim && b.warrantyClaim.status && b.warrantyClaim.status !== 'none' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.hash = `#/customer/track-refix/${encodeURIComponent(b.id)}`
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
+                        >
+                          <RotateCcw className="size-3.5" />
+                          <span>Track Refix / Re-repair</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.hash = `#/customer/booking-details/${encodeURIComponent(b.id)}`
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 text-[11px] sm:text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer w-full sm:w-auto"
+                        >
+                          <FileText className="size-3.5" />
+                          <span>Full Details</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </article>
               )
@@ -1434,6 +1579,7 @@ function CustomerMyBookings() {
                 <div className="space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     {statusBadge(viewing.status, viewing)}
+                    {renderWarrantyIndicator(viewing, (target) => setWarrantyDialogBooking(target))}
                     <Badge className={cn("rounded-none text-[10px] uppercase font-bold", categoryBadgeClass(viewing.category))}>{viewing.category || '—'}</Badge>
                     {serviceModeBadge(viewing.serviceMode)}
                     {listingTypeBadge(viewing.listingType)}
@@ -1590,13 +1736,13 @@ function CustomerMyBookings() {
                 ) : null}
               </div>
 
-              <DialogFooter className="shrink-0 gap-2 border-t border-slate-100 pt-3">
-                <Button type="button" variant="outline" className="rounded-none border-slate-300 text-xs font-bold" onClick={() => setViewing(null)}>
+              <DialogFooter className="m-0 mx-0 mb-0 shrink-0 gap-2 border-t border-slate-200 pt-3.5 pb-3.5 sm:pb-4 px-1 sm:px-2 flex flex-col-reverse sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2" onClick={() => setViewing(null)}>
                   Close
                 </Button>
                 <Button
                   type="button"
-                  className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold disabled:opacity-50"
+                  className="w-full sm:w-auto rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 disabled:opacity-50"
                   disabled={!viewing.shopServiceId?.trim()}
                   onClick={() => {
                     const id = viewing.shopServiceId
@@ -1765,13 +1911,13 @@ function CustomerMyBookings() {
                 {payError ? <p className="text-xs font-bold text-rose-600 bg-rose-50 p-2 border border-rose-200">{payError}</p> : null}
               </div>
 
-              <DialogFooter className="shrink-0 gap-2 border-t border-slate-100 pt-3">
-                <Button type="button" variant="outline" className="rounded-none border-slate-300 text-xs font-bold" onClick={() => setPayingBooking(null)} disabled={isSubmittingPayment}>
+              <DialogFooter className="m-0 mx-0 mb-0 shrink-0 gap-2 border-t border-slate-200 pt-3.5 pb-3.5 sm:pb-4 px-1 sm:px-2 flex flex-col-reverse sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2" onClick={() => setPayingBooking(null)} disabled={isSubmittingPayment}>
                   Cancel
                 </Button>
                 <Button
                   type="button"
-                  className="rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50"
+                  className="w-full sm:w-auto rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 disabled:opacity-50"
                   disabled={isSubmittingPayment || !selectedPaymentMethodId}
                   onClick={() => void submitPayNow()}
                 >
@@ -2070,6 +2216,26 @@ function CustomerMyBookings() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Official Service Warranty Certificate Dialog */}
+      <ServiceWarrantyDialog
+        open={Boolean(warrantyDialogBooking)}
+        onOpenChange={(open) => {
+          if (!open) setWarrantyDialogBooking(null)
+        }}
+        booking={warrantyDialogBooking}
+        onClaimWarranty={() => {
+          const target = warrantyDialogBooking
+          setWarrantyDialogBooking(null)
+          if (target) openRefixDialog(target)
+        }}
+      />
+
+      {/* Customer Complaints & Damage Reports Portal Modal */}
+      <CustomerComplaintsModal
+        isOpen={showComplaintsModal}
+        onClose={() => setShowComplaintsModal(false)}
+      />
     </CustomerLayout>
   )
 }

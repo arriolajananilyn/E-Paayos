@@ -494,16 +494,29 @@ export default function CustomerBookingHistory() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                window.location.hash = '#/customer/my-bookings'
-              }}
-              className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-none border border-indigo-500 shadow-md shadow-indigo-900/30 transition-all cursor-pointer"
-            >
-              <ArrowLeft className="size-4" />
-              <span>Back to Active Bookings</span>
-            </button>
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 self-start sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.hash = '#/customer/view-warranty'
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold rounded-none border border-emerald-500 shadow-md shadow-emerald-900/30 transition-all cursor-pointer"
+              >
+                <ShieldCheck className="size-4" />
+                <span>View Warranty</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.hash = '#/customer/my-bookings'
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold rounded-none border border-indigo-500 shadow-md shadow-indigo-900/30 transition-all cursor-pointer"
+              >
+                <ArrowLeft className="size-4" />
+                <span>Active Bookings</span>
+              </button>
+            </div>
           </div>
 
           {/* History Stats Bar */}

@@ -60,6 +60,8 @@ import {
   PlayCircle,
   Plus,
   Settings,
+  ShieldAlert,
+  ShieldCheck,
   ShoppingBag,
   ShoppingCart,
   Star,
@@ -1386,6 +1388,8 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
   const isAccountSettingsActive = activeSection === "account-settings"
   const isReviewsRatingsActive = activeSection === "reviews-ratings"
   const isReportsAnalyticsActive = activeSection === "reports-analytics"
+  const isComplaintsActive = activeSection === "complaints" || activeSection === "complaint-reports"
+  const isWarrantyActive = activeSection === "manage-warranty" || activeSection === "warranty"
   const isManageEmployeeActive = activeSection === "manage-employee"
   const isTrackEmployeeActive = activeSection === "track-employee"
   const isEmployeesGroupActive = isManageEmployeeActive || isTrackEmployeeActive
@@ -1646,6 +1650,28 @@ function ShopOwnerDashboard({ activeSection = "dashboard", pageMeta = DASHBOARD_
                       >
                         <BarChart3 className="size-[18px] opacity-90" />
                         <span className="whitespace-nowrap">Reports & Analytics</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isComplaintsActive}
+                        tooltip="Complaints & Damage Reports"
+                        onClick={() => { window.location.hash = "#/provider/complaints" }}
+                        className="h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
+                      >
+                        <ShieldAlert className="size-[18px] opacity-90 text-amber-300" />
+                        <span className="whitespace-nowrap">Complaints & Reports</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        isActive={isWarrantyActive}
+                        tooltip="Warranty Management"
+                        onClick={() => { window.location.hash = "#/provider/manage-warranty" }}
+                        className="h-9 gap-3 rounded-sm px-3 text-white transition-colors hover:bg-white/20 hover:text-white data-[active=true]:bg-white data-[active=true]:text-black group-data-[collapsible=icon]:size-9! group-data-[collapsible=icon]:px-3! group-data-[collapsible=icon]:py-2! group-data-[collapsible=icon]:justify-start! [&>span:last-child]:overflow-visible [&>span:last-child]:text-clip [&>span:last-child]:whitespace-nowrap"
+                      >
+                        <ShieldCheck className="size-[18px] opacity-90 text-emerald-300" />
+                        <span className="whitespace-nowrap">Warranty Management</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   </SidebarMenu>

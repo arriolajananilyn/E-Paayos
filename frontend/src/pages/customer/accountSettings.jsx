@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from "react"
 import CustomerLayout, { readCustomerUserSession } from "../../layout/customerlayout.jsx"
 import { cn } from "../../lib/utils"
 import { getApiBaseUrl } from "../../lib/apiBaseUrl"
+import { resolvePsgcField } from "../../lib/psgcResolve"
 
 import {
   User,
@@ -11,7 +12,6 @@ import {
   Shield,
   Bell,
   MapPin,
-  CreditCard,
   Camera,
   Upload,
   Trash2,
@@ -40,7 +40,7 @@ import {
   Award,
   Calendar,
   LogOut,
-  CheckSquare
+  CheckSquare,
 } from "lucide-react"
 
 import { toast } from "sonner"
@@ -127,15 +127,110 @@ export const MARINDUQUE_DATA = {
   }
 }
 
+export const MARINDUQUE_MUNICIPALITY_CODE_MAP = {
+  "174001000": "Boac",
+  "174002000": "Buenavista",
+  "174003000": "Gasan",
+  "174004000": "Mogpog",
+  "174005000": "Santa Cruz",
+  "174006000": "Torrijos",
+}
+
+export const MARINDUQUE_PROVINCE_CODE_MAP = {
+  "174000000": "Marinduque",
+}
+
+export const MARINDUQUE_BARANGAY_CODE_MAP = {
+  "174001001":"Agot","174001002":"Agumaymayan","174001003":"Amoingon","174001004":"Apitong","174001005":"Balagasan","174001006":"Balaring","174001007":"Balimbing","174001008":"Balogo","174001009":"Bangbangalon","174001010":"Bamban","174001011":"Bantad","174001012":"Bantay","174001013":"Bayuti","174001014":"Binunga","174001015":"Boi","174001016":"Boton","174001017":"Buliasnin","174001018":"Bunganay","174001019":"Maligaya","174001020":"Caganhao","174001021":"Canat","174001022":"Catubugan","174001023":"Cawit","174001024":"Daig","174001025":"Daypay","174001026":"Duyay","174001027":"Ihatub","174001028":"Isok II Pob.","174001029":"Hinapulan","174001030":"Laylay","174001031":"Lupac","174001032":"Mahinhin","174001033":"Mainit","174001034":"Malbog","174001035":"Malusak (Pob.)","174001036":"Mansiwat","174001037":"Mataas Na Bayan (Pob.)","174001038":"Maybo","174001039":"Mercado (Pob.)","174001040":"Murallon (Pob.)","174001041":"Ogbac","174001042":"Pawa","174001043":"Pili","174001044":"Poctoy","174001045":"Poras","174001046":"Puting Buhangin","174001047":"Puyog","174001048":"Sabong","174001049":"San Miguel (Pob.)","174001050":"Santol","174001051":"Sawi","174001052":"Tabi","174001053":"Tabigue","174001054":"Tagwak","174001055":"Tambunan","174001056":"Tampus (Pob.)","174001057":"Tanza","174001058":"Tugos","174001059":"Tumagabok","174001060":"Tumapon","174001061":"Isok I (Pob.)",
+  "174002001":"Bagacay","174002002":"Bagtingon","174002003":"Bicas-bicas","174002004":"Caigangan","174002005":"Daykitin","174002006":"Libas","174002007":"Malbog","174002011":"Sihi","174002012":"Timbo","174002013":"Tungib-Lipata","174002014":"Yook","174002015":"Barangay I (Pob.)","174002016":"Barangay II (Pob.)","174002017":"Barangay III (Pob.)","174002018":"Barangay IV (Pob.)",
+  "174003001":"Antipolo","174003003":"Bachao Ibaba","174003004":"Bachao Ilaya","174003005":"Bacongbacong","174003006":"Bahi","174003007":"Bangbang","174003008":"Banot","174003009":"Banuyo","174003010":"Bognuyan","174003011":"Cabugao","174003012":"Dawis","174003013":"Dili","174003014":"Libtangin","174003015":"Mahunig","174003016":"Mangiliol","174003017":"Masiga","174003018":"Matandang Gasan","174003019":"Pangi","174003020":"Pinggan","174003021":"Tabionan","174003022":"Tapuyan","174003023":"Tiguion","174003024":"Barangay I (Pob.)","174003025":"Barangay II (Pob.)","174003026":"Barangay III (Pob.)",
+  "174004001":"Anapog-Sibucao","174004002":"Argao","174004003":"Balanacan","174004004":"Banto","174004005":"Bintakay","174004006":"Bocboc","174004007":"Butansapa","174004008":"Candahon","174004009":"Capayang","174004010":"Danao","174004011":"Dulong Bayan (Pob.)","174004012":"Gitnang Bayan (Pob.)","174004013":"Guisian","174004014":"Hinadharan","174004015":"Hinanggayon","174004016":"Ino","174004017":"Janagdong","174004018":"Lamesa","174004019":"Laon","174004020":"Magapua","174004021":"Malayak","174004022":"Malusak","174004023":"Mampaitan","174004024":"Mangyan-Mababad","174004025":"Market Site (Pob.)","174004026":"Mataas Na Bayan","174004027":"Mendez","174004028":"Nangka I","174004029":"Nangka II","174004030":"Paye","174004032":"Pili","174004033":"Puting Buhangin","174004034":"Sayao","174004035":"Silangan","174004036":"Sumangga","174004037":"Tarug","174004038":"Villa Mendez (Pob.)",
+  "174005001":"Alobo","174005002":"Angas","174005003":"Aturan","174005004":"Bagong Silang Pob.","174005005":"Baguidbirin","174005006":"Baliis","174005007":"Balogo","174005008":"Banahaw Pob.","174005009":"Bangcuangan","174005010":"Banogbog","174005011":"Biga","174005012":"Botilao","174005013":"Buyabod","174005014":"Dating Bayan","174005015":"Devilla","174005016":"Dolores","174005017":"Haguimit","174005018":"Hupi","174005019":"Ipil","174005020":"Jolo","174005021":"Kaganhao","174005022":"Kalangkang","174005023":"Kamandugan","174005024":"Kasily","174005025":"Kilo-kilo","174005026":"Kinyaman","174005027":"Labo","174005028":"Lamesa","174005029":"Landy","174005030":"Lapu-lapu Pob.","174005031":"Libjo","174005032":"Lipa","174005033":"Lusok","174005034":"Maharlika Pob.","174005035":"Makulapnit","174005036":"Maniwaya","174005037":"Manlibunan","174005038":"Masaguisi","174005039":"Masalukot","174005040":"Matalaba","174005041":"Mongpong","174005042":"Morales","174005043":"Napo","174005044":"Pag-Asa Pob.","174005045":"Pantayin","174005047":"Polo","174005048":"Pulong-Parang","174005049":"Punong","174005050":"San Antonio","174005051":"San Isidro","174005052":"Tagum","174005053":"Tamayo","174005054":"Tambangan","174005055":"Tawiran","174005056":"Taytay",
+  "174006001":"Bangwayin","174006002":"Bayakbakin","174006003":"Bolo","174006004":"Bonliw","174006005":"Buangan","174006006":"Cabuyo","174006007":"Cagpo","174006008":"Dampulan","174006009":"Kay Duke","174006010":"Mabuhay","174006011":"Makawayan","174006012":"Malibago","174006013":"Malinao","174006014":"Maranlig","174006015":"Marlangga","174006016":"Matuyatuya","174006017":"Nangka","174006018":"Pakaskasan","174006019":"Payanas","174006020":"Poblacion","174006021":"Poctoy","174006022":"Sibuyao","174006023":"Suha","174006024":"Talawan","174006025":"Tigwi"
+}
+
+export function getReadableMunicipality(cityVal) {
+  if (!cityVal) return "Boac"
+  const s = String(cityVal).trim()
+  if (MARINDUQUE_MUNICIPALITY_CODE_MAP[s]) {
+    return MARINDUQUE_MUNICIPALITY_CODE_MAP[s]
+  }
+  if (!/^\d+$/.test(s)) {
+    const found = MARINDUQUE_MUNICIPALITIES.find((m) => m.toLowerCase() === s.toLowerCase())
+    return found || s
+  }
+  return "Boac"
+}
+
+export function getReadableProvince(provVal) {
+  if (!provVal) return MARINDUQUE_PROVINCE
+  const s = String(provVal).trim()
+  if (s === "174000000" || MARINDUQUE_PROVINCE_CODE_MAP[s] || /^\d+$/.test(s)) {
+    return MARINDUQUE_PROVINCE
+  }
+  return s
+}
+
+export function getReadableBarangay(brgyVal, cityName = "Boac") {
+  if (!brgyVal) {
+    const list = getBarangaysByMunicipality(cityName)
+    return list[0] || ""
+  }
+  const s = String(brgyVal).trim()
+  if (MARINDUQUE_BARANGAY_CODE_MAP[s]) {
+    return MARINDUQUE_BARANGAY_CODE_MAP[s]
+  }
+  if (!/^\d+$/.test(s)) {
+    return s
+  }
+  const list = getBarangaysByMunicipality(cityName)
+  return list[0] || s
+}
+
+export async function normalizeAddressToText(addr) {
+  if (!addr || typeof addr !== "object") return addr
+
+  let city = getReadableMunicipality(addr.city || addr.cityMunicipality)
+  let province = getReadableProvince(addr.province)
+  let barangay = getReadableBarangay(addr.barangay, city)
+
+  // Extra fallback if code was from another region/external PSGC
+  const rawCity = String(addr.city || addr.cityMunicipality || "").trim()
+  if (/^\d+$/.test(rawCity) && city === "Boac" && !MARINDUQUE_MUNICIPALITY_CODE_MAP[rawCity]) {
+    try {
+      const resCity = await resolvePsgcField("city", rawCity)
+      if (resCity && !/^\d+$/.test(resCity)) city = resCity
+    } catch {}
+  }
+
+  const rawBrgy = String(addr.barangay || "").trim()
+  if (/^\d+$/.test(rawBrgy) && !MARINDUQUE_BARANGAY_CODE_MAP[rawBrgy]) {
+    try {
+      const resBrgy = await resolvePsgcField("barangay", rawBrgy)
+      if (resBrgy && !/^\d+$/.test(resBrgy)) barangay = resBrgy
+    } catch {}
+  }
+
+  return {
+    ...addr,
+    city: /^\d+$/.test(city) ? "Boac" : city,
+    barangay: /^\d+$/.test(barangay) ? (getBarangaysByMunicipality(city)[0] || "") : barangay,
+    province: /^\d+$/.test(province) ? MARINDUQUE_PROVINCE : province,
+    postalCode: addr.postalCode && !/^\d{5,}$/.test(addr.postalCode)
+      ? addr.postalCode
+      : getZipCodeByMunicipality(city),
+  }
+}
+
 export function getBarangaysByMunicipality(muni) {
-  if (!muni) return MARINDUQUE_DATA.Boac.barangays
-  const key = muni.replace(/\s+/g, '')
+  const cleanMuni = getReadableMunicipality(muni)
+  const key = cleanMuni.replace(/\s+/g, '')
   return MARINDUQUE_DATA[key]?.barangays || MARINDUQUE_DATA.Boac.barangays
 }
 
 export function getZipCodeByMunicipality(muni) {
-  if (!muni) return "4900"
-  const key = muni.replace(/\s+/g, '')
+  const cleanMuni = getReadableMunicipality(muni)
+  const key = cleanMuni.replace(/\s+/g, '')
   return MARINDUQUE_DATA[key]?.zipCode || "4900"
 }
 
@@ -180,7 +275,6 @@ const TABS = [
   { id: "profile", label: "Profile & Information", icon: User, badge: "Main" },
   { id: "addresses", label: "Service & Delivery Addresses", icon: MapPin, countKey: "addresses" },
   { id: "security", label: "Password & Security", icon: Shield },
-  { id: "payment", label: "Payment Methods", icon: CreditCard, countKey: "payments" },
   { id: "notifications", label: "Notifications & Privacy", icon: Bell },
 ]
 
@@ -193,76 +287,16 @@ const PRESET_AVATARS = [
   { id: "avatar5", label: "Avatar 5", url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80" },
 ]
 
-// Sample Initial E-Paayos Addresses
-const INITIAL_ADDRESSES = [
-  {
-    id: "addr-1",
-    label: "Home / Main Residence",
-    recipient: "Juan Dela Cruz",
-    phone: "+63 917 889 4521",
-    street: "123 Sunflower St., Brgy. San Miguel",
-    barangay: "San Miguel (Poblacion)",
-    city: "Boac",
-    province: "Marinduque",
-    postalCode: "4900",
-    isDefault: true,
-    type: "Home",
-  },
-  {
-    id: "addr-2",
-    label: "Commercial Workshop Depot",
-    recipient: "Juan Dela Cruz (Store)",
-    phone: "+63 988 234 5678",
-    street: "Market Site, Brgy. Janagdong",
-    barangay: "Janagdong",
-    city: "Mogpog",
-    province: "Marinduque",
-    postalCode: "4901",
-    isDefault: false,
-    type: "Work",
-  },
-  {
-    id: "addr-3",
-    label: "Family Farm Property",
-    recipient: "Maria Dela Cruz",
-    phone: "+63 915 990 1122",
-    street: "Unit 4B Agro Commercial Center, Brgy. Pinggan",
-    barangay: "Pinggan",
-    city: "Gasan",
-    province: "Marinduque",
-    postalCode: "4905",
-    isDefault: false,
-    type: "Farm",
-  },
-]
-
-// Sample Initial Payment Methods for E-Paayos
-const INITIAL_PAYMENTS = [
-  {
-    id: "pay-1",
-    type: "GCash",
-    accountName: "Juan Dela Cruz",
-    accountNumber: "0917••••521",
-    isDefault: true,
-    badgeColor: "bg-blue-600",
-  },
-  {
-    id: "pay-2",
-    type: "Maya",
-    accountName: "Juan Dela Cruz",
-    accountNumber: "0917••••521",
-    isDefault: false,
-    badgeColor: "bg-indigo-700",
-  },
-  {
-    id: "pay-3",
-    type: "Cash on Service",
-    accountName: "Cash Payment upon Job Completion",
-    accountNumber: "Standard COD",
-    isDefault: false,
-    badgeColor: "bg-[#04133d]",
-  },
-]
+// Detect if an address object was from legacy mock seed data
+export function isMockAddress(addr) {
+  if (!addr) return true
+  const mockIds = ["addr-1", "addr-2", "addr-3"]
+  if (mockIds.includes(addr.id)) return true
+  if (addr.recipient === "Juan Dela Cruz" && String(addr.street || "").includes("Sunflower")) return true
+  if (addr.label === "Family Farm Property" && addr.recipient === "Maria Dela Cruz") return true
+  if (addr.label === "Commercial Workshop Depot" && String(addr.street || "").includes("Market Site")) return true
+  return false
+}
 
 export default function AccountSettings() {
   const navigate = useNavigateHelper()
@@ -284,10 +318,6 @@ export default function AccountSettings() {
 
   const addressStorageKey = useMemo(() => {
     return `ep_user_addresses_${userId}`
-  }, [userId])
-
-  const paymentStorageKey = useMemo(() => {
-    return `ep_user_payments_${userId}`
   }, [userId])
 
   const notificationStorageKey = useMemo(() => {
@@ -332,22 +362,213 @@ export default function AccountSettings() {
       const saved = localStorage.getItem(addressStorageKey)
       if (saved) {
         const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        if (Array.isArray(parsed)) {
+          const nonMock = parsed
+            .filter((a) => !isMockAddress(a))
+            .map((a) => {
+              const city = getReadableMunicipality(a.city || a.cityMunicipality)
+              return {
+                ...a,
+                city,
+                barangay: getReadableBarangay(a.barangay, city),
+                province: getReadableProvince(a.province),
+                postalCode: a.postalCode && !/^\d{5,}$/.test(a.postalCode) ? a.postalCode : getZipCodeByMunicipality(city),
+              }
+            })
+          if (nonMock.length > 0) return nonMock
+        }
       }
     } catch (e) {
       console.error("Error loading user addresses", e)
     }
-    return INITIAL_ADDRESSES
+    return []
   })
 
-  const saveAddressesToStorage = (newAddresses) => {
-    setAddresses(newAddresses)
+  const [isAddressesLoading, setIsAddressesLoading] = useState(true)
+  const [isSavingAddresses, setIsSavingAddresses] = useState(false)
+
+  // Primary Default Address Helper
+  const defaultAddress = useMemo(() => {
+    return addresses.find((a) => a.isDefault) || addresses[0] || null
+  }, [addresses])
+
+  const saveAddresses = async (newAddresses) => {
+    const cleanList = (newAddresses || [])
+      .filter((a) => !isMockAddress(a))
+      .map((a) => {
+        const city = getReadableMunicipality(a.city || a.cityMunicipality)
+        return {
+          ...a,
+          city,
+          barangay: getReadableBarangay(a.barangay, city),
+          province: getReadableProvince(a.province),
+          postalCode: a.postalCode && !/^\d{5,}$/.test(a.postalCode) ? a.postalCode : getZipCodeByMunicipality(city),
+        }
+      })
+    setAddresses(cleanList)
     try {
-      localStorage.setItem(addressStorageKey, JSON.stringify(newAddresses))
+      localStorage.setItem(addressStorageKey, JSON.stringify(cleanList))
     } catch (e) {
-      console.error("Error saving addresses", e)
+      console.error("Error saving addresses to localStorage", e)
+    }
+
+    const currentToken = localStorage.getItem("token")
+    if (currentToken) {
+      try {
+        setIsSavingAddresses(true)
+        const res = await fetch(`${getApiBaseUrl()}/api/users/me/delivery-addresses`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${currentToken}`,
+          },
+          body: JSON.stringify({ deliveryAddresses: cleanList }),
+        })
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          console.warn("Could not save delivery addresses to server:", errData?.message)
+        }
+      } catch (err) {
+        console.error("Failed to sync delivery addresses to backend:", err)
+      } finally {
+        setIsSavingAddresses(false)
+      }
     }
   }
+
+  // Hydrate user profile and delivery addresses from database
+  useEffect(() => {
+    let isMounted = true
+
+    const hydrateUserDataAndAddresses = async () => {
+      const activeToken = localStorage.getItem("token")
+      if (!activeToken) {
+        if (isMounted) setIsAddressesLoading(false)
+        return
+      }
+
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/api/users/me`, {
+          headers: {
+            Authorization: `Bearer ${activeToken}`,
+          },
+        })
+        const data = await res.json().catch(() => null)
+        if (!res.ok || !data || !isMounted) {
+          if (isMounted) setIsAddressesLoading(false)
+          return
+        }
+
+        // 1. Update Profile details with authentic registered account data
+        setProfile((prev) => {
+          const fn = data.firstName || (data.fullName ? data.fullName.split(" ")[0] : prev.firstName)
+          const ln = data.lastName || (data.fullName ? data.fullName.split(" ").slice(1).join(" ") : prev.lastName)
+          const phone = data.phoneNumber || data.phone || prev.phone
+          const email = data.email || prev.email
+          const username = data.username || (data.email ? data.email.split("@")[0] : prev.username)
+          const dob = data.birthdate ? new Date(data.birthdate).toISOString().slice(0, 10) : prev.dob
+          const gender = data.gender || prev.gender
+
+          return {
+            ...prev,
+            firstName: fn,
+            lastName: ln,
+            phone,
+            email,
+            username,
+            dob,
+            gender,
+            avatarUrl: data.profileImage || data.avatar || prev.avatarUrl,
+          }
+        })
+
+        // Also refresh cached user in localStorage
+        try {
+          const rawLocalUser = localStorage.getItem("user")
+          const currentLocalUser = rawLocalUser ? JSON.parse(rawLocalUser) : {}
+          localStorage.setItem("user", JSON.stringify({ ...currentLocalUser, ...data }))
+        } catch (e) {}
+
+        // 2. Hydrate & sync Delivery Addresses (resolving any numerical codes to text)
+        let realAddresses = []
+        if (Array.isArray(data.deliveryAddresses) && data.deliveryAddresses.length > 0) {
+          realAddresses = await Promise.all(
+            data.deliveryAddresses
+              .filter((a) => !isMockAddress(a))
+              .map(normalizeAddressToText)
+          )
+        }
+
+        // If backend had no delivery addresses saved yet, check local storage
+        if (realAddresses.length === 0) {
+          try {
+            const saved = localStorage.getItem(addressStorageKey)
+            if (saved) {
+              const parsed = JSON.parse(saved)
+              if (Array.isArray(parsed)) {
+                realAddresses = await Promise.all(
+                  parsed.filter((a) => !isMockAddress(a)).map(normalizeAddressToText)
+                )
+              }
+            }
+          } catch (e) {}
+        }
+
+        // If still empty, use user's authentic registration location details as their primary address
+        if (realAddresses.length === 0) {
+          const hasLocation = Boolean(data.detailedAddress || data.barangay || data.cityMunicipality)
+          if (hasLocation) {
+            const rawCity = data.cityMunicipality || "Boac"
+            const rawBrgy = data.barangay || ""
+            const rawProv = data.province || MARINDUQUE_PROVINCE
+
+            const primaryAddr = await normalizeAddressToText({
+              id: `addr-${Date.now()}`,
+              label: "Home / Primary Address",
+              recipient: data.fullName || `${profile.firstName} ${profile.lastName}`.trim(),
+              phone: data.phoneNumber || profile.phone,
+              street: data.detailedAddress || "",
+              barangay: rawBrgy,
+              city: rawCity,
+              province: rawProv,
+              postalCode: data.postalCode || getZipCodeByMunicipality(rawCity),
+              type: "Home",
+              isDefault: true,
+            })
+            realAddresses = [primaryAddr]
+          }
+        }
+
+        // Set genuine addresses state & update localStorage
+        setAddresses(realAddresses)
+        try {
+          localStorage.setItem(addressStorageKey, JSON.stringify(realAddresses))
+        } catch (e) {}
+
+        // Sync to backend if backend deliveryAddresses was empty or had numeric codes
+        if (realAddresses.length > 0 && (!data.deliveryAddresses || data.deliveryAddresses.length === 0)) {
+          fetch(`${getApiBaseUrl()}/api/users/me/delivery-addresses`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${activeToken}`,
+            },
+            body: JSON.stringify({ deliveryAddresses: realAddresses }),
+          }).catch((err) => console.warn("Background address sync error:", err))
+        }
+      } catch (err) {
+        console.error("Failed to load user profile and addresses:", err)
+      } finally {
+        if (isMounted) setIsAddressesLoading(false)
+      }
+    }
+
+    hydrateUserDataAndAddresses()
+
+    return () => {
+      isMounted = false
+    }
+  }, [addressStorageKey])
 
   // Address Modal State
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
@@ -376,37 +597,6 @@ export default function AccountSettings() {
     twoFactor: true,
   })
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
-
-  // Payment Methods State & Modal
-  const [payments, setPayments] = useState(() => {
-    try {
-      const saved = localStorage.getItem(paymentStorageKey)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed
-      }
-    } catch (e) {
-      console.error("Error loading user payments", e)
-    }
-    return INITIAL_PAYMENTS
-  })
-
-  const savePaymentsToStorage = (newPayments) => {
-    setPayments(newPayments)
-    try {
-      localStorage.setItem(paymentStorageKey, JSON.stringify(newPayments))
-    } catch (e) {
-      console.error("Error saving payments", e)
-    }
-  }
-
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [paymentForm, setPaymentForm] = useState({
-    type: "GCash",
-    accountName: "",
-    accountNumber: "",
-    isDefault: false,
-  })
 
   // Notifications State
   const [notifications, setNotifications] = useState(() => {
@@ -546,24 +736,33 @@ export default function AccountSettings() {
   // ── Address Handlers ────────────────────────────────────────────────────────
   const handleOpenAddressModal = (addr = null) => {
     if (addr) {
-      const city = addr.city || "Boac"
+      const city = getReadableMunicipality(addr.city || addr.cityMunicipality)
       const brgys = getBarangaysByMunicipality(city)
+      const rawBrgy = getReadableBarangay(addr.barangay, city)
+      const province = getReadableProvince(addr.province)
       setEditingAddress(addr)
       setAddressForm({
         ...addr,
+        label: addr.label || "Home",
+        recipient: addr.recipient || `${profile.firstName} ${profile.lastName}`.trim(),
+        phone: addr.phone || profile.phone,
+        street: addr.street || "",
         city,
-        barangay: addr.barangay || brgys[0] || "",
-        province: MARINDUQUE_PROVINCE,
-        postalCode: addr.postalCode || getZipCodeByMunicipality(city)
+        barangay: brgys.includes(rawBrgy) ? rawBrgy : brgys[0] || rawBrgy,
+        province,
+        postalCode: addr.postalCode || getZipCodeByMunicipality(city),
+        type: addr.type || "Home",
+        isDefault: Boolean(addr.isDefault),
       })
     } else {
       setEditingAddress(null)
-      const defaultCity = "Boac"
-      const boacBrgys = getBarangaysByMunicipality("Boac")
+      const defaultCity = getReadableMunicipality(defaultAddress?.city) || "Boac"
+      const boacBrgys = getBarangaysByMunicipality(defaultCity)
+      const recipientName = `${profile.firstName} ${profile.lastName}`.trim() || loggedUser?.fullName || ""
       setAddressForm({
-        label: "",
-        recipient: `${profile.firstName} ${profile.lastName}`.trim(),
-        phone: profile.phone,
+        label: addresses.length === 0 ? "Home" : "",
+        recipient: recipientName,
+        phone: profile.phone || loggedUser?.phoneNumber || "",
         street: "",
         city: defaultCity,
         barangay: boacBrgys[0] || "",
@@ -577,35 +776,52 @@ export default function AccountSettings() {
   }
 
   const handleCityChangeInForm = (newCity) => {
-    const brgys = getBarangaysByMunicipality(newCity)
-    const zip = getZipCodeByMunicipality(newCity)
+    const cleanCity = getReadableMunicipality(newCity)
+    const brgys = getBarangaysByMunicipality(cleanCity)
+    const zip = getZipCodeByMunicipality(cleanCity)
     setAddressForm((prev) => ({
       ...prev,
-      city: newCity,
+      city: cleanCity,
       barangay: brgys[0] || "",
       postalCode: zip,
     }))
   }
 
-  const handleSaveAddress = (e) => {
+  const handleSaveAddress = async (e) => {
     e.preventDefault()
-    const recipientName = addressForm.recipient || `${profile.firstName} ${profile.lastName}`.trim()
-    if (!recipientName || !addressForm.phone || !addressForm.barangay || !addressForm.street) {
-      toast.error("Please fill in recipient name, phone, street, and barangay.")
+    const recipientName = (addressForm.recipient || `${profile.firstName} ${profile.lastName}`).trim()
+    if (!recipientName) {
+      toast.error("Please enter recipient name.")
+      return
+    }
+    if (!addressForm.phone?.trim()) {
+      toast.error("Please enter a valid contact phone number.")
+      return
+    }
+    if (!addressForm.street?.trim()) {
+      toast.error("Please enter street address, house no., or landmark.")
+      return
+    }
+    if (!addressForm.city?.trim() || !addressForm.barangay?.trim()) {
+      toast.error("Please select a municipality and barangay in Marinduque.")
       return
     }
 
+    const resolvedCity = getReadableMunicipality(addressForm.city)
+    const resolvedBrgy = getReadableBarangay(addressForm.barangay, resolvedCity)
+    const resolvedProv = getReadableProvince(addressForm.province)
+
     const payload = {
-      label: addressForm.label || "Service Address",
+      label: addressForm.label?.trim() || (addressForm.type === "Home" ? "Home Address" : `${addressForm.type} Address`),
       recipient: recipientName,
-      phone: addressForm.phone,
-      street: addressForm.street,
-      city: addressForm.city || "Boac",
-      barangay: addressForm.barangay || "",
-      province: addressForm.province || MARINDUQUE_PROVINCE,
-      postalCode: addressForm.postalCode || "4900",
+      phone: addressForm.phone.trim(),
+      street: addressForm.street.trim(),
+      city: resolvedCity,
+      barangay: resolvedBrgy,
+      province: resolvedProv,
+      postalCode: addressForm.postalCode || getZipCodeByMunicipality(resolvedCity),
       type: addressForm.type || "Home",
-      isDefault: Boolean(addressForm.isDefault)
+      isDefault: Boolean(addressForm.isDefault),
     }
 
     let updatedList = []
@@ -613,37 +829,46 @@ export default function AccountSettings() {
       if (payload.isDefault) {
         updatedList = addresses.map((a) => (a.id === editingAddress.id ? { ...a, ...payload } : { ...a, isDefault: false }))
       } else {
+        const otherDefaults = addresses.filter((a) => a.id !== editingAddress.id && a.isDefault)
+        if (!payload.isDefault && otherDefaults.length === 0) {
+          payload.isDefault = true
+        }
         updatedList = addresses.map((a) => (a.id === editingAddress.id ? { ...a, ...payload } : a))
       }
-      toast.success("Address successfully updated!")
+      toast.success("Service address updated successfully!")
     } else {
       const newAddr = { ...payload, id: `addr-${Date.now()}` }
-      if (payload.isDefault) {
+      if (payload.isDefault || addresses.length === 0) {
+        newAddr.isDefault = true
         updatedList = addresses.map((a) => ({ ...a, isDefault: false }))
         updatedList.push(newAddr)
       } else {
         updatedList = [...addresses, newAddr]
       }
-      toast.success("New service delivery address added!")
+      toast.success("New service address added!")
     }
 
-    saveAddressesToStorage(updatedList)
+    await saveAddresses(updatedList)
     setIsAddressModalOpen(false)
   }
 
-  const handleDeleteAddress = (id) => {
-    const filtered = addresses.filter((a) => a.id !== id)
-    saveAddressesToStorage(filtered)
+  const handleDeleteAddress = async (id) => {
+    const toDelete = addresses.find((a) => a.id === id)
+    let filtered = addresses.filter((a) => a.id !== id)
+    if (toDelete?.isDefault && filtered.length > 0) {
+      filtered = filtered.map((a, idx) => (idx === 0 ? { ...a, isDefault: true } : a))
+    }
+    await saveAddresses(filtered)
     toast.success("Address removed.")
   }
 
-  const handleSetDefaultAddress = (id) => {
+  const handleSetDefaultAddress = async (id) => {
     const updated = addresses.map((a) => ({
       ...a,
       isDefault: a.id === id,
     }))
-    saveAddressesToStorage(updated)
-    toast.success("Default primary location set!")
+    await saveAddresses(updated)
+    toast.success("Default primary service address updated!")
   }
 
   // ── Password Handlers ───────────────────────────────────────────────────────
@@ -696,48 +921,6 @@ export default function AccountSettings() {
     } finally {
       setIsUpdatingPassword(false)
     }
-  }
-
-  // ── Payment Handlers ───────────────────────────────────────────────────────
-  const handleSavePayment = (e) => {
-    e.preventDefault()
-    if (!paymentForm.accountName || !paymentForm.accountNumber) {
-      toast.error("Please provide account name and mobile/account number.")
-      return
-    }
-
-    let updatedList = payments
-    if (paymentForm.isDefault) {
-      updatedList = payments.map((p) => ({ ...p, isDefault: false }))
-    }
-
-    const newPay = {
-      id: `pay-${Date.now()}`,
-      ...paymentForm,
-      badgeColor: paymentForm.type === "GCash" ? "bg-blue-600" : paymentForm.type === "Maya" ? "bg-indigo-700" : "bg-[#04133d]",
-    }
-
-    savePaymentsToStorage([...updatedList, newPay])
-    setIsPaymentModalOpen(false)
-    setPaymentForm({
-      type: "GCash",
-      accountName: "",
-      accountNumber: "",
-      isDefault: false,
-    })
-    toast.success(`${paymentForm.type} account linked successfully!`)
-  }
-
-  const handleDeletePayment = (id) => {
-    const updated = payments.filter((p) => p.id !== id)
-    savePaymentsToStorage(updated)
-    toast.success("Payment method removed.")
-  }
-
-  const handleSetDefaultPayment = (id) => {
-    const updated = payments.map((p) => ({ ...p, isDefault: p.id === id }))
-    savePaymentsToStorage(updated)
-    toast.success("Default payment method updated!")
   }
 
   // ── Notifications Save ─────────────────────────────────────────────────────
@@ -847,7 +1030,9 @@ export default function AccountSettings() {
 
                 <span className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2 sm:px-2.5 py-0.5 sm:py-1 text-slate-700">
                   <MapPin className="size-3 sm:size-3.5 text-[#081F5C]" />
-                  Boac, Marinduque
+                  {defaultAddress
+                    ? `${getReadableMunicipality(defaultAddress.city)}, ${getReadableProvince(defaultAddress.province)}`
+                    : "Marinduque"}
                 </span>
 
                 <span className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2 sm:px-2.5 py-0.5 sm:py-1 text-slate-700">
@@ -932,8 +1117,6 @@ export default function AccountSettings() {
                   const badgeCount =
                     tab.countKey === "addresses"
                       ? addresses.length
-                      : tab.countKey === "payments"
-                      ? payments.length
                       : undefined
 
                   return (
@@ -1243,7 +1426,14 @@ export default function AccountSettings() {
               <div className={cn("space-y-4 bg-white/95 p-4 sm:p-5 ring-1 ring-slate-200/80 backdrop-blur-sm", cardShadow)}>
                 <div className="flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900 sm:text-lg">Service Address Book</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-bold text-slate-900 sm:text-lg">Service Address Book</h2>
+                      {isSavingAddresses && (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 font-semibold">
+                          <Loader2 className="size-3 animate-spin" /> Syncing...
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500">
                       Manage home & workshop service locations for fast technician booking & dispatch in Marinduque.
                     </p>
@@ -1259,80 +1449,141 @@ export default function AccountSettings() {
                   </button>
                 </div>
 
-                {/* ADDRESSES GRID */}
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      className={cn(
-                        "flex flex-col justify-between rounded-none border bg-white p-3.5 transition-all",
-                        addr.isDefault
-                          ? "border-[#081F5C] ring-2 ring-[#081F5C]/20 shadow-xs"
-                          : "border-slate-200 hover:border-slate-300"
-                      )}
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-xs text-slate-900">{addr.label}</span>
-                            <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-semibold">
-                              {addr.type}
-                            </span>
-                          </div>
-                          {addr.isDefault && (
-                            <span className="bg-[#081F5C] text-white text-[10px] font-bold px-1.5 py-0.5">
-                              Default Primary
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="text-xs text-slate-600 space-y-0.5">
-                          <p className="font-semibold text-slate-800">{addr.recipient}</p>
-                          <p className="text-slate-500 text-[11px]">{addr.phone}</p>
-                          <p className="leading-snug">{addr.street}</p>
-                          <p className="text-slate-500 text-[11px]">
-                            {addr.barangay ? `${addr.barangay}, ` : ""}{addr.city}, {addr.province} {addr.postalCode}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
-                        {!addr.isDefault ? (
-                          <button
-                            type="button"
-                            onClick={() => handleSetDefaultAddress(addr.id)}
-                            className="text-xs font-semibold text-[#081F5C] hover:underline cursor-pointer"
-                          >
-                            Set Default
-                          </button>
-                        ) : (
-                          <span className="text-[11px] font-medium text-[#081F5C] flex items-center gap-1">
-                            <CheckCircle2 className="size-3.5" /> Primary Address
-                          </span>
-                        )}
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenAddressModal(addr)}
-                            className="p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer"
-                            title="Edit Address"
-                          >
-                            <Edit3 className="size-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteAddress(addr.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
-                            title="Delete Address"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        </div>
-                      </div>
+                {/* LOADING STATE */}
+                {isAddressesLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-2">
+                    <Loader2 className="size-6 animate-spin text-[#081F5C]" />
+                    <p className="text-xs font-medium text-slate-500">Loading service addresses...</p>
+                  </div>
+                ) : addresses.length === 0 ? (
+                  /* EMPTY STATE (NO MOCK DATA) */
+                  <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center border-2 border-dashed border-slate-200 bg-slate-50/50">
+                    <div className="size-14 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center mb-3 text-[#081F5C] shadow-2xs">
+                      <MapPin className="size-7 text-[#1447a6]" />
                     </div>
-                  ))}
-                </div>
+                    <h3 className="text-sm sm:text-base font-bold text-slate-900">No Service Addresses Saved Yet</h3>
+                    <p className="text-xs text-slate-500 max-w-sm mt-1 mb-4 leading-relaxed">
+                      Add your home, office, or workshop service location in Marinduque for fast technician booking & dispatch.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddressModal()}
+                      className={primaryBtnStyle}
+                    >
+                      <Plus className="size-4" />
+                      Add Your First Service Address
+                    </button>
+                  </div>
+                ) : (
+                  /* ADDRESSES GRID */
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
+                    {addresses.map((addr) => {
+                      const typeBadgeStyle =
+                        addr.type === "Work"
+                          ? "bg-purple-50 text-purple-700 border-purple-200"
+                          : addr.type === "Shop"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : addr.type === "Farm"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-blue-50 text-blue-700 border-blue-200"
+
+                      return (
+                        <div
+                          key={addr.id}
+                          className={cn(
+                            "flex flex-col justify-between rounded-none border bg-white p-3.5 transition-all shadow-2xs",
+                            addr.isDefault
+                              ? "border-[#081F5C] ring-2 ring-[#081F5C]/15 bg-blue-50/15"
+                              : "border-slate-200 hover:border-slate-300 hover:shadow-xs"
+                          )}
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-xs text-slate-900">{addr.label}</span>
+                                <span className={cn("px-1.5 py-0.5 border text-[10px] font-semibold", typeBadgeStyle)}>
+                                  {addr.type || "Home"}
+                                </span>
+                              </div>
+                              {addr.isDefault && (
+                                <span className="bg-[#081F5C] text-white text-[10px] font-bold px-2 py-0.5 flex items-center gap-1 shrink-0">
+                                  <CheckCircle2 className="size-3 text-sky-300" />
+                                  Default Primary
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-slate-600 space-y-1">
+                              <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                                <User className="size-3.5 text-slate-400 shrink-0" />
+                                <span>{addr.recipient}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-slate-500 text-[11px]">
+                                <Phone className="size-3.5 text-slate-400 shrink-0" />
+                                <span>{addr.phone}</span>
+                              </div>
+                              <div className="flex items-start gap-1.5 pt-0.5">
+                                <MapPin className="size-3.5 text-[#081F5C] shrink-0 mt-0.5" />
+                                <div className="space-y-0.5">
+                                  <p className="leading-snug text-slate-800 font-medium">{addr.street}</p>
+                                  {(() => {
+                                    const displayCity = getReadableMunicipality(addr.city)
+                                    const displayBrgy = getReadableBarangay(addr.barangay, displayCity)
+                                    const displayProv = getReadableProvince(addr.province)
+                                    const displayZip = addr.postalCode && !/^\d{5,}$/.test(addr.postalCode)
+                                      ? addr.postalCode
+                                      : getZipCodeByMunicipality(displayCity)
+                                    return (
+                                      <p className="text-slate-500 text-[11px]">
+                                        {displayBrgy ? `${displayBrgy}, ` : ""}
+                                        {displayCity}, {displayProv} {displayZip}
+                                      </p>
+                                    )
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
+                            {!addr.isDefault ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSetDefaultAddress(addr.id)}
+                                className="text-xs font-semibold text-[#081F5C] hover:underline cursor-pointer"
+                              >
+                                Set as Default
+                              </button>
+                            ) : (
+                              <span className="text-[11px] font-medium text-[#081F5C] flex items-center gap-1">
+                                <CheckCircle2 className="size-3.5 text-emerald-600" /> Primary Address
+                              </span>
+                            )}
+
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenAddressModal(addr)}
+                                className="p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer"
+                                title="Edit Address"
+                              >
+                                <Edit3 className="size-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteAddress(addr.id)}
+                                className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                                title="Delete Address"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1527,96 +1778,7 @@ export default function AccountSettings() {
               </div>
             )}
 
-            {/* TAB 4: PAYMENT METHODS */}
-            {activeTab === "payment" && (
-              <div className={cn("space-y-4 bg-white/95 p-4 sm:p-5 ring-1 ring-slate-200/80 backdrop-blur-sm", cardShadow)}>
-                <div className="flex flex-col gap-2 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900 sm:text-lg">Payment Methods</h2>
-                    <p className="text-xs text-slate-500">
-                      Manage linked e-wallets, bank cards, or default cash payment preferences for service bookings.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaymentForm({
-                        type: "GCash",
-                        accountName: `${profile.firstName} ${profile.lastName}`.trim(),
-                        accountNumber: profile.phone,
-                        isDefault: payments.length === 0,
-                      })
-                      setIsPaymentModalOpen(true)
-                    }}
-                    className={primaryBtnStyle}
-                  >
-                    <Plus className="size-4" />
-                    Link Payment Account
-                  </button>
-                </div>
-
-                {/* PAYMENTS GRID */}
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
-                  {payments.map((pay) => (
-                    <div
-                      key={pay.id}
-                      className={cn(
-                        "flex flex-col justify-between rounded-none border bg-white p-3.5 transition-all",
-                        pay.isDefault
-                          ? "border-[#081F5C] ring-2 ring-[#081F5C]/20 shadow-xs"
-                          : "border-slate-200 hover:border-slate-300"
-                      )}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className={cn("text-white text-[10px] font-bold px-2 py-0.5", pay.badgeColor)}>
-                            {pay.type}
-                          </span>
-                          {pay.isDefault && (
-                            <span className="bg-[#081F5C] text-white text-[10px] font-bold px-1.5 py-0.5">
-                              Default Method
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="space-y-0.5 text-xs">
-                          <p className="font-bold text-slate-800">{pay.accountName}</p>
-                          <p className="text-slate-500 font-mono text-xs">{pay.accountNumber}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
-                        {!pay.isDefault ? (
-                          <button
-                            type="button"
-                            onClick={() => handleSetDefaultPayment(pay.id)}
-                            className="text-xs font-semibold text-[#081F5C] hover:underline cursor-pointer"
-                          >
-                            Set Default
-                          </button>
-                        ) : (
-                          <span className="text-[11px] font-medium text-[#081F5C] flex items-center gap-1">
-                            <CheckCircle2 className="size-3.5" /> Primary Wallet
-                          </span>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePayment(pay.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 cursor-pointer"
-                          title="Remove payment method"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 5: NOTIFICATIONS & PRIVACY */}
+            {/* TAB 4: NOTIFICATIONS & PRIVACY */}
             {activeTab === "notifications" && (
               <div className={cn("space-y-5 bg-white/95 p-4 sm:p-5 ring-1 ring-slate-200/80 backdrop-blur-sm", cardShadow)}>
                 <div className="border-b border-slate-100 pb-3">
@@ -1846,7 +2008,7 @@ export default function AccountSettings() {
               </label>
               <input
                 type="text"
-                placeholder="e.g. 123 Sunflower St., near Municipal Hall"
+                placeholder="e.g. House 12, Sitio Centro, near Barangay Hall"
                 value={addressForm.street}
                 onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
                 required
@@ -1897,97 +2059,18 @@ export default function AccountSettings() {
               >
                 Cancel
               </button>
-              <button type="submit" className={primaryBtnStyle}>
-                <Check className="size-4" />
-                Save Address
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── PAYMENT MODAL ─────────────────────────────────────────────────── */}
-      <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-none p-0 overflow-hidden border border-slate-200">
-          <DialogHeader className="p-4 bg-gradient-to-r from-[#04133d] to-[#081F5C] text-white space-y-1">
-            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-              <CreditCard className="size-4 text-sky-400" />
-              Link Payment Method
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-300">
-              Add a GCash, Maya, or payment details for E-Paayos transactions.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSavePayment} className="p-4 space-y-3.5">
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">
-                Payment Type <span className="text-rose-500">*</span>
-              </label>
-              <select
-                value={paymentForm.type}
-                onChange={(e) => setPaymentForm({ ...paymentForm, type: e.target.value })}
-                className={selectStyle}
-              >
-                <option value="GCash">GCash Mobile Wallet</option>
-                <option value="Maya">Maya Mobile Wallet</option>
-                <option value="Cash on Service">Cash on Service (COD)</option>
-                <option value="Credit / Debit Card">Credit / Debit Card</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">
-                Account / Cardholder Name <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Juan Dela Cruz"
-                value={paymentForm.accountName}
-                onChange={(e) => setPaymentForm({ ...paymentForm, accountName: e.target.value })}
-                required
-                className={inputStyle}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-xs font-bold text-slate-700">
-                Account Number / Mobile Number <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="0917 XXX XXXX or Card No."
-                value={paymentForm.accountNumber}
-                onChange={(e) => setPaymentForm({ ...paymentForm, accountNumber: e.target.value })}
-                required
-                className={inputStyle}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
-                id="defaultPayCheck"
-                checked={paymentForm.isDefault}
-                onChange={(e) => setPaymentForm({ ...paymentForm, isDefault: e.target.checked })}
-                className="size-4 rounded border-slate-300 text-[#081F5C] focus:ring-[#081F5C] cursor-pointer"
-              />
-              <label htmlFor="defaultPayCheck" className="text-xs font-semibold text-slate-700 cursor-pointer">
-                Set as default payment method
-              </label>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsPaymentModalOpen(false)}
-                className={outlineBtnStyle}
-              >
-                Cancel
-              </button>
-              <button type="submit" className={primaryBtnStyle}>
-                <Check className="size-4" />
-                Link Account
+              <button type="submit" disabled={isSavingAddresses} className={primaryBtnStyle}>
+                {isSavingAddresses ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Saving Address...
+                  </>
+                ) : (
+                  <>
+                    <Check className="size-4" />
+                    Save Address
+                  </>
+                )}
               </button>
             </div>
           </form>

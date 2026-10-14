@@ -6,6 +6,7 @@ import {
   Bike,
   Calendar,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Compass,
   Copy,
@@ -13,6 +14,7 @@ import {
   DollarSign,
   Eye,
   FileText,
+  Film,
   Home,
   Image as ImageIcon,
   Layers,
@@ -29,12 +31,15 @@ import {
   ShieldAlert,
   ShieldCheck,
   Smartphone,
+  Sparkles,
   Star,
   Store,
   Tag,
   Truck,
   Upload,
+  UploadCloud,
   User,
+  Video,
   WashingMachine,
   Wrench,
   X,
@@ -47,6 +52,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '../../components/ui/input'
 import { formatReadableShopAddress } from '../../lib/psgcResolve'
 import { ServiceReceiptDialog } from '../../components/bookings/ServiceReceiptDialog.jsx'
+import { ServiceWarrantyDialog } from '../../components/bookings/ServiceWarrantyDialog.jsx'
+import CustomerComplaintDialog from '../../components/complaints/CustomerComplaintDialog.jsx'
 
 const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
@@ -260,6 +267,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
   const [readableShopAddress, setReadableShopAddress] = useState('')
   const [downloadingReceipt, setDownloadingReceipt] = useState(false)
   const [showReceiptDialog, setShowReceiptDialog] = useState(false)
+  const [showWarrantyDialog, setShowWarrantyDialog] = useState(false)
   const [showPhotoModal, setShowPhotoModal] = useState(false)
   const [activePhotoSrc, setActivePhotoSrc] = useState('')
   const [photoModalTitle, setPhotoModalTitle] = useState('')
@@ -295,8 +303,9 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
 
   // Warranty Claim & Refund dialog states
   const [showWarrantyClaimDialog, setShowWarrantyClaimDialog] = useState(false)
+  const [showComplaintDialog, setShowComplaintDialog] = useState(false)
   const [claimType, setClaimType] = useState('labor_rework')
-  const [claimReason, setClaimReason] = useState('')
+  const [claimReason, setClaimReason] = useState('Same issue persists (problem returned after repair)')
   const [claimDetails, setClaimDetails] = useState('')
   const [claimProofPhotos, setClaimProofPhotos] = useState([])
   const [refundMethod, setRefundMethod] = useState('gcash')
@@ -721,7 +730,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
 
   const openWarrantyClaimDialog = useCallback(() => {
     setClaimType('labor_rework')
-    setClaimReason('Recurring issue after service')
+    setClaimReason('Same issue persists (problem returned after repair)')
     setClaimDetails('')
     setClaimProofPhotos([])
     setRefundMethod('gcash')
@@ -733,60 +742,48 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
 
   const submitWarrantyClaim = useCallback(async () => {
     if (!booking || !activeBookingId) return
-    setClaimError('')
     if (!claimReason.trim()) {
-      setClaimError('Please select or describe a claim reason.')
+      setClaimError('Please select a reason for the re-repair request.')
       return
     }
     if (!claimDetails.trim() || claimDetails.trim().length < 10) {
-      setClaimError('Please provide more details about the issue (at least 10 characters).')
+      setClaimError('Please provide details explaining the problem (minimum 10 characters).')
       return
     }
-    if (claimType === 'refund') {
-      if (!refundAccountName.trim() || !refundAccountNumber.trim()) {
-        setClaimError('Please provide the account holder name and account/phone number for your refund transfer.')
-        return
-      }
-    }
+
     setIsSubmittingClaim(true)
+    setClaimError('')
     try {
       const res = await fetch(`${API_URL}/api/catalog/bookings/${encodeURIComponent(activeBookingId)}/warranty-claim`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          claimType,
-          reason: claimReason,
-          details: claimDetails,
+          claimType: 'labor_rework',
+          reason: claimReason.trim(),
+          details: claimDetails.trim(),
           proofPhotos: claimProofPhotos,
-          refundPaymentMethod: claimType === 'refund' ? refundMethod : '',
-          refundAccountName: claimType === 'refund' ? refundAccountName : '',
-          refundAccountNumber: claimType === 'refund' ? refundAccountNumber : '',
         }),
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.message || 'Failed to submit warranty claim.')
+      if (!res.ok) throw new Error(data?.message || 'Failed to submit re-repair request.')
       if (data?.booking) {
         setBooking(data.booking)
       } else {
         await fetchBooking()
       }
       setShowWarrantyClaimDialog(false)
-      toast.success('Warranty claim submitted successfully! The service provider has been notified.')
+      toast.success('Warranty re-repair request submitted successfully! The service provider has been notified.')
     } catch (e) {
-      setClaimError(e?.message || 'Failed to submit warranty claim.')
+      setClaimError(e?.message || 'Failed to submit re-repair request.')
     } finally {
       setIsSubmittingClaim(false)
     }
   }, [
     booking,
     activeBookingId,
-    claimType,
     claimReason,
     claimDetails,
     claimProofPhotos,
-    refundMethod,
-    refundAccountName,
-    refundAccountNumber,
     fetchBooking,
   ])
 
@@ -1209,23 +1206,33 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
             </div>
 
             {/* E-Invoice & Documents Row */}
-            <div className="py-3 my-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-slate-100">
+            <div className="py-3.5 my-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5 sm:pb-4">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
                 <FileText className="size-4 text-indigo-600" />
                 <span>Official Service Quotation &amp; Receipt</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mb-1 sm:mb-0">
+                <button
+                  type="button"
+                  onClick={() => setShowWarrantyDialog(true)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-none border border-indigo-200 bg-indigo-50/80 px-4 py-2 text-xs font-bold text-indigo-900 transition-colors hover:bg-indigo-100 hover:border-indigo-300 cursor-pointer shadow-2xs"
+                >
+                  <ShieldCheck className="size-3.5 text-indigo-600 shrink-0" />
+                  <span>View / Print Warranty</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleDownloadReceipt}
                   disabled={downloadingReceipt}
                   className={cn(
-                    'w-full sm:w-auto inline-flex items-center justify-center rounded-none border border-slate-300 bg-white px-4 py-1.5 text-xs font-bold text-slate-800 transition-colors hover:bg-slate-50 cursor-pointer',
+                    'w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-none border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-800 transition-colors hover:bg-slate-50 cursor-pointer',
                     downloadingReceipt && 'opacity-50 cursor-not-allowed'
                   )}
                 >
-                  {downloadingReceipt ? 'Generating...' : 'View / Print Receipt'}
+                  <FileText className="size-3.5 text-slate-600 shrink-0" />
+                  <span>{downloadingReceipt ? 'Generating...' : 'View / Print Receipt'}</span>
                 </button>
               </div>
             </div>
@@ -1668,21 +1675,55 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                 </Button>
               )}
 
-              {isCompleted && isPaid && (
+              {isCompleted && (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-bold text-teal-800 bg-teal-50 px-3 py-1.5 border border-teal-200 flex items-center gap-1.5">
                     <ShieldCheck className="size-4 text-teal-600" />
-                    Service Completed &amp; Paid
+                    Service Completed {isPaid ? '& Paid' : ''}
                   </span>
+                  {isPaid && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.hash = `#/customer/reviews-ratings?tab=to-review&bookingId=${encodeURIComponent(booking.id)}`
+                      }}
+                      className="rounded-none bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3.5 py-1.5 flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                    >
+                      <Star className="size-3.5 text-amber-100" />
+                      <span>{isRated ? 'View Rating' : 'Rate Service'}</span>
+                    </button>
+                  )}
+
+                  {/* Refix / Re-repair or Track Refix button based on myBookings.jsx */}
+                  {booking.warrantyClaim && booking.warrantyClaim.status && booking.warrantyClaim.status !== 'none' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.hash = `#/customer/track-refix/${encodeURIComponent(booking.id)}`
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-none shadow-sm transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      <span>Track Refix / Re-repair</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={openWarrantyClaimDialog}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="size-3.5 text-indigo-600" />
+                      <span>Refix / Re-repair</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
-                    onClick={() => {
-                      window.location.hash = `#/customer/reviews-ratings?tab=to-review&bookingId=${encodeURIComponent(booking.id)}`
-                    }}
-                    className="rounded-none bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-3.5 py-1.5 flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                    onClick={() => setShowComplaintDialog(true)}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 text-xs font-bold rounded-none shadow-2xs transition-colors cursor-pointer"
                   >
-                    <Star className="size-3.5 text-amber-100" />
-                    <span>Rate Service</span>
+                    <ShieldAlert className="size-3.5 text-rose-600" />
+                    <span>Report / File Complaint</span>
                   </button>
                 </div>
               )}
@@ -1838,23 +1879,67 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                   </div>
                 )}
 
-                {/* Claim Warranty Button (Available if no pending claim and under warranty) */}
-                {(!warrantyCoverage?.claim || warrantyCoverage.claim.status === 'none' || warrantyCoverage.claim.status === 'rejected') && (
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-[11px] text-slate-500 italic">
-                      May problema ba pagkatapos maayos? Mag-request ng libreng rework o refund habang sakop pa ng warranty.
+                {/* Refix / Re-repair Action Row (Status-based matching myBookings.jsx) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-extrabold text-slate-800">
+                      {booking.warrantyClaim && booking.warrantyClaim.status && booking.warrantyClaim.status !== 'none'
+                        ? 'Warranty Refix & Re-repair Status'
+                        : 'Warranty Refix & Re-repair Guarantee'}
                     </p>
+                    <p className="text-[11px] text-slate-500">
+                      {booking.warrantyClaim && booking.warrantyClaim.status && booking.warrantyClaim.status !== 'none'
+                        ? 'Subaybayan ang live updates ng re-repair request at technician assignment.'
+                        : 'May bumalik bang sira pagkatapos maayos? Mag-request ng libreng warranty re-repair.'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    {booking.warrantyClaim && booking.warrantyClaim.status && booking.warrantyClaim.status !== 'none' ? (
+                      <>
+                        {booking.warrantyClaim.status === 'rejected' && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={openWarrantyClaimDialog}
+                            className="rounded-none border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-bold text-xs px-3.5 py-2 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <RotateCcw className="size-3.5 text-indigo-600" />
+                            <span>Re-apply Refix</span>
+                          </Button>
+                        )}
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            window.location.hash = `#/customer/track-refix/${encodeURIComponent(booking.id)}`
+                          }}
+                          className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                        >
+                          <RotateCcw className="size-3.5" />
+                          <span>Track Refix / Re-repair</span>
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={openWarrantyClaimDialog}
+                        className="rounded-none bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold text-xs px-4 py-2 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      >
+                        <RotateCcw className="size-3.5 text-indigo-600" />
+                        <span>Refix / Re-repair</span>
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={openWarrantyClaimDialog}
-                      className="rounded-none border-indigo-600 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-bold text-xs px-3.5 py-1.5 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      onClick={() => setShowComplaintDialog(true)}
+                      className="rounded-none border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold text-xs px-3.5 py-2 flex items-center gap-1.5 cursor-pointer shadow-2xs"
                     >
-                      <RotateCcw className="size-3.5 text-indigo-700" />
-                      <span>Claim Warranty / Refund</span>
+                      <ShieldAlert className="size-3.5 text-rose-600" />
+                      <span>Report Issue to Admin</span>
                     </Button>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -1888,198 +1973,253 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
           }
         }}
       >
-        <DialogContent className="max-w-md w-[calc(100vw-2rem)] rounded-none bg-white p-4 sm:p-6 shadow-2xl">
-          <DialogHeader className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="size-7 bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-                <ShieldAlert className="size-4" />
+        <DialogContent className="max-w-lg md:max-w-xl w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white shadow-2xl border border-slate-200 rounded-none">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#081F5C] via-[#0E2E85] to-[#123B9B] px-5 py-4 text-white shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="size-9 bg-white/10 backdrop-blur-xs flex items-center justify-center border border-white/20">
+                <RotateCcw className="size-4.5 text-white" />
               </div>
-              <DialogTitle className="text-sm sm:text-base font-extrabold text-slate-900">
-                Warranty Claim &amp; Refund Request
-              </DialogTitle>
-            </div>
-            <DialogDescription className="text-xs text-slate-600">
-              Humiling ng libreng labor rework o refund batay sa warranty coverage ng iyong serbisyo.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3.5 py-2 text-xs">
-            {/* Warranty Coverage Notice */}
-            <div className="p-3 bg-indigo-50 border border-indigo-200 text-indigo-950 space-y-1">
-              <div className="flex items-center justify-between font-bold text-xs">
-                <span>Labor Warranty Status:</span>
-                <span className={warrantyCoverage?.isLaborActive ? 'text-emerald-700 font-extrabold' : 'text-slate-600'}>
-                  {warrantyCoverage?.isLaborActive ? `✓ Active (${warrantyCoverage.laborDaysLeft} days left)` : 'Expired'}
-                </span>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
+                  Request Warranty Re-Repair
+                </DialogTitle>
+                <DialogDescription className="text-xs text-blue-100 mt-0.5">
+                  Submit a warranty claim for a free re-repair or inspection on your completed service.
+                </DialogDescription>
               </div>
-              <p className="text-[11px] text-indigo-800">
-                {warrantyCoverage?.isLaborActive
-                  ? '💡 Dahil sakop pa ng warranty, 100% LIBRE (₱0) ang labor fee sa warranty rework!'
-                  : 'Paalala: Lumagpas na sa standard labor warranty period ang serbisyo.'}
-              </p>
             </div>
+          </div>
 
-            {/* Claim Type Selection */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 block">Uri ng Claim (Claim Type):</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setClaimType('labor_rework')}
-                  className={cn(
-                    'p-2.5 border text-left flex flex-col justify-between transition-colors cursor-pointer',
-                    claimType === 'labor_rework'
-                      ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 font-bold ring-1 ring-indigo-600'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  )}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Wrench className="size-3.5 text-indigo-600" />
-                    <span className="text-xs">Free Labor Rework</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-700 font-bold mt-1">₱0 Labor Fee (Libre)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setClaimType('refund')}
-                  className={cn(
-                    'p-2.5 border text-left flex flex-col justify-between transition-colors cursor-pointer',
-                    claimType === 'refund'
-                      ? 'border-indigo-600 bg-indigo-50/70 text-indigo-950 font-bold ring-1 ring-indigo-600'
-                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                  )}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="size-3.5 text-indigo-600" />
-                    <span className="text-xs">Refund Request</span>
-                  </div>
-                  <span className="text-[10px] text-indigo-700 font-bold mt-1">
-                    Up to {formatCurrency(laborFee || totalFee)}
+          {booking && (
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs">
+              {/* Booking Summary Strip */}
+              <div className="bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                    {booking.serviceName}
                   </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Reason Selection */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 block">Dahilan (Reason):</label>
-              <select
-                value={claimReason}
-                onChange={(e) => setClaimReason(e.target.value)}
-                className="w-full h-8 px-2 border border-slate-300 rounded-none bg-white text-xs text-slate-800 outline-none focus:border-indigo-600"
-              >
-                <option value="Recurring issue after service">Bumalik ang parehong problema pagkatapos ayusin (Recurring issue)</option>
-                <option value="Appliance or vehicle stopped working">Huminto sa paggana ang appliance / sasakyan</option>
-                <option value="Improper installation or diagnostic error">Hindi maayos ang pagkakabit / diagnostic error</option>
-                <option value="Defective replacement part">May sira o depektibo ang pinalitang piyesa (Defective part)</option>
-                <option value="Other warranty concern">Iba pang warranty concern</option>
-              </select>
-            </div>
-
-            {/* Detailed Description */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 block">Paliwanag / Detalye (Issue Details):</label>
-              <textarea
-                rows={3}
-                value={claimDetails}
-                onChange={(e) => setClaimDetails(e.target.value)}
-                placeholder="Ilarawan nang detalyado kung ano ang nangyari o naging problema..."
-                className="w-full p-2 border border-slate-300 rounded-none text-xs text-slate-800 resize-none outline-none focus:border-indigo-600"
-              />
-            </div>
-
-            {/* Refund Account Info (If Refund Request) */}
-            {claimType === 'refund' && (
-              <div className="p-3 bg-amber-50 border border-amber-200 space-y-2">
-                <span className="font-bold text-slate-800 block text-xs">Payment Details for Refund:</span>
-                <div className="grid grid-cols-3 gap-2">
-                  <select
-                    value={refundMethod}
-                    onChange={(e) => setRefundMethod(e.target.value)}
-                    className="h-8 px-2 border border-slate-300 bg-white text-xs outline-none"
-                  >
-                    <option value="gcash">GCash</option>
-                    <option value="maya">Maya</option>
-                    <option value="bank_transfer">Bank Transfer</option>
-                  </select>
-                  <Input
-                    placeholder="Account Name"
-                    value={refundAccountName}
-                    onChange={(e) => setRefundAccountName(e.target.value)}
-                    className="h-8 rounded-none border-slate-300 text-xs col-span-2"
-                  />
+                  <span className="text-[10px] font-bold bg-white px-2 py-0.5 border border-slate-200 text-slate-700">
+                    Ref: {booking.ref || (booking.id ? `BK-${booking.id.slice(-8).toUpperCase()}` : '')}
+                  </span>
                 </div>
-                <Input
-                  placeholder="GCash / Maya / Account Number"
-                  value={refundAccountNumber}
-                  onChange={(e) => setRefundAccountNumber(e.target.value)}
-                  className="h-8 rounded-none border-slate-300 text-xs"
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1 font-medium">
+                    <Store className="size-3 text-indigo-600" />
+                    {booking.shopName}
+                  </span>
+                  {warrantyCoverage?.completedDate && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="size-3 text-slate-400" />
+                      Completed: {warrantyCoverage.completedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Warranty Coverage Status Card */}
+              <div
+                className={cn(
+                  'p-3.5 border space-y-1',
+                  warrantyCoverage?.isLaborActive
+                    ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                    : 'bg-amber-50/70 border-amber-200 text-amber-950'
+                )}
+              >
+                <div className="flex items-center justify-between font-bold">
+                  <span className="flex items-center gap-1.5 text-xs font-black">
+                    {warrantyCoverage?.isLaborActive ? (
+                      <ShieldCheck className="size-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="size-4 text-amber-600 shrink-0" />
+                    )}
+                    <span>Labor Warranty Status:</span>
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[11px] px-2 py-0.5 font-bold',
+                      warrantyCoverage?.isLaborActive
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-amber-600 text-white'
+                    )}
+                  >
+                    {warrantyCoverage?.isLaborActive
+                      ? `Active (${warrantyCoverage.laborDaysLeft} days remaining)`
+                      : 'Expired'}
+                  </span>
+                </div>
+                <p className="text-[11px] leading-relaxed pt-0.5 text-slate-700">
+                  {warrantyCoverage?.isLaborActive
+                    ? '100% Free Labor Guarantee: Under your warranty coverage, the rework labor fee is ₱0 (waived).'
+                    : 'The standard labor warranty period for this service has ended. The provider will review your request on a case-by-case basis.'}
+                </p>
+              </div>
+
+              {/* Reason Selection */}
+              <div className="space-y-1.5">
+                <label className="font-extrabold text-slate-800 block text-xs">
+                  Reason for Re-Repair <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={claimReason}
+                    onChange={(e) => setClaimReason(e.target.value)}
+                    className="w-full h-9.5 px-3 pr-9 border border-slate-300 bg-white text-xs text-slate-800 outline-none focus:border-indigo-600 transition-colors cursor-pointer font-medium appearance-none"
+                  >
+                    <option value="Same issue persists (problem returned after repair)">
+                      Same issue persists (problem returned after repair)
+                    </option>
+                    <option value="Item / unit stopped working properly">
+                      Item / unit stopped working properly
+                    </option>
+                    <option value="Defective or malfunctioning replacement part">
+                      Defective or malfunctioning replacement part
+                    </option>
+                    <option value="Incomplete repair or loose assembly">
+                      Incomplete repair or loose assembly
+                    </option>
+                    <option value="New issue occurred after service">
+                      New issue occurred after service
+                    </option>
+                    <option value="Other warranty concern">
+                      Other warranty concern
+                    </option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
+                </div>
+              </div>
+
+              {/* Detailed Description */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-extrabold text-slate-800 block text-xs">
+                    Issue Details & Observations <span className="text-rose-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    {claimDetails.length} characters (min. 10)
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  value={claimDetails}
+                  onChange={(e) => setClaimDetails(e.target.value)}
+                  placeholder="Please describe what is happening, when the problem started recurring, and any specific errors or symptoms..."
+                  className="w-full p-2.5 border border-slate-300 text-xs text-slate-800 resize-none outline-none focus:border-indigo-600 transition-colors leading-relaxed"
                 />
               </div>
-            )}
 
-            {/* Proof Photos Upload */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 block">Mag-upload ng Litrato / Proof (Photo Proof):</label>
-              <Input
-                type="file"
-                accept="image/*"
-                multiple
-                className="rounded-none border-slate-300 text-xs"
-                onChange={async (e) => {
-                  const files = Array.from(e.target.files || [])
-                  if (!files.length) return
-                  for (const file of files) {
-                    if (file.size > 5 * 1024 * 1024) {
-                      setClaimError('Each photo must be 5MB or less.')
-                      return
-                    }
-                    try {
-                      const dataUrl = await new Promise((resolve, reject) => {
-                        const reader = new FileReader()
-                        reader.onload = () => resolve(String(reader.result || ''))
-                        reader.onerror = () => reject(new Error('Failed to read image.'))
-                        reader.readAsDataURL(file)
-                      })
-                      setClaimProofPhotos((prev) => [...prev, dataUrl])
-                    } catch {
-                      setClaimError('Unable to read image.')
-                    }
-                  }
-                  e.target.value = ''
-                }}
-              />
-              {claimProofPhotos.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {claimProofPhotos.map((src, idx) => (
-                    <div key={idx} className="relative size-14 border border-slate-300">
-                      <img src={src} alt={`Preview ${idx + 1}`} className="size-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setClaimProofPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                        className="absolute -top-1.5 -right-1.5 size-4 bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold hover:bg-rose-700 cursor-pointer"
-                      >
-                        ✕
-                      </button>
+              {/* Proof Media (Photo / Video) Upload */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-extrabold text-slate-800 block text-xs">
+                    Upload Photo / Video Proof <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    {claimProofPhotos.length}/5 files uploaded
+                  </span>
+                </div>
+                <div className="relative border-2 border-dashed border-slate-200 hover:border-indigo-400 bg-slate-50/60 transition-colors p-3.5 text-center">
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    className="absolute inset-0 size-full opacity-0 cursor-pointer"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || [])
+                      if (!files.length) return
+                      if (claimProofPhotos.length + files.length > 5) {
+                        setClaimError('You can upload a maximum of 5 photos or videos.')
+                        return
+                      }
+                      for (const file of files) {
+                        if (file.size > 25 * 1024 * 1024) {
+                          setClaimError(`"${file.name}" exceeds 25MB limit. Please upload files 25MB or less.`)
+                          return
+                        }
+                        try {
+                          const dataUrl = await new Promise((resolve, reject) => {
+                            const reader = new FileReader()
+                            reader.onload = () => resolve(String(reader.result || ''))
+                            reader.onerror = () => reject(new Error('Failed to read file.'))
+                            reader.readAsDataURL(file)
+                          })
+                          setClaimProofPhotos((prev) => [...prev, dataUrl])
+                        } catch {
+                          setClaimError('Unable to process uploaded file.')
+                        }
+                      }
+                      e.target.value = ''
+                    }}
+                  />
+                  <div className="flex flex-col items-center justify-center gap-1 text-slate-600">
+                    <div className="flex items-center gap-2 text-indigo-600">
+                      <UploadCloud className="size-6" />
+                      <Video className="size-5 text-indigo-500" />
                     </div>
-                  ))}
+                    <span className="text-xs font-bold text-indigo-900">
+                      Click or drag photos or videos here to upload
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Supports JPG, PNG, MP4, MOV, WebM (Max 25MB each, up to 5 files)
+                    </span>
+                  </div>
+                </div>
+
+                {claimProofPhotos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {claimProofPhotos.map((src, idx) => {
+                      const isVideo = src.startsWith('data:video') || src.includes('.mp4') || src.includes('.webm') || src.includes('.mov')
+                      return (
+                        <div key={idx} className="relative size-16 border border-slate-300 shadow-2xs group bg-slate-900 overflow-hidden">
+                          {isVideo ? (
+                            <>
+                              <video src={src} className="size-full object-cover opacity-80" muted playsInline />
+                              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Film className="size-5 text-white drop-shadow" />
+                              </div>
+                            </>
+                          ) : (
+                            <img src={src} alt={`Proof thumbnail ${idx + 1}`} className="size-full object-cover" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setClaimProofPhotos((prev) => prev.filter((_, i) => i !== idx))}
+                            className="absolute -top-1.5 -right-1.5 size-4 bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] font-bold hover:bg-rose-700 shadow-xs cursor-pointer z-10"
+                            title="Remove file"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Re-repair Policy Notice */}
+              <div className="bg-blue-50/80 border border-blue-200 p-2.5 text-[11px] text-blue-900 flex items-start gap-2">
+                <Sparkles className="size-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                <span className="leading-snug">
+                  Once submitted, the service provider will review your warranty claim and get in touch to schedule a free rework inspection.
+                </span>
+              </div>
+
+              {/* Error Alert */}
+              {claimError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 font-bold text-xs flex items-center gap-2">
+                  <AlertCircle className="size-4 text-rose-600 shrink-0" />
+                  <span>{claimError}</span>
                 </div>
               )}
             </div>
+          )}
 
-            {claimError && (
-              <p className="text-xs font-bold text-rose-600 bg-rose-50 p-2 border border-rose-200">
-                {claimError}
-              </p>
-            )}
-          </div>
-
-          <DialogFooter className="shrink-0 gap-2 border-t border-slate-100 pt-3">
+          {/* Footer */}
+          <div className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
             <Button
               type="button"
               variant="outline"
-              className="rounded-none border-slate-300 text-xs font-bold"
+              className="rounded-none border-slate-300 text-xs font-bold hover:bg-white cursor-pointer"
               onClick={() => setShowWarrantyClaimDialog(false)}
               disabled={isSubmittingClaim}
             >
@@ -2087,7 +2227,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
             </Button>
             <Button
               type="button"
-              className="rounded-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold disabled:opacity-50"
+              className="rounded-none bg-gradient-to-r from-[#081F5C] to-[#123B9B] hover:from-[#0A2870] hover:to-[#1048BE] text-white text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
               disabled={isSubmittingClaim || !claimReason.trim()}
               onClick={() => void submitWarrantyClaim()}
             >
@@ -2097,10 +2237,10 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                   Submitting Claim...
                 </>
               ) : (
-                'Submit Warranty Claim'
+                'Submit Re-Repair Request'
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -2250,11 +2390,11 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
             {payError ? <p className="text-xs font-bold text-rose-600 bg-rose-50 p-2 border border-rose-200">{payError}</p> : null}
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 border-t border-slate-100 pt-3">
+          <DialogFooter className="m-0 mx-0 mb-0 shrink-0 gap-2 border-t border-slate-200 pt-3.5 pb-3.5 sm:pb-4 px-1 sm:px-2 flex flex-col-reverse sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"
-              className="rounded-none border-slate-300 text-xs font-bold"
+              className="w-full sm:w-auto rounded-none border-slate-300 text-xs font-bold px-4 py-2"
               onClick={() => setShowPayDialog(false)}
               disabled={isSubmittingPayment}
             >
@@ -2262,7 +2402,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
             </Button>
             <Button
               type="button"
-              className="rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold disabled:opacity-50"
+              className="w-full sm:w-auto rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 disabled:opacity-50"
               disabled={isSubmittingPayment || !selectedPaymentMethodId}
               onClick={() => void submitPayNow()}
             >
@@ -2346,7 +2486,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
             )}
 
             {/* Modal Footer (Fixed height) */}
-            <div className="shrink-0 px-3.5 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
+            <div className="shrink-0 px-3.5 py-3 pb-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
               <span className="text-slate-500 font-medium truncate max-w-[250px]">Start job proof photo</span>
               <Button
                 type="button"
@@ -2367,6 +2507,27 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
         open={showReceiptDialog}
         onOpenChange={setShowReceiptDialog}
         booking={booking}
+      />
+
+      {/* Official Service Warranty Certificate Dialog */}
+      <ServiceWarrantyDialog
+        open={showWarrantyDialog}
+        onOpenChange={setShowWarrantyDialog}
+        booking={booking}
+        onClaimWarranty={() => {
+          setShowWarrantyDialog(false)
+          openWarrantyClaimDialog()
+        }}
+      />
+
+      {/* Customer Complaint / Dispute Report Dialog */}
+      <CustomerComplaintDialog
+        open={showComplaintDialog}
+        onOpenChange={setShowComplaintDialog}
+        booking={booking}
+        onSuccess={() => {
+          fetchBooking()
+        }}
       />
     </CustomerLayout>
   )

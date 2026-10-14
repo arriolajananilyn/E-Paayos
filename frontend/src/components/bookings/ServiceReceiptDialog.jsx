@@ -120,7 +120,7 @@ const DEFAULT_VOID_CONDITIONS = [
   { text: 'Third-party disassembly or unauthorized modifications' },
 ]
 
-export function ServiceReceiptDialog({ open, onOpenChange, booking }) {
+export function ServiceReceiptDialog({ open, onOpenChange, booking, includeWarranty = false }) {
   const receiptRef = useRef(null)
   const [activeTab, setActiveTab] = useState('slip') // 'slip' | 'invoice'
   const [isPrinting, setIsPrinting] = useState(false)
@@ -628,160 +628,179 @@ export function ServiceReceiptDialog({ open, onOpenChange, booking }) {
                 </div>
               </div>
 
-              {/* Warranty & Guarantee Certificate Section (From Shop Settings) */}
-              <div className="border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3 rounded-none">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200/80 pb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex size-6 items-center justify-center bg-indigo-600 text-white rounded-none">
-                      <ShieldCheck className="size-3.5" />
+              {/* Warranty & Guarantee Section (Conditional / Separated) */}
+              {includeWarranty ? (
+                <div className="border border-indigo-200 bg-indigo-50/40 p-3.5 space-y-3 rounded-none">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200/80 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex size-6 items-center justify-center bg-indigo-600 text-white rounded-none">
+                        <ShieldCheck className="size-3.5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                          Service Warranty &amp; Guarantee Certificate
+                        </h4>
+                        <p className="text-[10px] text-slate-600">
+                          Official warranty validity based on provider policies under E-Paayos Guarantee
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                        Service Warranty &amp; Guarantee Certificate
-                      </h4>
-                      <p className="text-[10px] text-slate-600">
-                        Official warranty validity based on provider policies under E-Paayos Guarantee
+                    <span className="text-[10px] font-mono font-bold text-indigo-900 bg-indigo-100 px-2 py-0.5 border border-indigo-300">
+                      Coverage Start: {formatDate(baseDateObj.toISOString())}
+                    </span>
+                  </div>
+
+                  {/* Warranty Status Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Labor Warranty */}
+                    <div className="bg-white border border-slate-200 p-2.5 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-600 flex items-center gap-1">
+                          <Wrench className="size-3 text-indigo-600" />
+                          <span>Labor / Workmanship</span>
+                        </span>
+                        {laborWarrantyEnabled ? (
+                          <span
+                            className={`text-[9px] font-black uppercase px-1.5 py-0.5 border ${
+                              isLaborActive
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-slate-100 text-slate-600 border-slate-300'
+                            }`}
+                          >
+                            {isLaborActive ? `Active • ${laborDaysLeft}d left` : 'Warranty Expired'}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-slate-100 text-slate-500 border border-slate-200">
+                            Not Included
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5 text-xs">
+                        <p className="font-bold text-slate-900">
+                          {laborWarrantyEnabled ? `${laborWarrantyDays} Days Free Labor Guarantee` : 'No Labor Warranty'}
+                        </p>
+                        <p className="text-[11px] text-slate-600">
+                          {laborWarrantyEnabled ? (
+                            <>
+                              Expiration Date:{' '}
+                              <strong className="font-mono font-bold text-indigo-800">
+                                {formatDate(laborExpiryDate.toISOString())}
+                              </strong>
+                            </>
+                          ) : (
+                            'Standard service terms apply'
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-[10px] text-slate-500 border-t border-slate-100 pt-1">
+                        Covers 100% free rework labor if initial repair defect persists within the warranty window.
+                      </p>
+                    </div>
+
+                    {/* Parts Warranty */}
+                    <div className="bg-white border border-slate-200 p-2.5 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-600 flex items-center gap-1">
+                          <Tag className="size-3 text-indigo-600" />
+                          <span>Parts &amp; Components</span>
+                        </span>
+                        {partsWarrantyEnabled ? (
+                          <span
+                            className={`text-[9px] font-black uppercase px-1.5 py-0.5 border ${
+                              isPartsActive
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-slate-100 text-slate-600 border-slate-300'
+                            }`}
+                          >
+                            {isPartsActive ? `Active • ${partsDaysLeft}d left` : 'Warranty Expired'}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-slate-100 text-slate-500 border border-slate-200">
+                            Not Included
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-0.5 text-xs">
+                        <p className="font-bold text-slate-900">
+                          {partsWarrantyEnabled ? `${partsWarrantyDays} Days Component Protection` : 'No Parts Warranty'}
+                        </p>
+                        <p className="text-[11px] text-slate-600">
+                          {partsWarrantyEnabled ? (
+                            <>
+                              Expiration Date:{' '}
+                              <strong className="font-mono font-bold text-indigo-800">
+                                {formatDate(partsExpiryDate.toISOString())}
+                              </strong>
+                            </>
+                          ) : (
+                            'Third-party part terms apply'
+                          )}
+                        </p>
+                      </div>
+                      <p className="text-[10px] text-slate-500 border-t border-slate-100 pt-1">
+                        Protects replaced parts against manufacturer defects under normal operating conditions.
                       </p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-indigo-900 bg-indigo-100 px-2 py-0.5 border border-indigo-300">
-                    Coverage Start: {formatDate(baseDateObj.toISOString())}
+
+                  {/* Warranty Coverage Terms & Conditions Details */}
+                  <div className="bg-white/90 border border-indigo-100 p-2.5 space-y-2 text-[11px]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <span className="font-bold text-emerald-900 flex items-center gap-1 text-[10px] uppercase">
+                          <CheckCircle2 className="size-3 text-emerald-600" />
+                          <span>Covered Under Warranty</span>
+                        </span>
+                        <ul className="mt-1 space-y-0.5 text-[10px] text-slate-600 pl-4 list-disc">
+                          {coveredItems.slice(0, 4).map((item, idx) => (
+                            <li key={idx}>{item.text || item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <span className="font-bold text-rose-900 flex items-center gap-1 text-[10px] uppercase">
+                          <AlertTriangle className="size-3 text-rose-600" />
+                          <span>Void Conditions</span>
+                        </span>
+                        <ul className="mt-1 space-y-0.5 text-[10px] text-slate-600 pl-4 list-disc">
+                          {voidConditions.slice(0, 4).map((item, idx) => (
+                            <li key={idx}>{item.text || item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {warrantyPolicyTerms && (
+                      <div className="border-t border-indigo-100/80 pt-1.5">
+                        <p className="text-[10px] text-slate-600 italic">
+                          <strong className="not-italic font-bold text-slate-700">Policy Note: </strong>
+                          &ldquo;{warrantyPolicyTerms}&rdquo;
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 bg-slate-50 border border-slate-200 text-xs">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="size-4 text-indigo-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-slate-800 block text-[11px]">
+                        Official Warranty &amp; Guarantee Coverage
+                      </span>
+                      <span className="text-[10px] text-slate-500 block">
+                        Service workmanship &amp; parts protection is documented under the separate Official Warranty Certificate.
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 bg-indigo-50 text-indigo-800 border border-indigo-200 shrink-0">
+                    Separate Certificate
                   </span>
                 </div>
-
-                {/* Warranty Status Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Labor Warranty */}
-                  <div className="bg-white border border-slate-200 p-2.5 space-y-1.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-600 flex items-center gap-1">
-                        <Wrench className="size-3 text-indigo-600" />
-                        <span>Labor / Workmanship</span>
-                      </span>
-                      {laborWarrantyEnabled ? (
-                        <span
-                          className={`text-[9px] font-black uppercase px-1.5 py-0.5 border ${
-                            isLaborActive
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                              : 'bg-slate-100 text-slate-600 border-slate-300'
-                          }`}
-                        >
-                          {isLaborActive ? `Active • ${laborDaysLeft}d left` : 'Warranty Expired'}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-slate-100 text-slate-500 border border-slate-200">
-                          Not Included
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-0.5 text-xs">
-                      <p className="font-bold text-slate-900">
-                        {laborWarrantyEnabled ? `${laborWarrantyDays} Days Free Labor Guarantee` : 'No Labor Warranty'}
-                      </p>
-                      <p className="text-[11px] text-slate-600">
-                        {laborWarrantyEnabled ? (
-                          <>
-                            Expiration Date:{' '}
-                            <strong className="font-mono font-bold text-indigo-800">
-                              {formatDate(laborExpiryDate.toISOString())}
-                            </strong>
-                          </>
-                        ) : (
-                          'Standard service terms apply'
-                        )}
-                      </p>
-                    </div>
-                    <p className="text-[10px] text-slate-500 border-t border-slate-100 pt-1">
-                      Covers 100% free rework labor if initial repair defect persists within the warranty window.
-                    </p>
-                  </div>
-
-                  {/* Parts Warranty */}
-                  <div className="bg-white border border-slate-200 p-2.5 space-y-1.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wide text-slate-600 flex items-center gap-1">
-                        <Tag className="size-3 text-indigo-600" />
-                        <span>Parts &amp; Components</span>
-                      </span>
-                      {partsWarrantyEnabled ? (
-                        <span
-                          className={`text-[9px] font-black uppercase px-1.5 py-0.5 border ${
-                            isPartsActive
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                              : 'bg-slate-100 text-slate-600 border-slate-300'
-                          }`}
-                        >
-                          {isPartsActive ? `Active • ${partsDaysLeft}d left` : 'Warranty Expired'}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-slate-100 text-slate-500 border border-slate-200">
-                          Not Included
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-0.5 text-xs">
-                      <p className="font-bold text-slate-900">
-                        {partsWarrantyEnabled ? `${partsWarrantyDays} Days Component Protection` : 'No Parts Warranty'}
-                      </p>
-                      <p className="text-[11px] text-slate-600">
-                        {partsWarrantyEnabled ? (
-                          <>
-                            Expiration Date:{' '}
-                            <strong className="font-mono font-bold text-indigo-800">
-                              {formatDate(partsExpiryDate.toISOString())}
-                            </strong>
-                          </>
-                        ) : (
-                          'Third-party part terms apply'
-                        )}
-                      </p>
-                    </div>
-                    <p className="text-[10px] text-slate-500 border-t border-slate-100 pt-1">
-                      Protects replaced parts against manufacturer defects under normal operating conditions.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Warranty Coverage Terms & Conditions Details */}
-                <div className="bg-white/90 border border-indigo-100 p-2.5 space-y-2 text-[11px]">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div>
-                      <span className="font-bold text-emerald-900 flex items-center gap-1 text-[10px] uppercase">
-                        <CheckCircle2 className="size-3 text-emerald-600" />
-                        <span>Covered Under Warranty</span>
-                      </span>
-                      <ul className="mt-1 space-y-0.5 text-[10px] text-slate-600 pl-4 list-disc">
-                        {coveredItems.slice(0, 4).map((item, idx) => (
-                          <li key={idx}>{item.text || item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <span className="font-bold text-rose-900 flex items-center gap-1 text-[10px] uppercase">
-                        <AlertTriangle className="size-3 text-rose-600" />
-                        <span>Void Conditions</span>
-                      </span>
-                      <ul className="mt-1 space-y-0.5 text-[10px] text-slate-600 pl-4 list-disc">
-                        {voidConditions.slice(0, 4).map((item, idx) => (
-                          <li key={idx}>{item.text || item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {warrantyPolicyTerms && (
-                    <div className="border-t border-indigo-100/80 pt-1.5">
-                      <p className="text-[10px] text-slate-600 italic">
-                        <strong className="not-italic font-bold text-slate-700">Policy Note: </strong>
-                        &ldquo;{warrantyPolicyTerms}&rdquo;
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              )}
 
               {/* Footer Terms */}
               <div className="pt-2 border-t border-slate-200 text-center text-[10px] text-slate-500 space-y-0.5">
@@ -797,7 +816,7 @@ export function ServiceReceiptDialog({ open, onOpenChange, booking }) {
         )}
 
         {/* Modal Bottom Footer Actions */}
-        <DialogFooter className="border-t border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 shrink-0 flex flex-col-reverse sm:flex-row gap-2 sm:justify-between items-center w-full">
+        <DialogFooter className="m-0 mx-0 mb-0 border-t border-slate-200 bg-slate-50 px-4 sm:px-6 py-3.5 sm:py-4 pb-4 sm:pb-4.5 shrink-0 flex flex-col-reverse sm:flex-row gap-2.5 sm:justify-between items-center w-full">
           <p className="text-[11px] text-slate-500 hidden sm:block">
             Ref: <span className="font-mono font-semibold">{receiptNo}</span>
           </p>

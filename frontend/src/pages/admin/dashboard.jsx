@@ -6,6 +6,7 @@ import AdminAnnouncement from "@/pages/admin/announcement.jsx"
 import AdminTrackServices from "@/pages/admin/trackServices.jsx"
 import AdminNotification from "@/pages/admin/notification.jsx"
 import { AdminReportsAnalyticsContent } from "@/pages/admin/reportsAnalytics.jsx"
+import { AdminComplaintReportContent } from "@/pages/admin/complaint&Report.jsx"
 import {
   NotificationBellIndicator,
   useAdminNotificationUnreadCount,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
+  AlertTriangle,
   BarChart3,
   Bell,
   CheckCircle,
@@ -61,6 +63,7 @@ const SECTIONS = {
   announcement: { title: "Announcement", description: "Create and manage system announcements." },
   trackServices: { title: "Track services", description: "Monitor service bookings across customers, shops, and mechanics." },
   users: { title: "User management", description: "View and manage user accounts." },
+  complaints: { title: "Complaint & Reports", description: "Review, investigate, and resolve grievances reported by customers." },
   notification: { title: "Notifications", description: "Stay updated with platform service bookings and activity." },
 }
 
@@ -801,7 +804,7 @@ function AdminMobileNav() {
   )
 }
 
-function AdminSidebarNav({ section, setSection }) {
+function AdminSidebarNav({ section, setSection, pendingComplaintsCount = 0 }) {
   const { isMobile, setOpenMobile } = useSidebar()
   const handleNav = (key) => {
     setSection(key)
@@ -866,6 +869,24 @@ function AdminSidebarNav({ section, setSection }) {
       </SidebarMenuItem>
       <SidebarMenuItem>
         <SidebarMenuButton
+          isActive={section === "complaints" || section === "complaintReports"}
+          tooltip="Complaint & Reports"
+          onClick={() => handleNav("complaints")}
+          className={sidebarMenuButtonClass}
+        >
+          <AlertTriangle className="size-[18px] opacity-90 text-amber-300" />
+          <span className="whitespace-nowrap flex items-center justify-between flex-1 gap-2 min-w-0">
+            <span className="truncate">Complaint & Reports</span>
+            {pendingComplaintsCount > 0 && (
+              <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-black rounded-full bg-rose-500 text-white leading-none shadow-xs">
+                {pendingComplaintsCount}
+              </span>
+            )}
+          </span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      <SidebarMenuItem>
+        <SidebarMenuButton
           isActive={section === "notification"}
           tooltip="Notifications"
           onClick={() => handleNav("notification")}
@@ -882,14 +903,37 @@ function AdminSidebarNav({ section, setSection }) {
 function AdminDashboard({ initialSection = "overview" } = {}) {
   const [user, setUser] = useState(null)
   const initialSec =
-    typeof window !== "undefined" && window.location.hash === "#/admin/notification"
+    typeof window !== "undefined" &&
+    (window.location.hash === "#/admin/complaint-report" ||
+      window.location.hash === "#/admin/complaints" ||
+      window.location.hash === "#/admin/complaint&Report")
+      ? "complaints"
+      : typeof window !== "undefined" && window.location.hash === "#/admin/notification"
       ? "notification"
       : initialSection
   const [section, setSection] = useState(initialSec)
   const [sidebarOpen, setSidebarOpen] = useState(adminSidebarOpenState)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [pendingComplaintsCount, setPendingComplaintsCount] = useState(0)
   const profileMenuRef = useRef(null)
   const { unreadCount: adminUnreadCount } = useAdminNotificationUnreadCount(user)
+
+  // Fetch pending complaints count for sidebar badge
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    fetch(`${API_URL}/api/admin/complaints/stats`, { headers: authHeaders() })
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled && json?.success && json?.data?.pending !== undefined) {
+          setPendingComplaintsCount(json.data.pending)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [user, section])
 
   useEffect(() => {
     const onHash = () => {
@@ -897,8 +941,18 @@ function AdminDashboard({ initialSection = "overview" } = {}) {
         setSection("notification")
       } else if (window.location.hash === "#/admin/reports-analytics") {
         setSection("reportsAnalytics")
+      } else if (
+        window.location.hash === "#/admin/complaint-report" ||
+        window.location.hash === "#/admin/complaints" ||
+        window.location.hash === "#/admin/complaint&Report"
+      ) {
+        setSection("complaints")
       } else if (window.location.hash === "#/admin/dashboard") {
-        setSection((prev) => (prev === "notification" || prev === "reportsAnalytics" ? "overview" : prev))
+        setSection((prev) =>
+          prev === "notification" || prev === "reportsAnalytics" || prev === "complaints"
+            ? "overview"
+            : prev
+        )
       }
     }
     window.addEventListener("hashchange", onHash)
@@ -999,7 +1053,11 @@ function AdminDashboard({ initialSection = "overview" } = {}) {
             <SidebarContent className="gap-0 px-2 py-4">
               <SidebarGroup>
                 <SidebarGroupContent>
-                  <AdminSidebarNav section={section} setSection={setSection} />
+                  <AdminSidebarNav
+                    section={section}
+                    setSection={setSection}
+                    pendingComplaintsCount={pendingComplaintsCount}
+                  />
                 </SidebarGroupContent>
               </SidebarGroup>
             </SidebarContent>
@@ -1122,6 +1180,11 @@ function AdminDashboard({ initialSection = "overview" } = {}) {
               {section === "users" && (
                 <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
                   <AdminUserManagement />
+                </div>
+              )}
+              {section === "complaints" && (
+                <div className="flex flex-1 flex-col gap-4 sm:gap-6 min-w-0 max-w-full">
+                  <AdminComplaintReportContent />
                 </div>
               )}
               {section === "notification" && (
