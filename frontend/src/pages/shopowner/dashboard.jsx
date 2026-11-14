@@ -97,6 +97,8 @@ const PROVIDER_NOTIF_ROUTES = {
   bookings: "#/provider/service-request",
   messages: "#/provider/messages",
   dashboard: "#/provider/dashboard",
+  complaints: "#/provider/complaints",
+  account: "#/provider/account-settings",
 }
 
 function authHeaders() {

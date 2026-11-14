@@ -632,7 +632,9 @@ function CustomerMyBookings() {
   const [refixProofPhotos, setRefixProofPhotos] = useState([])
   const [refixError, setRefixError] = useState('')
   const [isSubmittingRefix, setIsSubmittingRefix] = useState(false)
-  const [showComplaintsModal, setShowComplaintsModal] = useState(false)
+  const [showComplaintsModal, setShowComplaintsModal] = useState(
+    () => typeof window !== 'undefined' && /[?&]complaints=1\b/.test(window.location.hash || ''),
+  )
   const [bookings, setBookings] = useState([])
   const [readableShopAddresses, setReadableShopAddresses] = useState({})
   const [loading, setLoading] = useState(true)

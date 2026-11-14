@@ -70,6 +70,7 @@ const CheckboxDropdown = ({
   max = null,
   placeholder = 'Select',
   otherPlaceholder = 'Type here',
+  allowOther = true,
   hasError = false,
 }) => {
   const [open, setOpen] = useState(false);
@@ -147,16 +148,18 @@ const CheckboxDropdown = ({
             </label>
           ))}
 
-          <label className={rowClass}>
-            <input
-              type="checkbox"
-              className="h-4 w-4 accent-blue-600"
-              checked={otherChecked}
-              onChange={(e) => setOtherChecked(e.target.checked)}
-            />
-            <span>Other</span>
-          </label>
-          {otherChecked && (
+          {allowOther && (
+            <label className={rowClass}>
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-blue-600"
+                checked={otherChecked}
+                onChange={(e) => setOtherChecked(e.target.checked)}
+              />
+              <span>Other</span>
+            </label>
+          )}
+          {allowOther && otherChecked && (
             <div className="flex items-center gap-2 px-2 pb-2 pt-1">
               <Input
                 value={otherText}
@@ -323,6 +326,7 @@ const Register = () => {
   const [selfiePreview, setSelfiePreview] = useState('');
   const [isPresentAddressSameAsBirthPlace, setIsPresentAddressSameAsBirthPlace] = useState(false);
   const [isPermanentAddressSameAsBirthPlace, setIsPermanentAddressSameAsBirthPlace] = useState(false);
+  const [isShopAddressSameAsAddress, setIsShopAddressSameAsAddress] = useState(false);
   /** After choosing Mechanic/Technician: pick shop here first; Confirm opens the normal registration steps. */
   const [mechanicShopGateOpen, setMechanicShopGateOpen] = useState(false);
   const [registeredShopOwners, setRegisteredShopOwners] = useState([]);
@@ -580,6 +584,47 @@ const Register = () => {
     formData.cityMunicipality,
     formData.barangay,
   ]);
+
+  useEffect(() => {
+    if (!isShopAddressSameAsAddress) return;
+    setFormData(prev => ({
+      ...prev,
+      shopRegion: prev.region,
+      shopProvince: prev.province,
+      shopCityMunicipality: prev.cityMunicipality,
+      shopBarangay: prev.barangay,
+      shopDetailedAddress: prev.detailedAddress,
+    }));
+  }, [
+    isShopAddressSameAsAddress,
+    formData.region,
+    formData.province,
+    formData.cityMunicipality,
+    formData.barangay,
+    formData.detailedAddress,
+  ]);
+
+  const handleShopAddressSameAsAddressChange = (checked) => {
+    setIsShopAddressSameAsAddress(checked);
+    if (!checked) return;
+
+    setFormData(prev => ({
+      ...prev,
+      shopRegion: prev.region,
+      shopProvince: prev.province,
+      shopCityMunicipality: prev.cityMunicipality,
+      shopBarangay: prev.barangay,
+      shopDetailedAddress: prev.detailedAddress,
+    }));
+    setErrors(prev => ({
+      ...prev,
+      shopRegion: '',
+      shopProvince: '',
+      shopCityMunicipality: '',
+      shopBarangay: '',
+      shopDetailedAddress: '',
+    }));
+  };
 
   const handlePresentAddressSameAsBirthPlaceChange = (checked) => {
     setIsPresentAddressSameAsBirthPlace(checked);
@@ -1659,9 +1704,21 @@ const Register = () => {
   const renderShopOwnerStep3LocationFacilities = () => (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-gray-700">
-          {isOnCallMechanic ? 'Location Address *' : 'Shop Address *'}
-        </Label>
+        <div className="flex items-center justify-between gap-3">
+          <Label className="text-sm font-medium text-gray-700">
+            {isOnCallMechanic ? 'Location Address *' : 'Shop Address *'}
+          </Label>
+          <Label htmlFor="shopAddressSameAsAddress" className="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input
+              id="shopAddressSameAsAddress"
+              type="checkbox"
+              checked={isShopAddressSameAsAddress}
+              onChange={(e) => handleShopAddressSameAsAddressChange(e.target.checked)}
+              className="h-4 w-4 rounded-none border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>Same as my address</span>
+          </Label>
+        </div>
         <AddressTabsSelector
           {...addressSelectorCommonProps}
           label="Region/Province/City/Barangay"
@@ -1771,22 +1828,14 @@ const Register = () => {
 
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">Type of Repair Services Offered (Select All That Apply) *</Label>
-        <div className="flex flex-wrap gap-2">
-          {REPAIR_SERVICE_TYPES.map((s) => {
-            const selected = (formData.repairServicesOffered || []).includes(s);
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => toggleArrayValue('repairServicesOffered', s)}
-                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-              >
-                {s}
-              </button>
-            );
-          })}
-        </div>
+        <CheckboxDropdown
+          options={REPAIR_SERVICE_TYPES}
+          value={formData.repairServicesOffered || []}
+          onChange={(next) => setArrayField('repairServicesOffered', next)}
+          placeholder="Select repair services"
+          otherPlaceholder="Type your repair service"
+          hasError={validationAttempted && !!errors.repairServicesOffered}
+        />
         {validationAttempted && errors.repairServicesOffered && <p className="text-sm text-red-600">{errors.repairServicesOffered}</p>}
       </div>
 
@@ -1948,22 +1997,19 @@ const Register = () => {
 
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">Days of Operation *</Label>
-        <div className="flex flex-wrap gap-2">
-          {DAYS_OF_OPERATION.map((d) => {
-            const selected = (formData.daysOfOperation || []).includes(d);
-            return (
-              <button
-                key={d}
-                type="button"
-                onClick={() => toggleArrayValue('daysOfOperation', d)}
-                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-              >
-                {d}
-              </button>
-            );
-          })}
-        </div>
+        <CheckboxDropdown
+          options={DAYS_OF_OPERATION}
+          value={formData.daysOfOperation || []}
+          onChange={(next) =>
+            setArrayField(
+              'daysOfOperation',
+              DAYS_OF_OPERATION.filter((d) => next.includes(d))
+            )
+          }
+          allowOther={false}
+          placeholder="Select days"
+          hasError={validationAttempted && !!errors.daysOfOperation}
+        />
         {validationAttempted && errors.daysOfOperation && <p className="text-sm text-red-600">{errors.daysOfOperation}</p>}
       </div>
 
@@ -2155,20 +2201,6 @@ const Register = () => {
     'English Comprehension',
     'Math Functional Skill',
   ];
-
-  const toggleArrayValue = (field, value, max = null) => {
-    setFormData((prev) => {
-      const current = Array.isArray(prev[field]) ? prev[field] : [];
-      const exists = current.includes(value);
-      let next = exists ? current.filter((v) => v !== value) : [...current, value];
-      if (!exists && typeof max === 'number' && next.length > max) {
-        // ignore add if would exceed max
-        next = current;
-      }
-      return { ...prev, [field]: next };
-    });
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
-  };
 
   const setArrayField = (field, next) => {
     setFormData((prev) => ({ ...prev, [field]: next }));

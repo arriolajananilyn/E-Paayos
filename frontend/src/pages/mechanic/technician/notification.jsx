@@ -30,6 +30,7 @@ const MECHANIC_NOTIF_ROUTES = {
   bookings: '#/mechanic/technician/assigned-request',
   messages: '#/mechanic/technician/messages',
   dashboard: '#/mechanic/technician/dashboard',
+  complaints: '#/mechanic/technician/complaints',
 }
 
 const navyDeep = '#04133d'

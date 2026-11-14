@@ -11,7 +11,13 @@ import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
 import { sendEmail } from "../utils/sendEmail.js"
 import { sendDirectMessage } from "../services/directMessage.js"
-import { formatRestrictionPayload, syncExpiredRestrictionIfNeeded } from "../utils/userModeration.js"
+import { notifyAdmins, notifyUser } from "../services/notificationService.js"
+import {
+  formatRestrictionPayload,
+  getLatestAppealForUser,
+  sanitizeAppeal,
+  syncExpiredRestrictionIfNeeded,
+} from "../utils/userModeration.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -893,7 +899,7 @@ export const listUsersForAdmin = asyncHandler(async (_req, res) => {
   const [users, complaints] = await Promise.all([
     User.find({ role: { $ne: "admin" } })
       .select(
-        "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus barangay cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason employedByShopOwner moderationStatus warningCount warnings restrictedAt restrictedUntil restrictionReason restrictionCategory restrictionRelatedTicket moderationLogs"
+        "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus barangay cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason employedByShopOwner moderationStatus warningCount warnings restrictedAt restrictedUntil restrictionReason restrictionCategory restrictionRelatedTicket appeals moderationLogs"
       )
       .populate("employedByShopOwner", "shopName fullName email")
       .sort({ createdAt: -1 })
@@ -931,6 +937,9 @@ export const listUsersForAdmin = asyncHandler(async (_req, res) => {
     const uid = String(u._id)
     const warnings = Array.isArray(u.warnings) ? u.warnings : []
     const unackCount = warnings.filter((w) => !w.acknowledged).length
+    const appeals = Array.isArray(u.appeals) ? u.appeals : []
+    const pendingAppeals = appeals.filter((a) => a.status === "submitted" || a.status === "under_review")
+    const latestAppeal = getLatestAppealForUser(u)
     let moderationStatus = u.moderationStatus || "active"
     if (moderationStatus === "restricted" && u.restrictedUntil && new Date(u.restrictedUntil).getTime() < now) {
       moderationStatus = Number(u.warningCount || warnings.length || 0) > 0 ? "warned" : "active"
@@ -940,6 +949,9 @@ export const listUsersForAdmin = asyncHandler(async (_req, res) => {
       moderationStatus,
       warningCount: Number(u.warningCount ?? warnings.length ?? 0),
       unacknowledgedWarningCount: unackCount,
+      pendingAppealCount: pendingAppeals.length,
+      latestAppealStatus: latestAppeal?.status || "",
+      latestAppeal,
       complaintsAgainstCount: againstCounts.get(uid) || 0,
       openComplaintsAgainstCount: openAgainstCounts.get(uid) || 0,
       complaintsFiledCount: filedCounts.get(uid) || 0,
@@ -1022,6 +1034,16 @@ export const approveUserForAdmin = asyncHandler(async (req, res) => {
   user.approvalRejectionReason = ""
   await user.save()
 
+  await notifyUser(user._id, {
+    category: "account",
+    kind: "account_approved",
+    severity: "success",
+    title: "Account approved",
+    message: "Your E-Paayos account has been verified and approved by the Administrator. You now have full access.",
+    target: "account",
+    actorName: req.user.fullName || "Administrator",
+  })
+
   return res.json({
     _id: user._id,
     accountApprovalStatus: user.accountApprovalStatus,
@@ -1054,6 +1076,16 @@ export const rejectUserForAdmin = asyncHandler(async (req, res) => {
   user.accountApprovalStatus = "rejected"
   user.approvalRejectionReason = reason
   await user.save()
+
+  await notifyUser(user._id, {
+    category: "account",
+    kind: "account_rejected",
+    severity: "danger",
+    title: "Account application rejected",
+    message: `Your account application was not approved. Reason: ${reason}`,
+    target: "account",
+    actorName: req.user.fullName || "Administrator",
+  })
 
   return res.json({
     _id: user._id,
@@ -1186,6 +1218,20 @@ export const warnUserForAdmin = asyncHandler(async (req, res) => {
     console.warn("Could not send direct message for warning:", err?.message || err)
   }
 
+  await notifyUser(user._id, {
+    category: "moderation",
+    kind: "warning_issued",
+    severity: severity === "final_warning" || severity === "severe" ? "danger" : "warning",
+    title: `Formal Warning #${nextStrikeNumber} issued by Admin`,
+    message:
+      `${title} — ${reason}` +
+      (correctiveAction ? ` Required action: ${correctiveAction}` : "") +
+      " Repeated violations may lead to account restriction.",
+    target: "moderation",
+    referenceCode,
+    actorName: req.user.fullName || "Administrator",
+  })
+
   const savedWarning = user.warnings[user.warnings.length - 1]
   return res.status(201).json({
     success: true,
@@ -1296,6 +1342,17 @@ export const restrictUserForAdmin = asyncHandler(async (req, res) => {
     console.warn("Could not send direct message for restriction:", err?.message || err)
   }
 
+  await notifyUser(user._id, {
+    category: "moderation",
+    kind: "account_restricted",
+    severity: "danger",
+    title: "Your account has been restricted",
+    message: `Duration: ${durationLabel}. Reason: ${reason} You may submit an appeal for review.`,
+    target: "moderation",
+    referenceCode: relatedTicketNumber,
+    actorName: req.user.fullName || "Administrator",
+  })
+
   return res.json({
     success: true,
     message: `Account for ${user.fullName} has been restricted (${durationLabel}).`,
@@ -1380,6 +1437,16 @@ export const unrestrictUserForAdmin = asyncHandler(async (req, res) => {
     console.warn("Could not send direct message for unrestrict:", err?.message || err)
   }
 
+  await notifyUser(user._id, {
+    category: "moderation",
+    kind: clearWarnings ? "standing_cleared" : "restriction_lifted",
+    severity: "success",
+    title: clearWarnings ? "Restriction lifted & warnings cleared" : "Account restriction lifted",
+    message: `Your account access has been restored. Notes: ${reason}`,
+    target: "moderation",
+    actorName: req.user.fullName || "Administrator",
+  })
+
   return res.json({
     success: true,
     message: `Restriction lifted for ${user.fullName}. Standing is now "${nextStatus}".`,
@@ -1395,7 +1462,7 @@ export const unrestrictUserForAdmin = asyncHandler(async (req, res) => {
  */
 export const getMyModerationStatus = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select(
-    "role fullName email moderationStatus warningCount warnings restrictedAt restrictedUntil restrictionReason restrictionCategory restrictionRelatedTicket moderationLogs"
+    "role fullName email moderationStatus warningCount warnings restrictedAt restrictedUntil restrictionReason restrictionCategory restrictionRelatedTicket appeals moderationLogs"
   )
   if (!user) {
     res.status(404)
@@ -1411,6 +1478,13 @@ export const getMyModerationStatus = asyncHandler(async (req, res) => {
     .filter((w) => !w.acknowledged)
     .sort((a, b) => new Date(a.issuedAt || 0) - new Date(b.issuedAt || 0))
 
+  const appeals = Array.isArray(user.appeals)
+    ? [...user.appeals]
+        .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))
+        .map(sanitizeAppeal)
+    : []
+  const latestAppeal = getLatestAppealForUser(user)
+
   return res.json({
     success: true,
     moderationStatus: user.moderationStatus || "active",
@@ -1422,9 +1496,428 @@ export const getMyModerationStatus = asyncHandler(async (req, res) => {
     restrictionReason: user.restrictionReason || "",
     restrictionCategory: user.restrictionCategory || "",
     restrictionRelatedTicket: user.restrictionRelatedTicket || "",
+    latestAppeal,
+    appeals,
     moderationLogs: [...(user.moderationLogs || [])].sort(
       (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
     ),
+  })
+})
+
+async function createRestrictionAppealForUser(user, { subject, reason, evidencePhotos }) {
+  if (user.moderationStatus !== "restricted") {
+    const err = new Error("Your account is not currently restricted.")
+    err.statusCode = 400
+    throw err
+  }
+
+  const existingAppeals = Array.isArray(user.appeals) ? user.appeals : []
+  const restTime = user.restrictedAt ? new Date(user.restrictedAt).getTime() : 0
+  const existingForCurrent = existingAppeals.find((a) => {
+    const appRestTime = a.restrictionStartedAt ? new Date(a.restrictionStartedAt).getTime() : 0
+    return restTime ? appRestTime >= restTime : true
+  })
+
+  if (existingForCurrent) {
+    const err = new Error(
+      `An appeal (${existingForCurrent.appealRef}) has already been submitted for this restriction. You can monitor its status below.`
+    )
+    err.statusCode = 409
+    throw err
+  }
+
+  const cleanPhotos = Array.isArray(evidencePhotos)
+    ? evidencePhotos
+        .map((p) => (typeof p === "string" ? p.trim() : ""))
+        .filter((p) => p && (p.startsWith("data:image/") || /^https?:\/\//i.test(p) || p.startsWith("/uploads/")))
+        .slice(0, 4)
+    : []
+
+  const yyyymm = new Date().toISOString().slice(0, 7).replace("-", "")
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000)
+  const appealRef = `APL-${yyyymm}-${randomSuffix}`
+  const now = new Date()
+
+  const newAppeal = {
+    appealRef,
+    restrictionStartedAt: user.restrictedAt || now,
+    subject,
+    reason,
+    evidencePhotos: cleanPhotos,
+    status: "submitted",
+    submittedAt: now,
+    reviewStartedAt: null,
+    reviewedAt: null,
+    reviewedBy: null,
+    reviewedByName: "",
+    adminRemarks: "",
+    decisionAcknowledged: false,
+    decisionAcknowledgedAt: null,
+  }
+
+  user.appeals = [...existingAppeals, newAppeal]
+  if (!Array.isArray(user.moderationLogs)) user.moderationLogs = []
+  user.moderationLogs.push({
+    action: "appeal_submitted",
+    summary: `User submitted restriction appeal (${appealRef}): ${subject}`,
+    details: reason,
+    relatedTicketNumber: user.restrictionRelatedTicket || "",
+    actorId: user._id,
+    actorName: user.fullName || user.email,
+    createdAt: now,
+  })
+
+  await user.save({ validateBeforeSave: false })
+
+  await notifyUser(user._id, {
+    category: "appeal",
+    kind: "appeal_submitted",
+    severity: "info",
+    title: `Appeal ${appealRef} submitted`,
+    message: `Your restriction appeal "${subject}" was received and is waiting for administrative review.`,
+    target: "moderation",
+    referenceCode: appealRef,
+  })
+  await notifyAdmins({
+    category: "appeal",
+    kind: "appeal_received",
+    severity: "warning",
+    title: `New restriction appeal ${appealRef}`,
+    message: `${user.fullName || user.email} (${user.role}) appealed their restriction: "${subject}".`,
+    target: "users",
+    referenceCode: appealRef,
+    actorName: user.fullName || user.email,
+  })
+
+  return sanitizeAppeal(user.appeals[user.appeals.length - 1])
+}
+
+/**
+ * @desc    Logged-in restricted user submits a restriction appeal
+ * @route   POST /api/users/me/appeal
+ * @access  Private (Restricted users allowed)
+ */
+export const submitMyRestrictionAppeal = asyncHandler(async (req, res) => {
+  const subject = trimStr(req.body?.subject)
+  const reason = trimStr(req.body?.reason)
+  const evidencePhotos = req.body?.evidencePhotos
+
+  if (!subject) {
+    res.status(400)
+    throw new Error("Appeal subject/title is required")
+  }
+  if (!reason) {
+    res.status(400)
+    throw new Error("Detailed appeal explanation is required")
+  }
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+
+  try {
+    const appeal = await createRestrictionAppealForUser(user, { subject, reason, evidencePhotos })
+    return res.status(201).json({
+      success: true,
+      message: `Your appeal (${appeal.appealRef}) has been submitted for administrative review.`,
+      appeal,
+      latestAppeal: appeal,
+    })
+  } catch (err) {
+    res.status(err.statusCode || 400)
+    throw err
+  }
+})
+
+/**
+ * @desc    Restricted user on login page submits appeal using email & password verification
+ * @route   POST /api/users/restricted-appeal
+ * @access  Public (Verified by credentials)
+ */
+export const submitRestrictedLoginAppeal = asyncHandler(async (req, res) => {
+  const normalizedEmail = String(req.body?.email || "").trim().toLowerCase()
+  const enteredPassword = String(req.body?.password || "")
+  const subject = trimStr(req.body?.subject)
+  const reason = trimStr(req.body?.reason)
+  const evidencePhotos = req.body?.evidencePhotos
+
+  if (!normalizedEmail || !enteredPassword) {
+    res.status(400)
+    throw new Error("Account credentials are required to submit an appeal")
+  }
+  if (!subject) {
+    res.status(400)
+    throw new Error("Appeal subject/title is required")
+  }
+  if (!reason) {
+    res.status(400)
+    throw new Error("Detailed appeal explanation is required")
+  }
+
+  const user = await User.findOne({ email: normalizedEmail }).select(
+    "-validIdImage -selfieImage -businessPermitCertificateImage"
+  )
+  if (!user || !(await user.matchPassword(enteredPassword))) {
+    res.status(401)
+    throw new Error("Invalid account credentials")
+  }
+
+  try {
+    const appeal = await createRestrictionAppealForUser(user, { subject, reason, evidencePhotos })
+    return res.status(201).json({
+      success: true,
+      message: `Your appeal (${appeal.appealRef}) has been submitted for administrative review.`,
+      appeal,
+      latestAppeal: appeal,
+    })
+  } catch (err) {
+    res.status(err.statusCode || 400)
+    throw err
+  }
+})
+
+/**
+ * @desc    User acknowledges an approved appeal decision notice so they can continue into their restored account
+ * @route   POST /api/users/me/appeals/:appealId/acknowledge
+ * @access  Private
+ */
+export const acknowledgeMyAppealDecision = asyncHandler(async (req, res) => {
+  const { appealId } = req.params
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+
+  const target = (user.appeals || []).find(
+    (a) => String(a._id) === String(appealId) || String(a.appealRef) === String(appealId)
+  )
+  if (!target) {
+    res.status(404)
+    throw new Error("Appeal record not found")
+  }
+
+  target.decisionAcknowledged = true
+  target.decisionAcknowledgedAt = new Date()
+  await user.save({ validateBeforeSave: false })
+
+  return res.json({
+    success: true,
+    message: "Appeal decision acknowledged.",
+    appeal: sanitizeAppeal(target),
+  })
+})
+
+/**
+ * @desc    Admin reviews a user's restriction appeal (mark under_review, approve, or reject)
+ * @route   POST /api/users/admin/:id/appeals/:appealId/review
+ * @access  Admin
+ */
+export const reviewUserAppealForAdmin = asyncHandler(async (req, res) => {
+  const { id, appealId } = req.params
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid user id")
+  }
+
+  const decision = trimStr(req.body?.decision)
+  const adminRemarks = trimStr(req.body?.adminRemarks) || ""
+  const clearWarnings = Boolean(req.body?.clearWarnings)
+
+  if (!["under_review", "approved", "rejected"].includes(decision)) {
+    res.status(400)
+    throw new Error("Invalid appeal review decision. Must be under_review, approved, or rejected.")
+  }
+
+  if (decision === "rejected" && !adminRemarks) {
+    res.status(400)
+    throw new Error("Please provide an explanation/reason for rejecting this appeal.")
+  }
+
+  const user = await User.findById(id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+  if (user.role === "admin") {
+    res.status(403)
+    throw new Error("Cannot change this account")
+  }
+
+  const appeal = (user.appeals || []).find(
+    (a) => String(a._id) === String(appealId) || String(a.appealRef) === String(appealId)
+  )
+  if (!appeal) {
+    res.status(404)
+    throw new Error("Appeal record not found")
+  }
+
+  const now = new Date()
+  if (!Array.isArray(user.moderationLogs)) user.moderationLogs = []
+
+  if (decision === "under_review") {
+    appeal.status = "under_review"
+    appeal.reviewStartedAt = appeal.reviewStartedAt || now
+    appeal.reviewedBy = req.user._id
+    appeal.reviewedByName = req.user.fullName || "Administrator"
+    if (adminRemarks) appeal.adminRemarks = adminRemarks
+
+    user.moderationLogs.push({
+      action: "appeal_reviewing",
+      summary: `Admin began reviewing Appeal ${appeal.appealRef}`,
+      details: adminRemarks || "Appeal is currently under administrative review.",
+      actorId: req.user._id,
+      actorName: req.user.fullName || "Administrator",
+      createdAt: now,
+    })
+
+    await user.save({ validateBeforeSave: false })
+
+    await notifyUser(user._id, {
+      category: "appeal",
+      kind: "appeal_under_review",
+      severity: "info",
+      title: `Appeal ${appeal.appealRef} is under review`,
+      message: adminRemarks || "An administrator is now reviewing your restriction appeal.",
+      target: "moderation",
+      referenceCode: appeal.appealRef,
+      actorName: req.user.fullName || "Administrator",
+    })
+
+    return res.json({
+      success: true,
+      message: `Appeal ${appeal.appealRef} marked as Under Review.`,
+      appeal: sanitizeAppeal(appeal),
+      moderationStatus: user.moderationStatus,
+    })
+  }
+
+  if (decision === "approved") {
+    appeal.status = "approved"
+    appeal.reviewStartedAt = appeal.reviewStartedAt || now
+    appeal.reviewedAt = now
+    appeal.reviewedBy = req.user._id
+    appeal.reviewedByName = req.user.fullName || "Administrator"
+    appeal.adminRemarks =
+      adminRemarks || "Your appeal has been reviewed and approved. Your account restriction is now lifted."
+    appeal.decisionAcknowledged = false
+
+    if (clearWarnings) {
+      user.warningCount = 0
+      if (Array.isArray(user.warnings)) {
+        user.warnings = user.warnings.map((w) => ({
+          ...(w.toObject ? w.toObject() : w),
+          acknowledged: true,
+          acknowledgedAt: w.acknowledgedAt || now,
+        }))
+      }
+    }
+
+    const nextStatus = clearWarnings ? "active" : Number(user.warningCount || 0) > 0 ? "warned" : "active"
+    user.moderationStatus = nextStatus
+    user.restrictedAt = null
+    user.restrictedUntil = null
+    user.restrictionReason = ""
+    user.restrictionCategory = ""
+    user.restrictionRelatedTicket = ""
+    user.restrictedBy = null
+    user.restrictedByName = ""
+
+    user.moderationLogs.push({
+      action: "appeal_approved",
+      summary: `Appeal ${appeal.appealRef} APPROVED — Account restriction lifted`,
+      details: appeal.adminRemarks,
+      actorId: req.user._id,
+      actorName: req.user.fullName || "Administrator",
+      createdAt: now,
+    })
+
+    await user.save({ validateBeforeSave: false })
+
+    try {
+      await sendDirectMessage({
+        fromUserId: req.user._id,
+        toUserId: user._id,
+        content:
+          `✅ [E-Paayos Appeal Approved · ${appeal.appealRef}]\n\n` +
+          `Your restriction appeal has been reviewed and APPROVED by E-Paayos Administration. Your account access has been restored.\n` +
+          `• Admin Remarks: ${appeal.adminRemarks}\n` +
+          `\nPlease continue observing platform guidelines.`,
+      })
+    } catch (err) {
+      console.warn("Could not send appeal approval DM:", err?.message || err)
+    }
+
+    await notifyUser(user._id, {
+      category: "appeal",
+      kind: "appeal_approved",
+      severity: "success",
+      title: `Appeal ${appeal.appealRef} approved`,
+      message: `Your account restriction has been lifted. Admin remarks: ${appeal.adminRemarks}`,
+      target: "moderation",
+      referenceCode: appeal.appealRef,
+      actorName: req.user.fullName || "Administrator",
+    })
+
+    return res.json({
+      success: true,
+      message: `Appeal ${appeal.appealRef} approved! Restriction lifted for ${user.fullName}.`,
+      appeal: sanitizeAppeal(appeal),
+      moderationStatus: user.moderationStatus,
+      warningCount: user.warningCount,
+    })
+  }
+
+  // decision === "rejected"
+  appeal.status = "rejected"
+  appeal.reviewStartedAt = appeal.reviewStartedAt || now
+  appeal.reviewedAt = now
+  appeal.reviewedBy = req.user._id
+  appeal.reviewedByName = req.user.fullName || "Administrator"
+  appeal.adminRemarks = adminRemarks
+
+  user.moderationLogs.push({
+    action: "appeal_rejected",
+    summary: `Appeal ${appeal.appealRef} REJECTED — Restriction maintained`,
+    details: adminRemarks,
+    actorId: req.user._id,
+    actorName: req.user.fullName || "Administrator",
+    createdAt: now,
+  })
+
+  await user.save({ validateBeforeSave: false })
+
+  try {
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: user._id,
+      content:
+        `❌ [E-Paayos Appeal Rejected · ${appeal.appealRef}]\n\n` +
+        `After careful review, your restriction appeal was not approved and your account restriction remains in effect.\n` +
+        `• Admin Remarks: ${adminRemarks}`,
+    })
+  } catch (err) {
+    console.warn("Could not send appeal rejection DM:", err?.message || err)
+  }
+
+  await notifyUser(user._id, {
+    category: "appeal",
+    kind: "appeal_rejected",
+    severity: "danger",
+    title: `Appeal ${appeal.appealRef} rejected`,
+    message: `Your restriction remains in effect. Admin remarks: ${adminRemarks}`,
+    target: "moderation",
+    referenceCode: appeal.appealRef,
+    actorName: req.user.fullName || "Administrator",
+  })
+
+  return res.json({
+    success: true,
+    message: `Appeal ${appeal.appealRef} rejected. Restriction remains active.`,
+    appeal: sanitizeAppeal(appeal),
+    moderationStatus: user.moderationStatus,
   })
 })
 
@@ -1468,6 +1961,26 @@ export const acknowledgeMyWarning = asyncHandler(async (req, res) => {
     })
 
     await user.save({ validateBeforeSave: false })
+
+    await notifyUser(user._id, {
+      category: "moderation",
+      kind: "warning_acknowledged",
+      severity: "info",
+      title: `Warning #${target.warningNumber} acknowledged`,
+      message: `You acknowledged warning ${target.referenceCode}. Please keep following E-Paayos platform rules.`,
+      target: "moderation",
+      referenceCode: target.referenceCode,
+    })
+    await notifyAdmins({
+      category: "moderation",
+      kind: "warning_acknowledged",
+      severity: "info",
+      title: `Warning ${target.referenceCode} acknowledged`,
+      message: `${user.fullName || user.email} acknowledged Warning #${target.warningNumber}.` + (note ? ` Note: ${note}` : ""),
+      target: "users",
+      referenceCode: target.referenceCode,
+      actorName: user.fullName || user.email,
+    })
   }
 
   const remainingUnacknowledged = (user.warnings || []).filter((w) => !w.acknowledged)

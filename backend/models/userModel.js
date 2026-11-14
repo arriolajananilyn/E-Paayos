@@ -536,12 +536,47 @@ const userSchema = new mongoose.Schema(
     restrictionRelatedTicket: { type: String, default: "", trim: true, maxlength: 60 },
     restrictedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     restrictedByName: { type: String, default: "", trim: true },
+    appeals: {
+      type: [
+        {
+          appealRef: { type: String, required: true, trim: true },
+          restrictionStartedAt: { type: Date, default: null },
+          subject: { type: String, required: true, trim: true, maxlength: 200 },
+          reason: { type: String, required: true, trim: true, maxlength: 3000 },
+          evidencePhotos: [{ type: String, trim: true }],
+          status: {
+            type: String,
+            enum: ["submitted", "under_review", "approved", "rejected"],
+            default: "submitted",
+          },
+          submittedAt: { type: Date, default: Date.now },
+          reviewStartedAt: { type: Date, default: null },
+          reviewedAt: { type: Date, default: null },
+          reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+          reviewedByName: { type: String, default: "", trim: true },
+          adminRemarks: { type: String, default: "", trim: true, maxlength: 2000 },
+          decisionAcknowledged: { type: Boolean, default: false },
+          decisionAcknowledgedAt: { type: Date, default: null },
+        },
+      ],
+      default: [],
+    },
     moderationLogs: {
       type: [
         {
           action: {
             type: String,
-            enum: ["warned", "warning_acknowledged", "restricted", "restriction_lifted", "standing_cleared"],
+            enum: [
+              "warned",
+              "warning_acknowledged",
+              "restricted",
+              "restriction_lifted",
+              "standing_cleared",
+              "appeal_submitted",
+              "appeal_reviewing",
+              "appeal_approved",
+              "appeal_rejected",
+            ],
             required: true,
           },
           summary: { type: String, required: true, trim: true },

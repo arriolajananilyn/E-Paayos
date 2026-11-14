@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import OnCallMechanicLayout from './OnCallMechanicLayout.jsx'
 import { NotificationFeedContent } from '../../../components/notifications/NotificationFeed.jsx'
 
@@ -7,6 +8,8 @@ const ROUTES = {
   bookings: '#/independent/technician/service-request',
   messages: '#/independent/technician/messages',
   dashboard: '#/independent/technician/dashboard',
+  complaints: '#/independent/technician/complaints',
+  account: '#/independent/technician/account-settings',
 }
 
 export default function OnCallMechanicNotification() {
@@ -23,15 +26,18 @@ export default function OnCallMechanicNotification() {
   )
 }
 
-function NotificationBootstrap({ readScope }) {
+function readIndependentUser() {
   const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('user') : null
-  let user = null
   try {
     const parsed = raw ? JSON.parse(raw) : null
-    if (parsed?.role === 'oncall-mechanic-technician') user = parsed
+    return parsed?.role === 'oncall-mechanic-technician' ? parsed : null
   } catch {
-    user = null
+    return null
   }
+}
+
+function NotificationBootstrap({ readScope }) {
+  const [user] = useState(readIndependentUser)
 
   if (!user) {
     return (

@@ -53,9 +53,13 @@ export const protect = asyncHandler(async (req, res, next) => {
     if (user.moderationStatus === "restricted") {
       await syncExpiredRestrictionIfNeeded(user)
       if (user.moderationStatus === "restricted") {
-        const isModerationCheck =
-          req.originalUrl && req.originalUrl.startsWith("/api/users/me/moderation")
-        if (!isModerationCheck) {
+        const url = req.originalUrl || ""
+        const isAllowedRestrictedRoute =
+          url.startsWith("/api/users/me/moderation") ||
+          url.startsWith("/api/users/me/appeal") ||
+          url.startsWith("/api/users/me/appeals") ||
+          url.startsWith("/api/users/me/notifications")
+        if (!isAllowedRestrictedRoute) {
           return res.status(403).json(formatRestrictionPayload(user))
         }
       }

@@ -27,6 +27,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { toast } from "sonner"
 import { getApiBaseUrl } from "@/lib/apiBaseUrl"
 import { cn } from "@/lib/utils"
+import RestrictedAppealPanel from "./RestrictedAppealPanel.jsx"
 
 const API_URL = getApiBaseUrl()
 
@@ -134,6 +135,7 @@ export default function UserModerationGuard({ currentRoute }) {
           restrictedAt: data.restrictedAt || null,
           restrictedUntil: data.restrictedUntil || null,
           warningCount: Number(data.warningCount || 0),
+          latestAppeal: data.latestAppeal || null,
           unacknowledgedWarnings: [],
           warnings: [],
         })
@@ -176,10 +178,16 @@ export default function UserModerationGuard({ currentRoute }) {
   }, [checkModeration])
 
   const isRestricted = moderation?.moderationStatus === "restricted"
+  const latestAppeal = moderation?.latestAppeal || null
+  const showApprovedAppealMonitor =
+    !isRestricted && latestAppeal?.status === "approved" && !latestAppeal?.decisionAcknowledged
+  const showRestrictionOrAppealModal = Boolean((isRestricted || showApprovedAppealMonitor) && sessionUser)
+
   const unacknowledged = Array.isArray(moderation?.unacknowledgedWarnings)
     ? moderation.unacknowledgedWarnings
     : []
-  const activeWarning = !isRestricted && unacknowledged.length > 0 ? unacknowledged[0] : null
+  const activeWarning =
+    !isRestricted && !showApprovedAppealMonitor && unacknowledged.length > 0 ? unacknowledged[0] : null
 
   useEffect(() => {
     setAckChecked(false)
@@ -232,99 +240,71 @@ export default function UserModerationGuard({ currentRoute }) {
     window.location.hash = "#/login"
   }
 
+  const handleSubmitAppeal = async ({ subject, reason, evidencePhotos }) => {
+    const session = readSignedInUser()
+    if (!session) throw new Error("Not signed in")
+    const res = await fetch(`${API_URL}/api/users/me/appeal`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.token}`,
+      },
+      body: JSON.stringify({ subject, reason, evidencePhotos }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data?.message || "Failed to submit appeal.")
+    }
+    toast.success(data?.message || "Appeal submitted! You can monitor its review status here.")
+    setModeration((prev) => ({
+      ...(prev || {}),
+      latestAppeal: data?.latestAppeal || data?.appeal || prev?.latestAppeal || null,
+    }))
+    await checkModeration()
+  }
+
+  const handleContinueApprovedAppeal = async () => {
+    const session = readSignedInUser()
+    if (!session || !latestAppeal) return
+    try {
+      const appealId = latestAppeal._id || latestAppeal.appealRef
+      await fetch(`${API_URL}/api/users/me/appeals/${appealId}/acknowledge`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.token}`,
+        },
+      })
+      await checkModeration()
+      toast.success("Welcome back! Your account access is restored.")
+    } catch {
+      await checkModeration()
+    }
+  }
+
   const sevMeta = SEVERITY_META[activeWarning?.severity] || SEVERITY_META.moderate
 
   return (
     <>
-      {/* 1. ACCOUNT RESTRICTED BLOCKING NOTICE FORM */}
-      <Dialog open={Boolean(isRestricted && sessionUser)} onOpenChange={() => {}}>
+      {/* 1. ACCOUNT RESTRICTED & APPEAL MONITOR FORM */}
+      <Dialog open={showRestrictionOrAppealModal} onOpenChange={() => {}}>
         <DialogContent
           showCloseButton={false}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
-          className="max-h-[92vh] max-w-[calc(100vw-1.5rem)] sm:max-w-lg overflow-hidden flex flex-col p-0 border-2 border-rose-500 bg-white shadow-2xl rounded-none z-[9999]"
+          className={cn(
+            "max-h-[92vh] max-w-[calc(100vw-1.5rem)] sm:max-w-xl overflow-hidden flex flex-col p-0 bg-white shadow-2xl rounded-none z-[9999]",
+            showApprovedAppealMonitor ? "border-2 border-emerald-500" : "border-2 border-rose-500"
+          )}
         >
-          <div className="bg-gradient-to-r from-rose-950 via-red-900 to-slate-950 px-5 py-4 text-white border-b border-rose-700/40 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center bg-rose-500/25 border border-rose-400/50 text-rose-200 shrink-0">
-                <Ban className="size-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <DialogTitle className="text-base font-black text-white tracking-tight">
-                    Account Restricted
-                  </DialogTitle>
-                  <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white border border-rose-400">
-                    Access Suspended
-                  </span>
-                </div>
-                <DialogDescription className="text-xs text-rose-100/85 mt-0.5">
-                  E-Paayos &amp; LMD-PESO Administrative Enforcement Notice
-                </DialogDescription>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs bg-slate-50/60">
-            <div className="border border-rose-200 bg-rose-50 p-3.5 space-y-2 text-rose-950">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="font-black uppercase tracking-wider text-[11px] text-rose-800 flex items-center gap-1.5">
-                  <AlertOctagon className="size-4 text-rose-600" />
-                  Restriction Details
-                </span>
-                {moderation?.warningCount > 0 && (
-                  <Badge className="rounded-none bg-rose-700 text-white text-[10px] font-bold">
-                    {moderation.warningCount} Recorded Strike{moderation.warningCount > 1 ? "s" : ""}
-                  </Badge>
-                )}
-              </div>
-              <p className="text-xs leading-relaxed font-semibold text-slate-900 bg-white border border-rose-200 p-3 whitespace-pre-wrap">
-                {moderation?.restrictionReason ||
-                  "Your account has been restricted due to repeated or severe violations of E-Paayos platform rules."}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
-                <div>
-                  <span className="text-rose-700 font-bold uppercase block text-[10px]">Effective Since</span>
-                  <span className="font-semibold text-slate-900">
-                    {formatDateTime(moderation?.restrictedAt)}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-rose-700 font-bold uppercase block text-[10px]">Restriction Duration</span>
-                  <span className="font-bold text-rose-900">
-                    {moderation?.restrictedUntil
-                      ? `Until ${formatDateTime(moderation.restrictedUntil)}`
-                      : "Indefinite (Until Lifted by Admin)"}
-                  </span>
-                </div>
-              </div>
-              {moderation?.restrictionRelatedTicket && (
-                <div className="pt-1 flex items-center gap-1.5 text-[11px] text-rose-800">
-                  <Ticket className="size-3.5" />
-                  <span>Related Report Ticket:</span>
-                  <span className="font-mono font-bold">#{moderation.restrictionRelatedTicket}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="border border-slate-200 bg-white p-3.5 text-slate-700 leading-relaxed space-y-1.5">
-              <p className="font-bold text-slate-900">What does this mean?</p>
-              <p>
-                While your account is restricted, you cannot book services, accept jobs, list services, or perform platform transactions. Please contact E-Paayos / LMD-PESO Administration for appeal or reinstatement instructions.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="border-t border-slate-200 bg-white px-5 py-3.5 flex justify-end shrink-0">
-            <Button
-              type="button"
-              onClick={handleForceSignOut}
-              className="h-9 px-5 rounded-none bg-rose-700 hover:bg-rose-800 text-white text-xs font-black uppercase tracking-wider cursor-pointer"
-            >
-              <LogOut className="size-3.5 mr-1.5" />
-              Sign Out of Account
-            </Button>
-          </DialogFooter>
+          <RestrictedAppealPanel
+            restriction={moderation}
+            onSubmitAppeal={handleSubmitAppeal}
+            onRefreshStatus={checkModeration}
+            onSignOut={handleForceSignOut}
+            onContinueApproved={handleContinueApprovedAppeal}
+            signOutLabel="Sign Out of Account"
+          />
         </DialogContent>
       </Dialog>
 

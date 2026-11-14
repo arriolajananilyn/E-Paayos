@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import ShopOwnerDashboard from './dashboard.jsx'
 import { NotificationFeedContent } from '../../components/notifications/NotificationFeed.jsx'
 
@@ -7,6 +8,8 @@ const PROVIDER_NOTIF_ROUTES = {
   bookings: '#/provider/service-request',
   messages: '#/provider/messages',
   dashboard: '#/provider/dashboard',
+  complaints: '#/provider/complaints',
+  account: '#/provider/account-settings',
 }
 
 function NotificationPage() {
@@ -25,15 +28,18 @@ function NotificationPage() {
   )
 }
 
-function ShopOwnerNotificationBody() {
+function readShopOwnerUser() {
   const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('user') : null
-  let user = null
   try {
     const parsed = raw ? JSON.parse(raw) : null
-    if (parsed?.role === 'shop-owner') user = parsed
+    return parsed?.role === 'shop-owner' ? parsed : null
   } catch {
-    user = null
+    return null
   }
+}
+
+function ShopOwnerNotificationBody() {
+  const [user] = useState(readShopOwnerUser)
 
   if (!user) {
     return (

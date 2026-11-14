@@ -4,6 +4,26 @@ import { Complaint } from "../models/complaintModel.js"
 import { User } from "../models/userModel.js"
 import { Booking } from "../models/bookingModel.js"
 import { sendDirectMessage } from "../services/directMessage.js"
+import { notifyAdmins, notifyUser } from "../services/notificationService.js"
+
+const COMPLAINT_STATUS_TEXT = {
+  pending: "was reopened as pending",
+  under_investigation: "is now under investigation",
+  action_taken: "has had formal action taken",
+  resolved: "has been resolved",
+  dismissed: "has been dismissed",
+}
+
+const COMPLAINT_STATUS_SEVERITY = {
+  under_investigation: "warning",
+  action_taken: "warning",
+  resolved: "success",
+  dismissed: "info",
+}
+
+function priorityToSeverity(priority) {
+  return priority === "urgent" || priority === "high" ? "danger" : "warning"
+}
 
 // Clean up any legacy mock/dummy complaints to ensure only real platform complaints are maintained
 export const purgeMockComplaintsIfAny = async () => {
@@ -304,6 +324,37 @@ export const updateComplaintAdmin = asyncHandler(async (req, res) => {
     }
   }
 
+  if (status && status !== prevStatus) {
+    const statusText = COMPLAINT_STATUS_TEXT[status] || "has been updated"
+    const remarks = complaint.resolutionRemarks || complaint.adminAction || ""
+    const severity = COMPLAINT_STATUS_SEVERITY[status] || "info"
+    if (notifyTargetId) {
+      await notifyUser(notifyTargetId, {
+        category: "complaint",
+        kind: `report_${status}`,
+        severity,
+        title: `Your report #${complaint.ticketNumber} ${statusText}`,
+        message: `${complaint.subject}` + (remarks ? ` — ${remarks}` : ""),
+        target: "complaints",
+        referenceCode: complaint.ticketNumber,
+        actorName: req.user.fullName || "Administrator",
+      })
+    }
+    const reportedId = complaint.reportedUser || complaint.targetShop || complaint.targetTechnician
+    if (reportedId && String(reportedId) !== String(notifyTargetId || "")) {
+      await notifyUser(reportedId, {
+        category: "complaint",
+        kind: `complaint_against_${status}`,
+        severity,
+        title: `Complaint #${complaint.ticketNumber} against you ${statusText}`,
+        message: `${complaint.subject}` + (remarks ? ` — ${remarks}` : ""),
+        target: "complaints",
+        referenceCode: complaint.ticketNumber,
+        actorName: req.user.fullName || "Administrator",
+      })
+    }
+  }
+
   res.json({
     success: true,
     message: "Complaint updated successfully.",
@@ -460,7 +511,37 @@ export const createCustomerComplaint = asyncHandler(async (req, res) => {
     } catch (err) {
       console.warn("Could not send provider notice:", err?.message || err)
     }
+    await notifyUser(targetProviderId, {
+      category: "complaint",
+      kind: "complaint_filed_against",
+      severity: "warning",
+      title: `Complaint #${ticketNumber} filed against you`,
+      message: `${subject.trim()} — please submit your official explanation for administrative review.`,
+      target: "complaints",
+      referenceCode: ticketNumber,
+      actorName: resolvedCustomerName,
+    })
   }
+
+  await notifyUser(customerId, {
+    category: "complaint",
+    kind: "report_submitted",
+    severity: "info",
+    title: `Report #${ticketNumber} submitted`,
+    message: `Your report "${subject.trim()}" was sent to E-Paayos Administration for review.`,
+    target: "complaints",
+    referenceCode: ticketNumber,
+  })
+  await notifyAdmins({
+    category: "report",
+    kind: "complaint_received",
+    severity: priorityToSeverity(newComplaint.priority),
+    title: `New complaint #${ticketNumber}`,
+    message: `${resolvedCustomerName} reported ${primaryReportedName || "a service provider"}: ${subject.trim()}`,
+    target: "complaint-admin",
+    referenceCode: ticketNumber,
+    actorName: resolvedCustomerName,
+  })
 
   res.status(201).json({
     success: true,
@@ -581,7 +662,37 @@ export const createProviderComplaint = asyncHandler(async (req, res) => {
     } catch (err) {
       console.warn("Could not send customer notice:", err?.message || err)
     }
+    await notifyUser(customerId, {
+      category: "complaint",
+      kind: "complaint_filed_against",
+      severity: "warning",
+      title: `Incident report #${ticketNumber} filed against you`,
+      message: `${reporterDisplay} reported: ${subject.trim()}. The Administrator will review this report.`,
+      target: "complaints",
+      referenceCode: ticketNumber,
+      actorName: reporterDisplay,
+    })
   }
+
+  await notifyUser(providerId, {
+    category: "complaint",
+    kind: "report_submitted",
+    severity: "info",
+    title: `Report #${ticketNumber} submitted`,
+    message: `Your report against ${customerName || "the customer"} was sent to E-Paayos Administration for review.`,
+    target: "complaints",
+    referenceCode: ticketNumber,
+  })
+  await notifyAdmins({
+    category: "report",
+    kind: "provider_report_received",
+    severity: priorityToSeverity(newComplaint.priority),
+    title: `New provider report #${ticketNumber}`,
+    message: `${reporterDisplay} reported customer ${customerName || "Customer"}: ${subject.trim()}`,
+    target: "complaint-admin",
+    referenceCode: ticketNumber,
+    actorName: reporterDisplay,
+  })
 
   res.status(201).json({
     success: true,
@@ -734,7 +845,31 @@ export const respondToComplaintAsProvider = asyncHandler(async (req, res) => {
     } catch (err) {
       console.warn("Failed to send customer notification:", err?.message)
     }
+    await notifyUser(notifyId, {
+      category: "complaint",
+      kind: "reported_party_responded",
+      severity: "info",
+      title: `Response received on report #${complaint.ticketNumber}`,
+      message: `The reported party submitted their explanation. The Administrator will review both statements.`,
+      target: "complaints",
+      referenceCode: complaint.ticketNumber,
+      actorName: req.user.fullName || "",
+    })
   }
+
+  await notifyAdmins(
+    {
+      category: "report",
+      kind: "explanation_submitted",
+      severity: "info",
+      title: `Explanation submitted for #${complaint.ticketNumber}`,
+      message: `${req.user.fullName || "The reported party"} responded: "${explanation.trim().slice(0, 160)}"`,
+      target: "complaint-admin",
+      referenceCode: complaint.ticketNumber,
+      actorName: req.user.fullName || "",
+    },
+    { excludeId: providerId }
+  )
 
   res.json({
     success: true,
@@ -803,6 +938,16 @@ export const requestProviderExplanation = asyncHandler(async (req, res) => {
     } catch (err) {
       console.warn("Failed to notify reported party:", err?.message)
     }
+    await notifyUser(targetUserId, {
+      category: "complaint",
+      kind: "explanation_requested",
+      severity: "warning",
+      title: `Explanation required for #${complaint.ticketNumber}`,
+      message: `The Administrator requests your official statement on "${complaint.subject}" within 48 hours.`,
+      target: "complaints",
+      referenceCode: complaint.ticketNumber,
+      actorName: req.user.fullName || "Administrator",
+    })
   }
 
   res.json({

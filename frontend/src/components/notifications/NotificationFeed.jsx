@@ -8,9 +8,13 @@ import {
   Loader2,
   MessageSquare,
   Package,
+  Scale,
   Search,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
   Truck,
+  UserCheck,
 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -19,6 +23,7 @@ const API_URL = import.meta?.env?.VITE_API_URL || 'http://localhost:5000'
 
 const NOTIFICATION_TABS = [
   { id: 'All', label: 'All activity' },
+  { id: 'account', label: 'Account & Reports' },
   { id: 'booking', label: 'Bookings' },
   { id: 'status', label: 'Status updates' },
   { id: 'message', label: 'Messages' },
@@ -57,7 +62,25 @@ const ICON_MAP = {
   status: Truck,
   message: MessageSquare,
   system: AlertCircle,
+  account: ShieldAlert,
 }
+
+const ACCOUNT_CATEGORY_ICONS = {
+  moderation: ShieldAlert,
+  appeal: Scale,
+  complaint: AlertCircle,
+  report: AlertCircle,
+  account: UserCheck,
+}
+
+const SEVERITY_STYLES = {
+  danger: { border: 'border-l-rose-600', badge: 'border-rose-300 bg-rose-50 text-rose-800', label: 'Important' },
+  warning: { border: 'border-l-amber-500', badge: 'border-amber-300 bg-amber-50 text-amber-800', label: 'Attention' },
+  success: { border: 'border-l-emerald-600', badge: 'border-emerald-300 bg-emerald-50 text-emerald-800', label: 'Resolved' },
+  info: { border: 'border-l-[#081F5C]', badge: 'border-sky-300 bg-sky-50 text-sky-800', label: 'Info' },
+}
+
+const ACCOUNT_POLL_MS = 45000
 
 function notificationAuthHeaders() {
   const token = localStorage.getItem('token')
@@ -153,8 +176,94 @@ function dispatchUnreadCount(readScope, count) {
   )
 }
 
+async function fetchBookingItems(url, readScope, user, routes, variant) {
+  const res = await fetch(url, { headers: notificationAuthHeaders() })
+  if (res.status === 401) {
+    const err = new Error('Your session has expired. Please log in again.')
+    err.status = 401
+    throw err
+  }
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.message || 'Could not load notifications.')
+  const bookings = Array.isArray(data?.bookings)
+    ? data.bookings
+    : Array.isArray(data?.data)
+      ? data.data
+      : []
+  return flatMapBookings(bookings, loadReadMap(readScope, user), routes, variant)
+}
+
+/** Account, moderation, appeal and report notifications stored server-side. Never throws. */
+async function fetchAccountItems(routes) {
+  try {
+    const res = await fetch(`${API_URL}/api/users/me/notifications`, { headers: notificationAuthHeaders() })
+    if (!res.ok) return []
+    const data = await res.json().catch(() => ({}))
+    const rows = Array.isArray(data?.notifications) ? data.notifications : []
+    return rows.map((n) => mapAccountNotification(n, routes))
+  } catch {
+    return []
+  }
+}
+
+function resolveAccountRoute(target, routes) {
+  if (target === 'complaints') return routes.complaints || routes.dashboard
+  if (target === 'complaint-admin') return routes.complaintAdmin || routes.dashboard
+  if (target === 'users') return routes.users || routes.dashboard
+  if (target === 'account') return routes.account || routes.dashboard
+  return null
+}
+
+function mapAccountNotification(n, routes) {
+  const severity = SEVERITY_STYLES[n.severity] ? n.severity : 'info'
+  return {
+    id: `acct-${n._id}`,
+    serverId: n._id,
+    type: 'account',
+    category: n.category,
+    severity,
+    target: n.target,
+    referenceCode: n.referenceCode || '',
+    title: n.title,
+    desc: n.message,
+    timestamp: n.createdAt,
+    route: resolveAccountRoute(n.target, routes),
+    unread: !n.read,
+    Icon:
+      severity === 'success' && n.category !== 'complaint' && n.category !== 'report'
+        ? ShieldCheck
+        : ACCOUNT_CATEGORY_ICONS[n.category] || ShieldAlert,
+  }
+}
+
+function sortByNewest(items) {
+  return [...items].sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
+}
+
+async function markAccountNotificationRead(serverId) {
+  try {
+    await fetch(`${API_URL}/api/users/me/notifications/${encodeURIComponent(serverId)}/read`, {
+      method: 'POST',
+      headers: notificationAuthHeaders(),
+    })
+  } catch {
+    /* read state will resync on next load */
+  }
+}
+
+async function markAllAccountNotificationsRead() {
+  try {
+    await fetch(`${API_URL}/api/users/me/notifications/read-all`, {
+      method: 'POST',
+      headers: notificationAuthHeaders(),
+    })
+  } catch {
+    /* read state will resync on next load */
+  }
+}
+
 /**
- * Fetch bookings and compute unread count (same rules as the feed). Use in layout headers when the notification feed is not mounted.
+ * Fetch bookings + account notifications and compute unread count (same rules as the feed). Use in layout headers when the notification feed is not mounted.
  */
 export function useNotificationUnreadCount({ user, readScope, bookingsUrl, routes, variant, enabled = true }) {
   const [unreadCount, setUnreadCount] = useState(0)
@@ -168,31 +277,37 @@ export function useNotificationUnreadCount({ user, readScope, bookingsUrl, route
       setUnreadCount(0)
       return
     }
-    try {
-      const res = await fetch(url, { headers: notificationAuthHeaders() })
-      if (res.status === 401 || !res.ok) {
-        setUnreadCount(0)
-        return
-      }
-      const data = await res.json().catch(() => ({}))
-      const bookings = Array.isArray(data?.bookings)
-        ? data.bookings
-        : Array.isArray(data?.data)
-          ? data.data
-          : []
-      const readMap = loadReadMap(readScope, user)
-      const items = flatMapBookings(bookings, readMap, routes, variant)
-      const n = items.filter((i) => i.unread).length
-      setUnreadCount(n)
-    } catch {
-      setUnreadCount(0)
-    }
+    const [bookingItems, accountItems] = await Promise.all([
+      fetchBookingItems(url, readScope, user, routes, variant).catch(() => []),
+      fetchAccountItems(routes),
+    ])
+    setUnreadCount([...bookingItems, ...accountItems].filter((i) => i.unread).length)
   }
+
+  const refreshRef = useRef(refresh)
+  useEffect(() => {
+    refreshRef.current = refresh
+  })
 
   useEffect(() => {
     void refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- routes is a stable route map from callers
   }, [user, url, readScope, variant, enabled, routes])
+
+  useEffect(() => {
+    if (!user || !enabled) return undefined
+    const timer = window.setInterval(() => void refreshRef.current(), ACCOUNT_POLL_MS)
+    const onUnreadEvt = (e) => {
+      if (e.detail?.readScope === readScope && typeof e.detail?.count === 'number') {
+        setUnreadCount(e.detail.count)
+      }
+    }
+    window.addEventListener(EPAAYOS_UNREAD_EVENT, onUnreadEvt)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener(EPAAYOS_UNREAD_EVENT, onUnreadEvt)
+    }
+  }, [user, enabled, readScope])
 
   return { unreadCount, refresh }
 }
@@ -202,6 +317,8 @@ export const CUSTOMER_NOTIFICATION_ROUTES = {
   bookings: '#/customer/my-bookings',
   messages: '#/customer/messages',
   dashboard: '#/customer/dashboard',
+  complaints: '#/customer/my-bookings?complaints=1',
+  account: '#/customer/account-settings',
 }
 
 /**
@@ -243,6 +360,8 @@ export const ADMIN_NOTIFICATION_ROUTES = {
   bookings: '#/admin/dashboard',
   messages: '#/admin/dashboard',
   dashboard: '#/admin/dashboard',
+  complaintAdmin: '#/admin/complaint-report',
+  users: '#/admin/dashboard?section=users',
 }
 
 /**
@@ -519,6 +638,7 @@ export function NotificationFeedContent({
   routes = { bookings: '#/customer/my-bookings', messages: '#/customer/messages', dashboard: '#/customer/dashboard' },
   variant = 'customer',
   onUnreadChange,
+  onUnreadCountChange,
 }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -531,17 +651,17 @@ export function NotificationFeedContent({
   const url = bookingsUrl || `${API_URL}/api/catalog/bookings`
   const unread = useMemo(() => items.filter((x) => x.unread).length, [items])
 
-  const onUnreadCbRef = useRef(onUnreadChange)
+  const onUnreadCbRef = useRef(onUnreadChange || onUnreadCountChange)
   useEffect(() => {
-    onUnreadCbRef.current = onUnreadChange
-  }, [onUnreadChange])
+    onUnreadCbRef.current = onUnreadChange || onUnreadCountChange
+  }, [onUnreadChange, onUnreadCountChange])
 
   useEffect(() => {
     onUnreadCbRef.current?.(unread)
     dispatchUnreadCount(readScope, unread)
   }, [unread, readScope])
 
-  const loadNotifications = async () => {
+  const loadNotifications = async ({ silent = false } = {}) => {
     if (!user) return
     const token = localStorage.getItem('token')
     if (!token) {
@@ -549,55 +669,73 @@ export function NotificationFeedContent({
       setLoading(false)
       return
     }
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch(url, { headers: notificationAuthHeaders() })
-      if (res.status === 401) {
-        setItems([])
-        setError('Your session has expired. Please log in again.')
-        return
-      }
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.message || 'Could not load notifications.')
-      const bookings = Array.isArray(data?.bookings)
-        ? data.bookings
-        : Array.isArray(data?.data)
-          ? data.data
-          : []
-      const readMap = loadReadMap(readScope, user)
-      setItems(flatMapBookings(bookings, readMap, routes, variant))
-    } catch (e) {
-      setItems([])
-      setError(e?.message || 'Could not load notifications.')
-    } finally {
+    if (!silent) {
+      setLoading(true)
+      setError('')
+    }
+    const [bookingResult, accountItems] = await Promise.all([
+      fetchBookingItems(url, readScope, user, routes, variant).then(
+        (list) => ({ list, error: null }),
+        (e) => ({ list: [], error: e }),
+      ),
+      fetchAccountItems(routes),
+    ])
+    setItems(sortByNewest([...accountItems, ...bookingResult.list]))
+    if (!silent) {
+      setError(bookingResult.error ? bookingResult.error.message || 'Could not load notifications.' : '')
       setLoading(false)
     }
   }
 
+  const loadRef = useRef(loadNotifications)
+  useEffect(() => {
+    loadRef.current = loadNotifications
+  })
+
   useEffect(() => {
     void loadNotifications()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- routes is a stable route map from callers
   }, [user, url, readScope, variant])
 
-  const markOneRead = (id) => {
-    if (!user) return
-    const nextReadMap = { ...loadReadMap(readScope, user), [id]: true }
-    saveReadMap(readScope, user, nextReadMap)
-    setItems((prev) => prev.map((x) => (x.id === id ? { ...x, unread: false } : x)))
+  useEffect(() => {
+    if (!user) return undefined
+    const timer = window.setInterval(() => void loadRef.current({ silent: true }), ACCOUNT_POLL_MS)
+    return () => window.clearInterval(timer)
+  }, [user])
+
+  const markOneRead = (item) => {
+    if (!user || !item) return
+    if (item.serverId) {
+      void markAccountNotificationRead(item.serverId)
+    } else {
+      const nextReadMap = { ...loadReadMap(readScope, user), [item.id]: true }
+      saveReadMap(readScope, user, nextReadMap)
+    }
+    setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, unread: false } : x)))
   }
 
   const markAllRead = () => {
     if (!user) return
     const nextReadMap = { ...loadReadMap(readScope, user) }
-    items.forEach((item) => { nextReadMap[item.id] = true })
+    let hasAccountUnread = false
+    items.forEach((item) => {
+      if (item.serverId) {
+        if (item.unread) hasAccountUnread = true
+      } else {
+        nextReadMap[item.id] = true
+      }
+    })
     saveReadMap(readScope, user, nextReadMap)
+    if (hasAccountUnread) void markAllAccountNotificationsRead()
     setItems((prev) => prev.map((i) => ({ ...i, unread: false })))
   }
 
-  const clearAll = () => setItems([])
-
   const handleNotificationClick = (n) => {
-    if (n.unread) markOneRead(n.id)
+    if (n.unread) markOneRead(n)
+    if (n.type === 'account' && n.target === 'moderation') {
+      window.dispatchEvent(new CustomEvent('epaayos:open-moderation-history'))
+      return
+    }
     window.location.hash = n.route || routes.bookings
   }
 
@@ -685,7 +823,7 @@ export function NotificationFeedContent({
             <Bell className="h-7 w-7 sm:h-8 sm:w-8 text-slate-300" />
             <p className="mt-2 text-xs sm:text-sm font-bold text-foreground">No notifications yet</p>
             <p className="mt-1 max-w-md text-[11px] sm:text-xs text-muted-foreground">
-              Bookings, status updates, and messages from repair specialists will appear here.
+              Bookings, status updates, account notices (warnings, restrictions, appeals), and report updates will appear here.
             </p>
           </div>
         ) : list.length === 0 ? (
@@ -703,7 +841,9 @@ export function NotificationFeedContent({
         ) : (
           <div className="space-y-2 sm:space-y-2.5">
             {list.map((n) => {
-              const Icon = n.Icon || Bell
+              const Icon = n.Icon || ICON_MAP[n.type] || Bell
+              const sev = n.type === 'account' ? SEVERITY_STYLES[n.severity] || SEVERITY_STYLES.info : null
+              const unreadBorder = sev ? sev.border : 'border-l-[#081F5C]'
               return (
                 <div
                   key={n.id}
@@ -718,8 +858,10 @@ export function NotificationFeedContent({
                   onClick={() => handleNotificationClick(n)}
                   className={`group relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3.5 p-3 sm:p-4 rounded-none border transition-all duration-200 cursor-pointer shadow-[0_2px_5px_rgba(15,23,42,0.1)] hover:border-[#081F5C] hover:shadow-[0_4px_12px_rgba(8,31,92,0.18)] active:bg-slate-50 ${
                     n.unread
-                      ? 'border-l-4 border-l-[#081F5C] border-slate-200 bg-sky-50/70'
-                      : 'border-slate-200 bg-white'
+                      ? `border-l-4 ${unreadBorder} border-slate-200 bg-sky-50/70`
+                      : sev
+                        ? `border-l-4 ${sev.border} border-slate-200 bg-white`
+                        : 'border-slate-200 bg-white'
                   }`}
                 >
                   <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:gap-3.5 w-full sm:w-auto">
@@ -735,10 +877,18 @@ export function NotificationFeedContent({
                           </span>
                         ) : null}
                         <span className="inline-flex items-center rounded-none border border-slate-200 bg-slate-100 px-1.5 sm:px-2 py-0.2 sm:py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                          {n.type}
+                          {n.type === 'account' ? n.category || 'account' : n.type}
                         </span>
+                        {sev && n.severity !== 'info' ? (
+                          <span className={`inline-flex items-center rounded-none border px-1.5 sm:px-2 py-0.2 sm:py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${sev.badge}`}>
+                            {sev.label}
+                          </span>
+                        ) : null}
+                        {n.referenceCode ? (
+                          <span className="font-mono text-[10px] sm:text-[11px] font-semibold text-slate-500">{n.referenceCode}</span>
+                        ) : null}
                       </div>
-                      <p className="mt-1 text-xs sm:text-sm font-medium text-slate-600 line-clamp-2 leading-relaxed">{n.desc}</p>
+                      <p className="mt-1 text-xs sm:text-sm font-medium text-slate-600 line-clamp-3 leading-relaxed">{n.desc}</p>
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center justify-between sm:justify-end gap-2 w-full sm:w-auto self-end sm:self-center text-right pt-1 sm:pt-0 border-t border-slate-100 sm:border-0">

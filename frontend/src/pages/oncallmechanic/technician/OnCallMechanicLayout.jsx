@@ -47,6 +47,8 @@ const INDEPENDENT_NOTIF_ROUTES = {
   bookings: '#/independent/technician/service-request',
   messages: '#/independent/technician/messages',
   dashboard: '#/independent/technician/dashboard',
+  complaints: '#/independent/technician/complaints',
+  account: '#/independent/technician/account-settings',
 }
 
 const navyDeep = '#04133d'

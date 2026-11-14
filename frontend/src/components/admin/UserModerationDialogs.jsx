@@ -3,10 +3,13 @@ import {
   AlertTriangle,
   Ban,
   CheckCircle2,
+  Clock,
+  Eye,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   Ticket,
+  XCircle,
 } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -707,6 +710,257 @@ export function LiftRestrictionDialog({ open, onOpenChange, targetUser, onSucces
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export function ReviewAppealDialog({
+  open,
+  onOpenChange,
+  targetUser,
+  appeal,
+  onSuccess,
+}) {
+  const [decision, setDecision] = useState("approved")
+  const [adminRemarks, setAdminRemarks] = useState("")
+  const [clearWarnings, setClearWarnings] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setDecision("approved")
+    setAdminRemarks("")
+    setClearWarnings(false)
+  }, [open, appeal?._id, appeal?.appealRef])
+
+  const userId = targetUser?.id || targetUser?._id
+  const appealId = appeal?._id || appeal?.appealRef
+
+  const handleSubmit = async (e, overrideDecision) => {
+    if (e) e.preventDefault()
+    if (!userId || !appealId) return
+
+    const finalDecision = overrideDecision || decision
+    if (finalDecision === "rejected" && !adminRemarks.trim()) {
+      toast.error("Please enter a clear explanation for rejecting this appeal.")
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch(`${API_URL}/api/users/admin/${userId}/appeals/${appealId}/review`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          decision: finalDecision,
+          adminRemarks: adminRemarks.trim(),
+          clearWarnings: finalDecision === "approved" ? clearWarnings : false,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.message || "Failed to review appeal.")
+
+      toast.success(data?.message || "Appeal review saved.")
+      onOpenChange?.(false)
+      onSuccess?.(data)
+    } catch (err) {
+      toast.error(err?.message || "Could not submit appeal review.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[92vh] max-w-[calc(100vw-1.5rem)] sm:max-w-xl overflow-hidden flex flex-col p-0 border border-slate-200 bg-white shadow-2xl rounded-none">
+        <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3.5 text-white shrink-0">
+          <div className="flex items-center gap-2.5 pr-6">
+            <div className="flex size-8 items-center justify-center bg-white/15 border border-white/25 shrink-0">
+              <ShieldAlert className="size-4 text-amber-300" />
+            </div>
+            <div>
+              <DialogTitle className="text-sm sm:text-base font-bold text-white leading-tight">
+                Review Restriction Appeal
+              </DialogTitle>
+              <DialogDescription className="text-[11px] text-blue-100/85">
+                {appeal?.appealRef ? `Reference ${appeal.appealRef}` : "User Appeal Evaluation"} · {targetUser?.fullName || "User"}
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
+
+        {appeal && (
+          <form onSubmit={(e) => handleSubmit(e)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs bg-slate-50/50">
+              {/* Appeal Summary */}
+              <div className="border border-slate-200 bg-white p-3.5 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-black bg-slate-900 text-white px-2 py-0.5">
+                      {appeal.appealRef}
+                    </span>
+                    <Badge className="rounded-none text-[10px] font-bold uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                      {appeal.status === "under_review" ? "Under Review" : "Submitted"}
+                    </Badge>
+                  </div>
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                    <Clock className="size-3" />
+                    {appeal.submittedAt ? new Date(appeal.submittedAt).toLocaleString("en-PH") : "—"}
+                  </span>
+                </div>
+                <p className="font-bold text-slate-900 text-sm">{appeal.subject}</p>
+                <div className="border border-slate-200 bg-slate-50 p-3 text-slate-800 leading-relaxed whitespace-pre-wrap">
+                  {appeal.reason}
+                </div>
+                {Array.isArray(appeal.evidencePhotos) && appeal.evidencePhotos.length > 0 && (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] font-bold uppercase text-slate-500 block">
+                      Supporting Photos ({appeal.evidencePhotos.length}):
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {appeal.evidencePhotos.map((img, i) => (
+                        <a
+                          key={i}
+                          href={img}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="size-16 border border-slate-300 overflow-hidden block hover:border-[#081F5C]"
+                        >
+                          <img src={img} alt="Appeal proof" className="size-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {targetUser?.restrictionReason && (
+                <div className="border border-rose-200 bg-rose-50/70 p-3 space-y-1">
+                  <span className="text-[10px] font-black uppercase text-rose-800 block">
+                    Original Restriction Reason
+                  </span>
+                  <p className="text-[11px] text-rose-950 font-medium">{targetUser.restrictionReason}</p>
+                </div>
+              )}
+
+              {/* Decision Options */}
+              <div className="border border-slate-200 bg-white p-3.5 space-y-3">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 block">
+                  Administrative Decision
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {appeal.status === "submitted" && (
+                    <button
+                      type="button"
+                      onClick={() => setDecision("under_review")}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-3 py-2 border text-xs font-bold cursor-pointer transition-colors",
+                        decision === "under_review"
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-blue-50"
+                      )}
+                    >
+                      <Eye className="size-3.5" />
+                      <span>Mark Reviewing</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setDecision("approved")}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 px-3 py-2 border text-xs font-bold cursor-pointer transition-colors",
+                      decision === "approved"
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-emerald-50",
+                      appeal.status !== "submitted" ? "sm:col-span-1" : ""
+                    )}
+                  >
+                    <CheckCircle2 className="size-3.5" />
+                    <span>Approve &amp; Restore</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDecision("rejected")}
+                    className={cn(
+                      "flex items-center justify-center gap-1.5 px-3 py-2 border text-xs font-bold cursor-pointer transition-colors",
+                      decision === "rejected"
+                        ? "bg-rose-700 text-white border-rose-700"
+                        : "bg-white text-slate-700 border-slate-300 hover:bg-rose-50"
+                    )}
+                  >
+                    <XCircle className="size-3.5" />
+                    <span>Reject Appeal</span>
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold uppercase text-slate-700 block">
+                    Admin Review Remarks {decision === "rejected" && <span className="text-rose-600">*</span>}
+                  </label>
+                  <Textarea
+                    rows={3}
+                    value={adminRemarks}
+                    onChange={(e) => setAdminRemarks(e.target.value)}
+                    placeholder={
+                      decision === "approved"
+                        ? "Optional note to user (e.g. Appeal approved, please continue complying with platform rules.)"
+                        : decision === "under_review"
+                          ? "Optional note while reviewing..."
+                          : "Explain clearly why this appeal was rejected and why the restriction remains..."
+                    }
+                    className="rounded-none text-xs border-slate-300"
+                  />
+                </div>
+
+                {decision === "approved" && (
+                  <label className="flex items-start gap-2.5 p-2.5 border border-slate-200 bg-slate-50 cursor-pointer select-none">
+                    <Checkbox
+                      checked={clearWarnings}
+                      onCheckedChange={(v) => setClearWarnings(Boolean(v))}
+                      className="mt-0.5 rounded-none"
+                    />
+                    <span className="text-[11px] font-semibold text-slate-800 leading-snug">
+                      Also reset warning strike count to 0 (restore completely clean standing)
+                    </span>
+                  </label>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="border-t border-slate-200 bg-white px-4 py-3 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => onOpenChange?.(false)}
+                className="h-8 px-4 text-xs font-bold rounded-none"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={submitting}
+                className={cn(
+                  "h-8 px-4 text-xs font-bold rounded-none text-white cursor-pointer",
+                  decision === "approved"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : decision === "rejected"
+                      ? "bg-rose-700 hover:bg-rose-800"
+                      : "bg-blue-600 hover:bg-blue-700"
+                )}
+              >
+                {submitting
+                  ? "Saving..."
+                  : decision === "approved"
+                    ? "Confirm Approval & Lift Restriction"
+                    : decision === "rejected"
+                      ? "Confirm Appeal Rejection"
+                      : "Mark as Under Review"}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   )

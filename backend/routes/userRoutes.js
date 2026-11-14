@@ -15,8 +15,12 @@ import {
   warnUserForAdmin,
   restrictUserForAdmin,
   unrestrictUserForAdmin,
+  reviewUserAppealForAdmin,
   getMyModerationStatus,
   acknowledgeMyWarning,
+  submitMyRestrictionAppeal,
+  submitRestrictedLoginAppeal,
+  acknowledgeMyAppealDecision,
   forgotPassword,
   resetPassword,
   changePassword,
@@ -32,6 +36,11 @@ import {
   listProviderFiledComplaints,
   respondToComplaintAsProvider,
 } from "../controllers/complaintController.js"
+import {
+  listMyNotifications,
+  markMyNotificationRead,
+  markAllMyNotificationsRead,
+} from "../controllers/notificationController.js"
 import { protect, adminOnly } from "../middleware/authMiddleware.js"
 
 const router = express.Router()
@@ -56,11 +65,17 @@ router.post(
   registerUser
 )
 router.post("/login", loginUser)
+router.post("/restricted-appeal", submitRestrictedLoginAppeal)
 router.post("/forgot-password", forgotPassword)
 router.post("/reset-password", resetPassword)
 router.get("/me", protect, getMe)
 router.get("/me/moderation", protect, getMyModerationStatus)
 router.post("/me/warnings/:warningId/acknowledge", protect, acknowledgeMyWarning)
+router.post("/me/appeal", protect, submitMyRestrictionAppeal)
+router.post("/me/appeals/:appealId/acknowledge", protect, acknowledgeMyAppealDecision)
+router.get("/me/notifications", protect, listMyNotifications)
+router.post("/me/notifications/read-all", protect, markAllMyNotificationsRead)
+router.post("/me/notifications/:id/read", protect, markMyNotificationRead)
 router.patch("/me/change-password", protect, changePassword)
 router.patch("/me/password", protect, changePassword)
 router.patch("/me/delivery-addresses", protect, patchMyDeliveryAddresses)
@@ -74,6 +89,7 @@ router.patch("/admin/:id/reject", protect, adminOnly, rejectUserForAdmin)
 router.post("/admin/:id/warn", protect, adminOnly, warnUserForAdmin)
 router.post("/admin/:id/restrict", protect, adminOnly, restrictUserForAdmin)
 router.post("/admin/:id/unrestrict", protect, adminOnly, unrestrictUserForAdmin)
+router.post("/admin/:id/appeals/:appealId/review", protect, adminOnly, reviewUserAppealForAdmin)
 router.get("/admin/:id", protect, adminOnly, getUserForAdmin)
 
 // Customer Complaints / Reports

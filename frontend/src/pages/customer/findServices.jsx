@@ -56,6 +56,14 @@ function catalogAuthHeaders() {
 const selectShell =
   'h-8 sm:h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-2.5 sm:px-3 py-1.5 sm:py-2 pr-7 sm:pr-8 text-[11px] sm:text-xs md:text-sm shadow-[0_2px_5px_rgba(15,23,42,0.14)] outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:shadow-[0_4px_8px_rgba(15,23,42,0.2)] hover:border-slate-300 truncate'
 
+/** "both" listings offer home and in-shop, so they satisfy either single-mode filter. */
+function matchesServiceTypeFilter(itemType, filter) {
+  if (!filter) return true
+  const type = String(itemType ?? '').trim().toLowerCase()
+  if (type === filter) return true
+  return type === 'both' && (filter === 'home' || filter === 'in-shop')
+}
+
 function serviceTypeBadge(type) {
   const label = SERVICE_TYPES.find((x) => x.value === type)?.label ?? 'N/A'
   return (
@@ -763,7 +771,7 @@ function CustomerFindServices() {
 
     const base = catalogServices.filter((item) => {
       if (category && item.category !== category) return false
-      if (serviceType && item.type !== serviceType) return false
+      if (!matchesServiceTypeFilter(item.type, serviceType)) return false
       if (location && itemLocationKey(item) !== location) return false
       if (!normalizedQuery) return true
 

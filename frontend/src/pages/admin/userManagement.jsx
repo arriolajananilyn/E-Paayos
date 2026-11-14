@@ -33,6 +33,7 @@ import {
   IssueWarningDialog,
   LiftRestrictionDialog,
   RestrictUserDialog,
+  ReviewAppealDialog,
 } from '@/components/admin/UserModerationDialogs.jsx'
 import {
   AlertTriangle,
@@ -132,6 +133,10 @@ function mapUserFromApi(u) {
     warningCount: Number(u.warningCount || 0),
     unacknowledgedWarningCount: Number(u.unacknowledgedWarningCount || 0),
     warnings: Array.isArray(u.warnings) ? u.warnings : [],
+    appeals: Array.isArray(u.appeals) ? u.appeals : [],
+    pendingAppealCount: Number(u.pendingAppealCount || 0),
+    latestAppealStatus: u.latestAppealStatus || '',
+    latestAppeal: u.latestAppeal || null,
     restrictedAt: u.restrictedAt || null,
     restrictedUntil: u.restrictedUntil || null,
     restrictionReason: u.restrictionReason || '',
@@ -265,6 +270,12 @@ function statusCell(row) {
         {accountApprovalBadge(row.accountApprovalStatus)}
         {row.accountApprovalStatus === 'approved' ? moderationStandingBadge(row) : null}
       </div>
+      {row.accountApprovalStatus === 'approved' && row.pendingAppealCount > 0 ? (
+        <div className="inline-flex items-center gap-1 rounded-none border border-blue-300 bg-blue-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-blue-800 w-fit">
+          <Clock className="size-2.5 shrink-0" />
+          {row.latestAppealStatus === 'under_review' ? 'Appeal Reviewing' : 'Appeal Pending'}
+        </div>
+      ) : null}
       {row.complaintsAgainstCount > 0 ? (
         <div className="text-[10px] font-bold text-rose-700">
           {row.complaintsAgainstCount} Report{row.complaintsAgainstCount === 1 ? '' : 's'} Against
@@ -367,6 +378,8 @@ export default function AdminUserManagement() {
   const [warnOpen, setWarnOpen] = useState(false)
   const [restrictOpen, setRestrictOpen] = useState(false)
   const [liftRestrictOpen, setLiftRestrictOpen] = useState(false)
+  const [reviewAppealOpen, setReviewAppealOpen] = useState(false)
+  const [reviewAppealTarget, setReviewAppealTarget] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [rejectFieldError, setRejectFieldError] = useState('')
   const [acting, setActing] = useState(false)
@@ -490,8 +503,9 @@ export default function AdminUserManagement() {
     const pendingApproval = users.filter((u) => u.accountApprovalStatus === 'pending').length
     const warned = users.filter((u) => u.moderationStatus === 'warned').length
     const restricted = users.filter((u) => u.moderationStatus === 'restricted').length
+    const pendingAppeals = users.filter((u) => u.pendingAppealCount > 0).length
     const withReports = users.filter((u) => u.complaintsAgainstCount > 0).length
-    return { total, customers, owners, independents, mechanics, pendingApproval, warned, restricted, withReports }
+    return { total, customers, owners, independents, mechanics, pendingApproval, warned, restricted, pendingAppeals, withReports }
   }, [users])
 
   const filtered = useMemo(() => {
@@ -511,6 +525,8 @@ export default function AdminUserManagement() {
       if (standingOk) {
         if (standingOk === 'reported') {
           if (!(e.complaintsAgainstCount > 0)) return false
+        } else if (standingOk === 'pending_appeal') {
+          if (!(e.pendingAppealCount > 0)) return false
         } else if (e.moderationStatus !== standingOk) {
           return false
         }
@@ -627,6 +643,12 @@ export default function AdminUserManagement() {
   const openLiftRestrictFlow = (userRow) => {
     setModerationUser(userRow)
     setLiftRestrictOpen(true)
+  }
+
+  const openReviewAppealFlow = (userRow, appealObj) => {
+    setModerationUser(userRow)
+    setReviewAppealTarget(appealObj || userRow?.latestAppeal || null)
+    setReviewAppealOpen(true)
   }
 
   const closeModerationDialogs = () => {
@@ -839,6 +861,22 @@ export default function AdminUserManagement() {
           <button
             type="button"
             onClick={() => {
+              setStandingFilter((prev) => (prev === 'pending_appeal' ? '__' : 'pending_appeal'))
+              setApprovalFilter('__')
+            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold border transition-colors cursor-pointer',
+              standingFilter === 'pending_appeal'
+                ? 'bg-blue-700 text-white border-blue-700'
+                : 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100'
+            )}
+          >
+            <Clock className="size-3" />
+            <span>Pending Appeals ({stats.pendingAppeals})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               setStandingFilter((prev) => (prev === 'reported' ? '__' : 'reported'))
               setApprovalFilter('__')
             }}
@@ -917,6 +955,7 @@ export default function AdminUserManagement() {
               <option value="active">Good standing</option>
               <option value="warned">Warned (Has strikes)</option>
               <option value="restricted">Restricted</option>
+              <option value="pending_appeal">Pending appeal</option>
               <option value="reported">Has reports</option>
             </select>
             <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
@@ -1088,6 +1127,15 @@ export default function AdminUserManagement() {
                                 View Strikes &amp; Reports
                               </DropdownMenuItem>
                             ) : null}
+                            {row.appeals?.length > 0 ? (
+                              <DropdownMenuItem
+                                className="gap-2 text-xs text-blue-800 focus:text-blue-900"
+                                onClick={() => openDetail(row, 'appeals')}
+                              >
+                                <Clock className="h-3.5 w-3.5 text-blue-600" />
+                                {row.pendingAppealCount > 0 ? 'Review Appeal' : 'View Appeals'}
+                              </DropdownMenuItem>
+                            ) : null}
                             {row.accountApprovalStatus === 'approved' ? (
                               <>
                                 <DropdownMenuSeparator />
@@ -1196,6 +1244,15 @@ export default function AdminUserManagement() {
                           <Eye className="h-3.5 w-3.5" />
                           View Profile &amp; Moderation
                         </DropdownMenuItem>
+                        {row.appeals?.length > 0 ? (
+                          <DropdownMenuItem
+                            className="gap-2 text-xs text-blue-800"
+                            onClick={() => openDetail(row, 'appeals')}
+                          >
+                            <Clock className="h-3.5 w-3.5 text-blue-600" />
+                            {row.pendingAppealCount > 0 ? 'Review Appeal' : 'View Appeals'}
+                          </DropdownMenuItem>
+                        ) : null}
                         {row.accountApprovalStatus === 'approved' ? (
                           <>
                             <DropdownMenuSeparator />
@@ -1602,6 +1659,11 @@ export default function AdminUserManagement() {
                   icon: ShieldAlert,
                 },
                 {
+                  id: 'appeals',
+                  label: `Appeals (${Array.isArray(detailProfile.appeals) ? detailProfile.appeals.length : 0})`,
+                  icon: Clock,
+                },
+                {
                   id: 'reports',
                   label: `Reports (${
                     (detailProfile.complaintsAgainst?.length || 0) +
@@ -1752,6 +1814,115 @@ export default function AdminUserManagement() {
                       <ShieldCheck className="size-8 mx-auto text-emerald-500 mb-2" />
                       <p className="font-bold text-slate-800">No warnings issued to this user</p>
                       <p className="text-[11px] mt-0.5">Use &ldquo;Issue Warning Form&rdquo; above if a rule violation occurred.</p>
+                    </div>
+                  )}
+                </div>
+              ) : detailTab === 'appeals' ? (
+                <div className="space-y-3 text-xs">
+                  {Array.isArray(detailProfile.appeals) && detailProfile.appeals.length > 0 ? (
+                    [...detailProfile.appeals]
+                      .sort((a, b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))
+                      .map((ap) => {
+                        const isPending = ap.status === 'submitted' || ap.status === 'under_review'
+                        return (
+                          <div
+                            key={ap._id || ap.appealRef}
+                            className={cn(
+                              'border bg-white p-4 space-y-2.5 shadow-2xs',
+                              isPending ? 'border-blue-300' : 'border-slate-200'
+                            )}
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-[11px] font-black bg-slate-900 text-white px-2 py-0.5">
+                                  {ap.appealRef}
+                                </span>
+                                <span
+                                  className={cn(
+                                    'px-2 py-0.5 text-[10px] font-bold uppercase border',
+                                    ap.status === 'approved'
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                      : ap.status === 'rejected'
+                                        ? 'bg-rose-100 text-rose-900 border-rose-300'
+                                        : ap.status === 'under_review'
+                                          ? 'bg-blue-100 text-blue-900 border-blue-300'
+                                          : 'bg-amber-100 text-amber-900 border-amber-300'
+                                  )}
+                                >
+                                  {ap.status === 'under_review'
+                                    ? 'Under Review'
+                                    : ap.status === 'approved'
+                                      ? 'Approved'
+                                      : ap.status === 'rejected'
+                                        ? 'Rejected'
+                                        : 'Submitted'}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-slate-500">
+                                Submitted: {ap.submittedAt ? new Date(ap.submittedAt).toLocaleString('en-PH') : '—'}
+                              </span>
+                            </div>
+
+                            <p className="font-bold text-slate-900 text-sm">{ap.subject}</p>
+                            <p className="text-slate-700 leading-relaxed whitespace-pre-wrap bg-slate-50 border border-slate-200 p-2.5">
+                              {ap.reason}
+                            </p>
+
+                            {Array.isArray(ap.evidencePhotos) && ap.evidencePhotos.length > 0 && (
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                {ap.evidencePhotos.map((img, i) => (
+                                  <a
+                                    key={i}
+                                    href={img}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="size-14 border border-slate-300 overflow-hidden block hover:border-[#081F5C]"
+                                  >
+                                    <img src={img} alt="Appeal proof" className="size-full object-cover" />
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                              <div className="text-[11px] text-slate-500 space-y-0.5">
+                                {ap.reviewStartedAt && (
+                                  <p>Review started: {new Date(ap.reviewStartedAt).toLocaleString('en-PH')}</p>
+                                )}
+                                {ap.reviewedAt && (
+                                  <p className="font-semibold text-slate-700">
+                                    Decided: {new Date(ap.reviewedAt).toLocaleString('en-PH')} by {ap.reviewedByName || 'Admin'}
+                                  </p>
+                                )}
+                                {ap.adminRemarks && (
+                                  <p className="text-slate-800">
+                                    <strong>Admin Remarks:</strong> {ap.adminRemarks}
+                                  </p>
+                                )}
+                              </div>
+
+                              {isPending && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => openReviewAppealFlow({ ...detailUser, restrictionReason: detailProfile.restrictionReason }, ap)}
+                                  className="h-8 px-3.5 rounded-none bg-[#081F5C] hover:bg-[#1447a6] text-white text-xs font-bold cursor-pointer"
+                                >
+                                  <Eye className="size-3.5 mr-1.5" />
+                                  Review &amp; Decide Appeal
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })
+                  ) : (
+                    <div className="border border-slate-200 bg-white p-8 text-center text-slate-500">
+                      <Clock className="size-8 mx-auto text-slate-300 mb-2" />
+                      <p className="font-bold text-slate-800">No restriction appeals submitted</p>
+                      <p className="text-[11px] mt-0.5">
+                        When a restricted user submits an appeal from their restriction screen, it will appear here for review.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1982,6 +2153,24 @@ export default function AdminUserManagement() {
           if (!open) setModerationUser(null)
         }}
         targetUser={moderationUser}
+        onSuccess={() => {
+          if (moderationUser?.id) void refreshDetailIfNeeded(moderationUser.id)
+          else void loadUsers()
+        }}
+      />
+
+      {/* 7. Review User Appeal Dialog */}
+      <ReviewAppealDialog
+        open={reviewAppealOpen}
+        onOpenChange={(open) => {
+          setReviewAppealOpen(open)
+          if (!open) {
+            setReviewAppealTarget(null)
+            setModerationUser(null)
+          }
+        }}
+        targetUser={moderationUser}
+        appeal={reviewAppealTarget}
         onSuccess={() => {
           if (moderationUser?.id) void refreshDetailIfNeeded(moderationUser.id)
           else void loadUsers()

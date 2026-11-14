@@ -19,6 +19,9 @@ import {
 } from 'lucide-react'
 import { getApiBaseUrl } from '../../lib/apiBaseUrl'
 import loginBackground from '../../assets/loginbackground.jpg'
+import { Dialog, DialogContent } from '../../components/ui/dialog'
+import RestrictedAppealPanel from '../../components/moderation/RestrictedAppealPanel.jsx'
+import { toast } from 'sonner'
 
 // Match landing page palette
 const navy = '#081F5C'
@@ -43,6 +46,7 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [rejectionNotice, setRejectionNotice] = useState(null)
   const [restrictionNotice, setRestrictionNotice] = useState(null)
+  const [isRestrictionModalOpen, setIsRestrictionModalOpen] = useState(false)
 
   // Floating Reset Password Modal State (3-step OTP flow)
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false)
@@ -120,14 +124,22 @@ function Login() {
               typeof err?.reason === 'string' && err.reason.trim()
                 ? err.reason.trim()
                 : 'Repeated or severe violation of E-Paayos platform rules.',
+            restrictionReason:
+              typeof err?.reason === 'string' && err.reason.trim()
+                ? err.reason.trim()
+                : 'Repeated or severe violation of E-Paayos platform rules.',
+            restrictedAt: err?.restrictedAt || null,
             restrictedUntil: err?.restrictedUntil || null,
             warningCount: Number(err?.warningCount || 0),
             relatedTicket: err?.relatedTicket || '',
+            restrictionRelatedTicket: err?.relatedTicket || '',
+            latestAppeal: err?.latestAppeal || null,
             action:
               typeof err?.action === 'string' && err.action.trim()
                 ? err.action.trim()
-                : 'Please contact E-Paayos / LMD-PESO Administration for appeal or reinstatement.',
+                : 'You may submit an appeal or monitor your appeal status below.',
           })
+          setIsRestrictionModalOpen(true)
           return
         }
         if (res.status === 403 && err?.code === 'ACCOUNT_REJECTED') {
@@ -197,6 +209,67 @@ function Login() {
       setErrors({ general: errorMessage, isRejection, isPendingApproval })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleSubmitRestrictedAppeal = async ({ subject, reason, evidencePhotos }) => {
+    const res = await fetch(`${getApiBaseUrl()}/api/users/restricted-appeal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: formData.email,
+        password: formData.password,
+        subject,
+        reason,
+        evidencePhotos,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data?.message || 'Failed to submit appeal.')
+    }
+    toast.success(data?.message || 'Appeal submitted! You can monitor its status here.')
+    setRestrictionNotice((prev) => ({
+      ...(prev || {}),
+      latestAppeal: data?.latestAppeal || data?.appeal || prev?.latestAppeal || null,
+    }))
+  }
+
+  const handleRefreshRestrictedStatus = async () => {
+    const res = await fetch(`${getApiBaseUrl()}/api/users/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email, password: formData.password }),
+    })
+    if (res.ok) {
+      // Restriction lifted / appeal approved! Sign user in cleanly
+      const data = await res.json()
+      localStorage.setItem('token', data.token)
+      localStorage.setItem(
+        'user',
+        JSON.stringify({
+          id: data._id != null ? String(data._id) : undefined,
+          email: data.email,
+          role: data.role,
+          fullName: data.fullName,
+        }),
+      )
+      setIsRestrictionModalOpen(false)
+      setRestrictionNotice(null)
+      if (data.role === 'customer') window.location.hash = '#/customer/dashboard'
+      else if (data.role === 'oncall-mechanic-technician') window.location.hash = '#/independent/technician/dashboard'
+      else if (data.role === 'shop-owner') window.location.hash = '#/provider/dashboard'
+      else if (data.role === 'mechanic-technician') window.location.hash = '#/mechanic/technician/dashboard'
+      else window.location.hash = '#/'
+      return
+    }
+    const err = await res.json().catch(() => ({}))
+    if (res.status === 403 && err?.code === 'ACCOUNT_RESTRICTED') {
+      setRestrictionNotice((prev) => ({
+        ...(prev || {}),
+        latestAppeal: err?.latestAppeal || prev?.latestAppeal || null,
+        restrictedUntil: err?.restrictedUntil || prev?.restrictedUntil || null,
+      }))
     }
   }
 
@@ -427,6 +500,13 @@ function Login() {
                       )}
                     </div>
                     <p className="text-xs text-rose-800">{restrictionNotice.action}</p>
+                    <button
+                      type="button"
+                      onClick={() => setIsRestrictionModalOpen(true)}
+                      className="inline-flex items-center rounded-none bg-[#081F5C] hover:bg-[#1447a6] px-3 py-1.5 text-xs font-bold text-white transition cursor-pointer"
+                    >
+                      {restrictionNotice.latestAppeal ? 'Monitor Appeal Status' : 'Open Appeal & Details'}
+                    </button>
                   </div>
                 </div>
               )}
@@ -568,6 +648,30 @@ function Login() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ========================================================================= */}
+      {/* RESTRICTED ACCOUNT & APPEAL MONITOR MODAL                                 */}
+      {/* ========================================================================= */}
+      <Dialog
+        open={Boolean(isRestrictionModalOpen && restrictionNotice)}
+        onOpenChange={(open) => {
+          if (!open) setIsRestrictionModalOpen(false)
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="max-h-[92vh] max-w-[calc(100vw-1.5rem)] sm:max-w-xl overflow-hidden flex flex-col p-0 border-2 border-rose-500 bg-white shadow-2xl rounded-none z-50"
+        >
+          <RestrictedAppealPanel
+            restriction={restrictionNotice}
+            onSubmitAppeal={handleSubmitRestrictedAppeal}
+            onRefreshStatus={handleRefreshRestrictedStatus}
+            onSignOut={() => setIsRestrictionModalOpen(false)}
+            onContinueApproved={handleRefreshRestrictedStatus}
+            signOutLabel="Sign Out / Back"
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* ========================================================================= */}
       {/* FLOATING 3-STEP OTP RESET PASSWORD MODAL OVERLAY (NO BLUR, SHARP BG)     */}
