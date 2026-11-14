@@ -30,7 +30,13 @@ import { getApiBaseUrl } from '@/lib/apiBaseUrl'
 import { resolvePsgcField } from '@/lib/psgcResolve'
 import { AdminRegistrationDetailView } from '@/pages/admin/AdminUserRegistrationDetail.jsx'
 import {
+  IssueWarningDialog,
+  LiftRestrictionDialog,
+  RestrictUserDialog,
+} from '@/components/admin/UserModerationDialogs.jsx'
+import {
   AlertTriangle,
+  Ban,
   Building2,
   Calendar,
   Check,
@@ -38,16 +44,19 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Copy,
   ExternalLink,
   Eye,
   FileText,
   HardHat,
+  History,
   Mail,
   MapPin,
   MoreHorizontal,
   Phone,
   Search,
+  ShieldAlert,
   ShieldCheck,
   User,
   UserCheck,
@@ -119,6 +128,17 @@ function mapUserFromApi(u) {
     registeredUnder,
     employedByShopOwner: u.employedByShopOwner,
     accountApprovalStatus,
+    moderationStatus: u.moderationStatus || 'active',
+    warningCount: Number(u.warningCount || 0),
+    unacknowledgedWarningCount: Number(u.unacknowledgedWarningCount || 0),
+    warnings: Array.isArray(u.warnings) ? u.warnings : [],
+    restrictedAt: u.restrictedAt || null,
+    restrictedUntil: u.restrictedUntil || null,
+    restrictionReason: u.restrictionReason || '',
+    restrictionCategory: u.restrictionCategory || '',
+    complaintsAgainstCount: Number(u.complaintsAgainstCount || 0),
+    openComplaintsAgainstCount: Number(u.openComplaintsAgainstCount || 0),
+    complaintsFiledCount: Number(u.complaintsFiledCount || 0),
     joinedAt: joined,
     subtitle,
     shopName: u.shopName || '',
@@ -128,13 +148,8 @@ function mapUserFromApi(u) {
 }
 
 function initials(name) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join('')
-    .toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function formatJoined(iso) {
@@ -215,11 +230,47 @@ function accountApprovalBadge(status) {
   }
 }
 
+function moderationStandingBadge(row) {
+  const st = row?.moderationStatus || 'active'
+  const strikes = Number(row?.warningCount || 0)
+  if (st === 'restricted') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-none border border-rose-300 bg-rose-100 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-rose-800">
+        <Ban className="size-2.5 shrink-0" />
+        Restricted
+      </span>
+    )
+  }
+  if (st === 'warned' || strikes > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-none border border-amber-300 bg-amber-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-800">
+        <ShieldAlert className="size-2.5 shrink-0 text-amber-600" />
+        Warned ({strikes} Strike{strikes === 1 ? '' : 's'})
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-none border border-slate-200 bg-slate-50 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+      <ShieldCheck className="size-2.5 shrink-0 text-emerald-600" />
+      Good Standing
+    </span>
+  )
+}
+
 function statusCell(row) {
   const isMechanic = row.roleRaw === 'mechanic-technician'
   return (
     <div className="flex flex-col gap-1">
-      {accountApprovalBadge(row.accountApprovalStatus)}
+      <div className="flex flex-wrap items-center gap-1">
+        {accountApprovalBadge(row.accountApprovalStatus)}
+        {row.accountApprovalStatus === 'approved' ? moderationStandingBadge(row) : null}
+      </div>
+      {row.complaintsAgainstCount > 0 ? (
+        <div className="text-[10px] font-bold text-rose-700">
+          {row.complaintsAgainstCount} Report{row.complaintsAgainstCount === 1 ? '' : 's'} Against
+          {row.openComplaintsAgainstCount > 0 ? ` (${row.openComplaintsAgainstCount} Open)` : ''}
+        </div>
+      ) : null}
       {isMechanic ? (
         <div
           className="max-w-[200px] break-words text-[10px] leading-tight text-slate-500 font-medium"
@@ -241,52 +292,41 @@ function roleBadge(role) {
 }
 
 const STAT_CARD_GRADIENT = {
-  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
-  customer: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
-  'shop-owner': "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
-  independent: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
-  mechanic: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+  total: 'text-[#224d84]',
+  customer: 'text-sky-600',
+  'shop-owner': 'text-purple-600',
+  independent: 'text-amber-500',
+  mechanic: 'text-emerald-600',
 }
 
 function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
-  const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
+  const iconTone = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total ?? 'text-[#224d84]'
   const helperText = helper || sub
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
-        onClick ? "cursor-pointer" : "",
-        gradient,
+        'group relative overflow-hidden rounded-none border border-[#c9e8fd] bg-white p-3 sm:p-4 shadow-[0_10px_28px_-18px_rgba(1,30,72,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#8fc8f3] hover:shadow-[0_16px_32px_-18px_rgba(1,30,72,0.5)]',
+        onClick ? 'cursor-pointer' : '',
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
-
-      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
-            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
-            <span className="truncate">{label}</span>
-          </span>
-          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
-            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
-              {value}
-            </span>
-          </div>
+      <Icon className={cn('pointer-events-none absolute -right-2 -bottom-3 size-16 sm:size-20 rotate-12 stroke-[1.15] opacity-[0.12] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6', iconTone)} />
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-[#011e48] tabular-nums">
+            {value}
+          </p>
           {helperText ? (
-            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+            <p className="mt-1 truncate text-[10px] sm:text-[11px] font-medium text-slate-500">
               {helperText}
             </p>
           ) : null}
         </div>
+        <Icon className={cn('size-5 sm:size-6 shrink-0', iconTone)} />
       </div>
     </div>
   )
@@ -310,11 +350,13 @@ export default function AdminUserManagement() {
   const [listError, setListError] = useState('')
   const [roleFilter, setRoleFilter] = useState('__')
   const [approvalFilter, setApprovalFilter] = useState('__')
+  const [standingFilter, setStandingFilter] = useState('__')
   const [mechanicRosterFilter, setMechanicRosterFilter] = useState('__')
   const [dateRange, setDateRange] = useState('__')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [detailTab, setDetailTab] = useState('profile')
   const [detailUser, setDetailUser] = useState(null)
   const [detailProfile, setDetailProfile] = useState(null)
   const [detailProfileLoading, setDetailProfileLoading] = useState(false)
@@ -322,6 +364,9 @@ export default function AdminUserManagement() {
   const [moderationUser, setModerationUser] = useState(null)
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
+  const [warnOpen, setWarnOpen] = useState(false)
+  const [restrictOpen, setRestrictOpen] = useState(false)
+  const [liftRestrictOpen, setLiftRestrictOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [rejectFieldError, setRejectFieldError] = useState('')
   const [acting, setActing] = useState(false)
@@ -442,12 +487,17 @@ export default function AdminUserManagement() {
     const owners = users.filter((u) => u.roleRaw === 'shop-owner').length
     const independents = users.filter((u) => u.roleRaw === 'oncall-mechanic-technician').length
     const mechanics = users.filter((u) => u.roleRaw === 'mechanic-technician').length
-    return { total, customers, owners, independents, mechanics }
+    const pendingApproval = users.filter((u) => u.accountApprovalStatus === 'pending').length
+    const warned = users.filter((u) => u.moderationStatus === 'warned').length
+    const restricted = users.filter((u) => u.moderationStatus === 'restricted').length
+    const withReports = users.filter((u) => u.complaintsAgainstCount > 0).length
+    return { total, customers, owners, independents, mechanics, pendingApproval, warned, restricted, withReports }
   }, [users])
 
   const filtered = useMemo(() => {
     const roleOk = roleFilter === '__' || roleFilter === '' ? null : roleFilter
     const approvalOk = approvalFilter === '__' || approvalFilter === '' ? null : approvalFilter
+    const standingOk = standingFilter === '__' || standingFilter === '' ? null : standingFilter
     const rosterOk =
       mechanicRosterFilter === '__' || mechanicRosterFilter === '' ? null : mechanicRosterFilter
     const { from, to } = getRangeDates(dateRange === '__' || dateRange === '' ? '' : dateRange)
@@ -457,6 +507,14 @@ export default function AdminUserManagement() {
       if (roleOk && e.roleRaw !== roleOk) return false
 
       if (approvalOk && e.accountApprovalStatus !== approvalOk) return false
+
+      if (standingOk) {
+        if (standingOk === 'reported') {
+          if (!(e.complaintsAgainstCount > 0)) return false
+        } else if (e.moderationStatus !== standingOk) {
+          return false
+        }
+      }
 
       if (rosterOk) {
         if (e.roleRaw !== 'mechanic-technician') return false
@@ -475,7 +533,7 @@ export default function AdminUserManagement() {
         (e.registeredUnder && e.registeredUnder.toLowerCase().includes(query))
       )
     })
-  }, [users, roleFilter, approvalFilter, mechanicRosterFilter, dateRange, q])
+  }, [users, roleFilter, approvalFilter, standingFilter, mechanicRosterFilter, dateRange, q])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
@@ -487,7 +545,7 @@ export default function AdminUserManagement() {
 
   useEffect(() => {
     setPage(1)
-  }, [roleFilter, approvalFilter, mechanicRosterFilter, dateRange, q])
+  }, [roleFilter, approvalFilter, standingFilter, mechanicRosterFilter, dateRange, q])
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
@@ -503,9 +561,45 @@ export default function AdminUserManagement() {
     return [...pages].sort((a, b) => a - b)
   }, [totalPages, safePage])
 
-  const openDetail = (row) => {
+  const openDetail = (row, initialTab = 'profile') => {
     setDetailUser(row)
+    setDetailTab(initialTab)
     setDetailOpen(true)
+  }
+
+  const refreshDetailIfNeeded = async (targetUserId) => {
+    await loadUsers()
+    if (detailOpen && detailUser?.id === targetUserId) {
+      try {
+        const res = await fetch(`${API_URL}/api/users/admin/${targetUserId}`, { headers: authHeaders() })
+        const data = await res.json().catch(() => ({}))
+        if (res.ok && data?._id) {
+          setDetailProfile(data)
+          setDetailUser((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  moderationStatus: data.moderationStatus || 'active',
+                  warningCount: Number(data.warningCount || 0),
+                  restrictionReason: data.restrictionReason || '',
+                  restrictedUntil: data.restrictedUntil || null,
+                }
+              : prev
+          )
+        }
+      } catch {
+        // silent
+      }
+    }
+  }
+
+  const closeDetail = () => {
+    setDetailOpen(false)
+    setDetailTab('profile')
+    setDetailUser(null)
+    setDetailProfile(null)
+    setDetailProfileError('')
+    setDetailProfileLoading(false)
   }
 
   const openApproveFlow = (userRow) => {
@@ -518,6 +612,21 @@ export default function AdminUserManagement() {
     setRejectReason('')
     setRejectFieldError('')
     setRejectOpen(true)
+  }
+
+  const openWarnFlow = (userRow) => {
+    setModerationUser(userRow)
+    setWarnOpen(true)
+  }
+
+  const openRestrictFlow = (userRow) => {
+    setModerationUser(userRow)
+    setRestrictOpen(true)
+  }
+
+  const openLiftRestrictFlow = (userRow) => {
+    setModerationUser(userRow)
+    setLiftRestrictOpen(true)
   }
 
   const closeModerationDialogs = () => {
@@ -550,9 +659,7 @@ export default function AdminUserManagement() {
       const approvedId = moderationUser.id
       setModerationUser(null)
       if (detailUser?.id === approvedId) {
-        setDetailOpen(false)
-        setDetailUser(null)
-        setDetailProfile(null)
+        closeDetail()
       }
       await loadUsers()
     } catch (e) {
@@ -591,9 +698,7 @@ export default function AdminUserManagement() {
       const rejectedId = moderationUser.id
       setModerationUser(null)
       if (detailUser?.id === rejectedId) {
-        setDetailOpen(false)
-        setDetailUser(null)
-        setDetailProfile(null)
+        closeDetail()
       }
       await loadUsers()
     } catch (e) {
@@ -677,6 +782,91 @@ export default function AdminUserManagement() {
         </div>
       ) : null}
 
+      {/* Progressive Discipline & Moderation Quick Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border border-slate-200 bg-white px-3.5 py-2.5 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 mr-1">
+            Moderation Quick Filter:
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setApprovalFilter((prev) => (prev === 'pending' ? '__' : 'pending'))
+              setStandingFilter('__')
+            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold border transition-colors cursor-pointer',
+              approvalFilter === 'pending'
+                ? 'bg-amber-600 text-white border-amber-600'
+                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+            )}
+          >
+            <Clock className="size-3" />
+            <span>Pending Approval ({stats.pendingApproval})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStandingFilter((prev) => (prev === 'warned' ? '__' : 'warned'))
+              setApprovalFilter('__')
+            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold border transition-colors cursor-pointer',
+              standingFilter === 'warned'
+                ? 'bg-amber-700 text-white border-amber-700'
+                : 'bg-amber-50/70 text-amber-900 border-amber-300 hover:bg-amber-100'
+            )}
+          >
+            <ShieldAlert className="size-3" />
+            <span>Warned Users ({stats.warned})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStandingFilter((prev) => (prev === 'restricted' ? '__' : 'restricted'))
+              setApprovalFilter('__')
+            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold border transition-colors cursor-pointer',
+              standingFilter === 'restricted'
+                ? 'bg-rose-700 text-white border-rose-700'
+                : 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+            )}
+          >
+            <Ban className="size-3" />
+            <span>Restricted ({stats.restricted})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStandingFilter((prev) => (prev === 'reported' ? '__' : 'reported'))
+              setApprovalFilter('__')
+            }}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold border transition-colors cursor-pointer',
+              standingFilter === 'reported'
+                ? 'bg-[#081F5C] text-white border-[#081F5C]'
+                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+            )}
+          >
+            <AlertTriangle className="size-3 text-rose-600" />
+            <span>With Reports ({stats.withReports})</span>
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            window.location.hash = '#/admin/complaint-report'
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-black uppercase tracking-wider bg-[#081F5C] text-white hover:bg-[#1447a6] transition-colors cursor-pointer"
+        >
+          <ShieldAlert className="size-3.5 text-amber-300" />
+          <span>Review Reports &amp; Complaints</span>
+          <ExternalLink className="size-3" />
+        </button>
+      </div>
+
       <div className="mb-1 flex min-w-0 max-w-full flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-stretch lg:justify-between">
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-1 sm:flex-row sm:flex-wrap sm:gap-3 min-w-0 w-full max-w-full">
           <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
@@ -710,6 +900,24 @@ export default function AdminUserManagement() {
               <option value="pending">Pending approval</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
+          </div>
+
+          <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[200px]">
+            <select
+              className={selectShell}
+              value={standingFilter}
+              onChange={(e) => setStandingFilter(e.target.value === '' ? '__' : e.target.value)}
+            >
+              <option value="__" disabled hidden>
+                Standing
+              </option>
+              <option value="">All standings</option>
+              <option value="active">Good standing</option>
+              <option value="warned">Warned (Has strikes)</option>
+              <option value="restricted">Restricted</option>
+              <option value="reported">Has reports</option>
             </select>
             <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
@@ -756,7 +964,7 @@ export default function AdminUserManagement() {
           <div className="relative w-full min-w-0 max-w-full">
             <Input
               className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
-              placeholder="Search by name, email, role, or notes…"
+              placeholder="Search name, email, role"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               aria-label="Search users"
@@ -866,16 +1074,58 @@ export default function AdminUserManagement() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-44 text-xs rounded-none">
+                          <DropdownMenuContent align="end" className="w-52 text-xs rounded-none">
                             <DropdownMenuItem className="gap-2 text-xs" onClick={() => openDetail(row)}>
                               <Eye className="h-3.5 w-3.5" />
-                              View
+                              View Profile &amp; Moderation
                             </DropdownMenuItem>
-                            {row.accountApprovalStatus === 'pending' || row.accountApprovalStatus === 'rejected' ? (
-                              <DropdownMenuItem className="gap-2 text-xs" onClick={() => openApproveFlow(row)}>
-                                <Check className="h-3.5 w-3.5" />
-                                Approve
+                            {row.warnings?.length > 0 || row.complaintsAgainstCount > 0 ? (
+                              <DropdownMenuItem
+                                className="gap-2 text-xs"
+                                onClick={() => openDetail(row, row.warnings?.length > 0 ? 'warnings' : 'reports')}
+                              >
+                                <FileText className="h-3.5 w-3.5 text-[#081F5C]" />
+                                View Strikes &amp; Reports
                               </DropdownMenuItem>
+                            ) : null}
+                            {row.accountApprovalStatus === 'approved' ? (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="gap-2 text-xs text-amber-800 focus:text-amber-900"
+                                  onClick={() => openWarnFlow(row)}
+                                >
+                                  <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                                  Issue Warning Form
+                                </DropdownMenuItem>
+                                {row.moderationStatus === 'restricted' ? (
+                                  <DropdownMenuItem
+                                    className="gap-2 text-xs text-emerald-700 focus:text-emerald-800"
+                                    onClick={() => openLiftRestrictFlow(row)}
+                                  >
+                                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                                    Lift Restriction
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem
+                                    variant="destructive"
+                                    className="gap-2 text-xs"
+                                    onClick={() => openRestrictFlow(row)}
+                                  >
+                                    <Ban className="h-3.5 w-3.5" />
+                                    Restrict Account
+                                  </DropdownMenuItem>
+                                )}
+                              </>
+                            ) : null}
+                            {row.accountApprovalStatus === 'pending' || row.accountApprovalStatus === 'rejected' ? (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="gap-2 text-xs" onClick={() => openApproveFlow(row)}>
+                                  <Check className="h-3.5 w-3.5" />
+                                  Approve
+                                </DropdownMenuItem>
+                              </>
                             ) : null}
                             {row.accountApprovalStatus === 'pending' ? (
                               <>
@@ -941,16 +1191,49 @@ export default function AdminUserManagement() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44 text-xs z-50 rounded-none">
+                      <DropdownMenuContent align="end" className="w-52 text-xs z-50 rounded-none">
                         <DropdownMenuItem className="gap-2 text-xs" onClick={() => openDetail(row)}>
                           <Eye className="h-3.5 w-3.5" />
-                          View
+                          View Profile &amp; Moderation
                         </DropdownMenuItem>
+                        {row.accountApprovalStatus === 'approved' ? (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="gap-2 text-xs text-amber-800"
+                              onClick={() => openWarnFlow(row)}
+                            >
+                              <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                              Issue Warning Form
+                            </DropdownMenuItem>
+                            {row.moderationStatus === 'restricted' ? (
+                              <DropdownMenuItem
+                                className="gap-2 text-xs text-emerald-700"
+                                onClick={() => openLiftRestrictFlow(row)}
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                                Lift Restriction
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                variant="destructive"
+                                className="gap-2 text-xs"
+                                onClick={() => openRestrictFlow(row)}
+                              >
+                                <Ban className="h-3.5 w-3.5" />
+                                Restrict Account
+                              </DropdownMenuItem>
+                            )}
+                          </>
+                        ) : null}
                         {row.accountApprovalStatus === 'pending' || row.accountApprovalStatus === 'rejected' ? (
-                          <DropdownMenuItem className="gap-2 text-xs" onClick={() => openApproveFlow(row)}>
-                            <Check className="h-3.5 w-3.5" />
-                            Approve
-                          </DropdownMenuItem>
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="gap-2 text-xs" onClick={() => openApproveFlow(row)}>
+                              <Check className="h-3.5 w-3.5" />
+                              Approve
+                            </DropdownMenuItem>
+                          </>
                         ) : null}
                         {row.accountApprovalStatus === 'pending' ? (
                           <>
@@ -1090,7 +1373,7 @@ export default function AdminUserManagement() {
                 <div className="flex items-center gap-2.5">
                   <Avatar className="size-9 rounded-none border border-slate-300">
                     <AvatarFallback className="rounded-none bg-[#1447a6] text-white font-bold text-xs">
-                      {moderationUser.fullName ? moderationUser.fullName.slice(0, 2).toUpperCase() : 'U'}
+                      {moderationUser.fullName ? moderationUser.fullName.trim().charAt(0).toUpperCase() : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
@@ -1177,7 +1460,7 @@ export default function AdminUserManagement() {
                 <div className="flex items-center gap-2.5">
                   <Avatar className="size-9 rounded-none border border-slate-300">
                     <AvatarFallback className="rounded-none bg-rose-700 text-white font-bold text-xs">
-                      {moderationUser.fullName ? moderationUser.fullName.slice(0, 2).toUpperCase() : 'U'}
+                      {moderationUser.fullName ? moderationUser.fullName.trim().charAt(0).toUpperCase() : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
@@ -1201,7 +1484,7 @@ export default function AdminUserManagement() {
               </label>
               <Textarea
                 className="min-h-[110px] resize-none text-xs rounded-none border-slate-200 focus-visible:ring-rose-500 dark:border-slate-700"
-                placeholder="e.g. Unclear or invalid government ID submitted, unverified business permit, mismatched name and documentation..."
+                placeholder="Why this account was rejected"
                 value={rejectReason}
                 onChange={(e) => {
                   setRejectReason(e.target.value)
@@ -1253,13 +1536,8 @@ export default function AdminUserManagement() {
       <Dialog
         open={detailOpen}
         onOpenChange={(open) => {
-          setDetailOpen(open)
-          if (!open) {
-            setDetailUser(null)
-            setDetailProfile(null)
-            setDetailProfileError('')
-            setDetailProfileLoading(false)
-          }
+          if (open) setDetailOpen(true)
+          else closeDetail()
         }}
       >
         <DialogContent
@@ -1307,10 +1585,57 @@ export default function AdminUserManagement() {
                     {detailUser.role}
                   </Badge>
                   {accountApprovalBadge(detailUser.accountApprovalStatus)}
+                  {detailUser.accountApprovalStatus === 'approved' ? moderationStandingBadge(detailUser) : null}
                 </div>
               ) : null}
             </div>
           </div>
+
+          {/* Modal Navigation Tabs */}
+          {detailProfile && (
+            <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-white px-4 pt-2 shrink-0">
+              {[
+                { id: 'profile', label: 'Registration Profile', icon: User },
+                {
+                  id: 'warnings',
+                  label: `Warnings & Strikes (${Array.isArray(detailProfile.warnings) ? detailProfile.warnings.length : 0})`,
+                  icon: ShieldAlert,
+                },
+                {
+                  id: 'reports',
+                  label: `Reports (${
+                    (detailProfile.complaintsAgainst?.length || 0) +
+                    (detailProfile.complaintsFiled?.length || 0)
+                  })`,
+                  icon: FileText,
+                },
+                {
+                  id: 'logs',
+                  label: `Moderation Log (${detailProfile.moderationLogs?.length || 0})`,
+                  icon: History,
+                },
+              ].map((tab) => {
+                const TabIcon = tab.icon
+                const active = detailTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setDetailTab(tab.id)}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold border-b-2 transition-colors whitespace-nowrap cursor-pointer',
+                      active
+                        ? 'border-[#081F5C] text-[#081F5C] bg-slate-50/80'
+                        : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                    )}
+                  >
+                    <TabIcon className="size-3.5" />
+                    <span>{tab.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Scrollable Profile Body */}
           <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 p-4 sm:p-6 dark:bg-slate-950/40">
@@ -1327,13 +1652,209 @@ export default function AdminUserManagement() {
                   <p className="mt-0.5">{detailProfileError}</p>
                 </div>
               </div>
+            ) : detailProfile ? (
+              detailTab === 'profile' ? (
+                <AdminRegistrationDetailView
+                  profile={detailProfile}
+                  apiBaseUrl={API_URL}
+                  onApprove={() => openApproveFlow(detailUser)}
+                  onReject={() => openRejectFlow(detailUser)}
+                />
+              ) : detailTab === 'warnings' ? (
+                <div className="space-y-3 text-xs">
+                  {detailProfile.moderationStatus === 'restricted' && (
+                    <div className="border-2 border-rose-300 bg-rose-50 p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-black uppercase text-rose-800 flex items-center gap-1.5">
+                          <Ban className="size-4 text-rose-600" />
+                          Account Currently Restricted
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => openLiftRestrictFlow(detailUser)}
+                          className="h-7 px-3 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold"
+                        >
+                          Lift Restriction
+                        </Button>
+                      </div>
+                      <p className="text-rose-950 font-semibold">{detailProfile.restrictionReason}</p>
+                      <p className="text-[11px] text-rose-700">
+                        {detailProfile.restrictedUntil
+                          ? `Restricted until ${new Date(detailProfile.restrictedUntil).toLocaleString('en-PH')}`
+                          : 'Indefinite restriction until lifted by Admin'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between bg-white border border-slate-200 p-3">
+                    <div>
+                      <p className="font-bold text-slate-900">Issued Administrative Warnings</p>
+                      <p className="text-[11px] text-slate-500">
+                        Total strikes: {Number(detailProfile.warningCount || 0)}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => openWarnFlow(detailUser)}
+                      className="h-8 px-3 rounded-none bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold"
+                    >
+                      <ShieldAlert className="size-3.5 mr-1.5" />
+                      Issue Warning Form
+                    </Button>
+                  </div>
+
+                  {Array.isArray(detailProfile.warnings) && detailProfile.warnings.length > 0 ? (
+                    [...detailProfile.warnings]
+                      .sort((a, b) => new Date(b.issuedAt || 0) - new Date(a.issuedAt || 0))
+                      .map((w) => (
+                        <div key={w._id || w.referenceCode} className="border border-slate-200 bg-white p-3.5 space-y-2 shadow-2xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px] font-black bg-slate-900 text-white px-2 py-0.5">
+                                {w.referenceCode}
+                              </span>
+                              <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                                Strike #{w.warningNumber} · {String(w.severity || 'moderate').replace('_', ' ')}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-500">
+                              {w.issuedAt ? new Date(w.issuedAt).toLocaleString('en-PH') : '—'}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-900 text-sm">{w.title}</p>
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">{w.reason}</p>
+                          {w.correctiveAction && (
+                            <p className="text-[11px] bg-blue-50 border border-blue-200 p-2 text-blue-950">
+                              <strong>Required Corrective Action:</strong> {w.correctiveAction}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1.5 border-t border-slate-100 text-[11px]">
+                            <span className={w.acknowledged ? 'text-emerald-700 font-bold' : 'text-amber-700 font-bold'}>
+                              {w.acknowledged
+                                ? `Acknowledged by user (${new Date(w.acknowledgedAt).toLocaleString('en-PH')})`
+                                : 'Pending user acknowledgment (Form will appear on user screen)'}
+                            </span>
+                            {w.relatedTicketNumber && (
+                              <span className="font-mono text-slate-500">Ticket #{w.relatedTicketNumber}</span>
+                            )}
+                          </div>
+                          {w.acknowledgmentNote && (
+                            <p className="text-[11px] text-slate-600 italic bg-slate-50 p-2 border border-slate-200">
+                              User Note: &ldquo;{w.acknowledgmentNote}&rdquo;
+                            </p>
+                          )}
+                        </div>
+                      ))
+                  ) : (
+                    <div className="border border-slate-200 bg-white p-8 text-center text-slate-500">
+                      <ShieldCheck className="size-8 mx-auto text-emerald-500 mb-2" />
+                      <p className="font-bold text-slate-800">No warnings issued to this user</p>
+                      <p className="text-[11px] mt-0.5">Use &ldquo;Issue Warning Form&rdquo; above if a rule violation occurred.</p>
+                    </div>
+                  )}
+                </div>
+              ) : detailTab === 'reports' ? (
+                <div className="space-y-4 text-xs">
+                  <div className="space-y-2">
+                    <h4 className="text-[11px] font-black uppercase tracking-wider text-rose-800">
+                      Reports Filed Against This User ({detailProfile.complaintsAgainst?.length || 0})
+                    </h4>
+                    {Array.isArray(detailProfile.complaintsAgainst) && detailProfile.complaintsAgainst.length > 0 ? (
+                      detailProfile.complaintsAgainst.map((c) => (
+                        <div key={c._id} className="border border-slate-200 bg-white p-3 space-y-1.5">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px] font-bold bg-slate-900 text-white px-2 py-0.5">
+                                {c.ticketNumber}
+                              </span>
+                              <span className="px-2 py-0.5 text-[10px] font-bold uppercase border border-slate-200 bg-slate-50">
+                                {c.status}
+                              </span>
+                              {c.moderationOutcome && c.moderationOutcome !== 'none' && (
+                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                                  Outcome: {c.moderationOutcome}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-slate-500">
+                              {c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-PH') : '—'}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-900">{c.subject}</p>
+                          <p className="text-[11px] text-slate-500">
+                            Reported by: <span className="font-semibold text-slate-700">{c.reporterName || c.customerName}</span>
+                          </p>
+                          {c.adminAction && (
+                            <p className="text-[11px] font-semibold text-indigo-800">Admin Ruling: {c.adminAction}</p>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="border border-slate-200 bg-white p-4 text-slate-500 text-center">
+                        No reports filed against this user.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700">
+                      Reports Submitted By This User ({detailProfile.complaintsFiled?.length || 0})
+                    </h4>
+                    {Array.isArray(detailProfile.complaintsFiled) && detailProfile.complaintsFiled.length > 0 ? (
+                      detailProfile.complaintsFiled.map((c) => (
+                        <div key={c._id} className="border border-slate-200 bg-white p-3 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-[11px] font-bold bg-slate-800 text-white px-2 py-0.5">
+                              {c.ticketNumber}
+                            </span>
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 border border-slate-200 bg-slate-50">
+                              {c.status}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-900">{c.subject}</p>
+                          <p className="text-[11px] text-slate-500">
+                            Reported: {c.reportedUserName || c.targetShopName || 'Platform'}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="border border-slate-200 bg-white p-4 text-slate-500 text-center">
+                        This user has not submitted any reports.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5 text-xs">
+                  {Array.isArray(detailProfile.moderationLogs) && detailProfile.moderationLogs.length > 0 ? (
+                    [...detailProfile.moderationLogs]
+                      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+                      .map((log, i) => (
+                        <div key={log._id || i} className="border border-slate-200 bg-white p-3 space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-800">
+                              {String(log.action || '').replace('_', ' ')}
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              {log.createdAt ? new Date(log.createdAt).toLocaleString('en-PH') : '—'}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-900">{log.summary}</p>
+                          {log.details && <p className="text-slate-600">{log.details}</p>}
+                          <p className="text-[10px] text-slate-400">By: {log.actorName || 'System'}</p>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="border border-slate-200 bg-white p-8 text-center text-slate-500">
+                      No moderation events recorded for this user yet.
+                    </div>
+                  )}
+                </div>
+              )
             ) : (
-              <AdminRegistrationDetailView
-                profile={detailProfile}
-                apiBaseUrl={API_URL}
-                onApprove={() => openApproveFlow(detailUser)}
-                onReject={() => openRejectFlow(detailUser)}
-              />
+              <p className="py-8 text-center text-sm text-slate-500 font-medium">No registration data.</p>
             )}
           </div>
 
@@ -1343,12 +1864,47 @@ export default function AdminUserManagement() {
               {detailUser?.joinedAt ? `Account created ${detailUser.joinedAt}` : 'User Management System'}
             </p>
 
-            <div className="flex w-full sm:w-auto items-center justify-end gap-2">
+            <div className="flex w-full sm:w-auto flex-wrap items-center justify-end gap-2">
+              {!detailProfileLoading && !detailProfileError && detailUser && detailProfile && detailProfile.accountApprovalStatus === 'approved' ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => openWarnFlow(detailUser)}
+                    className="h-8 px-3 text-xs font-bold rounded-none bg-amber-600 hover:bg-amber-700 text-white cursor-pointer"
+                  >
+                    <ShieldAlert className="size-3.5 mr-1.5" />
+                    Issue Warning
+                  </Button>
+                  {detailProfile.moderationStatus === 'restricted' ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => openLiftRestrictFlow(detailUser)}
+                      className="h-8 px-3 text-xs font-bold rounded-none bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                    >
+                      <ShieldCheck className="size-3.5 mr-1.5" />
+                      Lift Restriction
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => openRestrictFlow(detailUser)}
+                      className="h-8 px-3 text-xs font-bold rounded-none bg-rose-700 hover:bg-rose-800 text-white cursor-pointer"
+                    >
+                      <Ban className="size-3.5 mr-1.5" />
+                      Restrict Account
+                    </Button>
+                  )}
+                </>
+              ) : null}
+
               <Button
                 type="button"
                 variant="outline"
                 className="w-full sm:w-auto h-8 px-4 text-xs font-bold rounded-none border-slate-300 hover:bg-slate-100 dark:border-slate-700"
-                onClick={() => setDetailOpen(false)}
+                onClick={closeDetail}
               >
                 Close
               </Button>
@@ -1389,6 +1945,48 @@ export default function AdminUserManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 4. Issue Formal Warning Dialog */}
+      <IssueWarningDialog
+        open={warnOpen}
+        onOpenChange={(open) => {
+          setWarnOpen(open)
+          if (!open) setModerationUser(null)
+        }}
+        targetUser={moderationUser}
+        onSuccess={() => {
+          if (moderationUser?.id) void refreshDetailIfNeeded(moderationUser.id)
+          else void loadUsers()
+        }}
+      />
+
+      {/* 5. Restrict User Account Dialog */}
+      <RestrictUserDialog
+        open={restrictOpen}
+        onOpenChange={(open) => {
+          setRestrictOpen(open)
+          if (!open) setModerationUser(null)
+        }}
+        targetUser={moderationUser}
+        onSuccess={() => {
+          if (moderationUser?.id) void refreshDetailIfNeeded(moderationUser.id)
+          else void loadUsers()
+        }}
+      />
+
+      {/* 6. Lift Restriction Dialog */}
+      <LiftRestrictionDialog
+        open={liftRestrictOpen}
+        onOpenChange={(open) => {
+          setLiftRestrictOpen(open)
+          if (!open) setModerationUser(null)
+        }}
+        targetUser={moderationUser}
+        onSuccess={() => {
+          if (moderationUser?.id) void refreshDetailIfNeeded(moderationUser.id)
+          else void loadUsers()
+        }}
+      />
     </div>
   )
 }

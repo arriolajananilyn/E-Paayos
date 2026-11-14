@@ -705,7 +705,7 @@ export default function CustomerReviewsRatings() {
                 <div className="relative w-full min-w-0 max-w-full">
                   <Input
                     className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-11 sm:pr-12 pl-3 sm:pl-4 text-xs sm:text-sm shadow-2xs focus-visible:ring-1 focus-visible:ring-[#081F5C] focus-visible:border-[#081F5C] transition-all hover:border-slate-300"
-                    placeholder="Search reviews by service, shop, or ref..."
+                    placeholder="Search reviews"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     aria-label="Search reviews"
@@ -1067,28 +1067,40 @@ export default function CustomerReviewsRatings() {
         {/* ── WRITE / EDIT REVIEW MODAL ─────────────────────────────────────── */}
         <Dialog open={isWriteModalOpen} onOpenChange={setIsWriteModalOpen}>
           <DialogContent
-            className="max-w-4xl sm:max-w-3xl lg:max-w-4xl w-[95vw] sm:w-full max-h-[92vh] overflow-y-auto rounded-none p-4 sm:p-6 sm:p-8 bg-white border border-slate-200 shadow-2xl"
+            showCloseButton={false}
+            className="max-w-4xl sm:max-w-3xl lg:max-w-4xl w-[95vw] sm:w-full max-h-[92dvh] flex flex-col gap-0 overflow-hidden rounded-none p-0 bg-white border border-slate-200 shadow-2xl"
           >
-            <DialogHeader className="border-b border-slate-100 pb-3 sm:pb-4">
-              <div className="flex items-center gap-2.5">
-                <span className="flex size-8 sm:size-9 items-center justify-center rounded-none bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
-                  <Star className="size-4 sm:size-5 fill-indigo-600" />
-                </span>
-                <div>
-                  <DialogTitle className="text-lg sm:text-2xl font-black tracking-tight text-slate-900">
-                    {isEditMode ? "Edit Your Service Review" : "Write a Service Review"}
-                  </DialogTitle>
-                  <DialogDescription className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-                    Share your verified experience for{" "}
-                    <strong className="text-slate-800">{selectedBookingForReview?.serviceName}</strong>{" "}
-                    at <strong className="text-slate-800">{selectedBookingForReview?.shopName}</strong> (Ref: {selectedBookingForReview?.ref})
-                  </DialogDescription>
+            <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-6 sm:py-4 text-white shrink-0 border-b border-white/10">
+              <div className="flex items-start sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <span className="flex size-8 sm:size-9 items-center justify-center rounded-none bg-white/15 text-amber-300 border border-white/20 shrink-0">
+                    <Star className="size-4 sm:size-5 fill-amber-300" />
+                  </span>
+                  <div className="min-w-0">
+                    <DialogTitle className="text-sm sm:text-lg font-extrabold tracking-tight text-white leading-tight">
+                      {isEditMode ? "Edit Your Service Review" : "Write a Service Review"}
+                    </DialogTitle>
+                    <DialogDescription className="text-[11px] sm:text-xs text-blue-100/85 mt-0.5 font-medium leading-snug line-clamp-2">
+                      Share your verified experience for{" "}
+                      <strong className="text-white">{selectedBookingForReview?.serviceName}</strong>{" "}
+                      at <strong className="text-blue-100">{selectedBookingForReview?.shopName}</strong> (Ref: {selectedBookingForReview?.ref})
+                    </DialogDescription>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => setIsWriteModalOpen(false)}
+                  className="size-8 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/15 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+                  aria-label="Close dialog"
+                >
+                  <X className="size-4" />
+                </button>
               </div>
-            </DialogHeader>
+            </div>
 
             {selectedBookingForReview && (
-              <form onSubmit={handleSubmitReview} className="mt-4 sm:mt-5 space-y-4 sm:space-y-6">
+              <form onSubmit={handleSubmitReview} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
                 {/* Booking Service Summary Banner */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-slate-50 p-3 sm:p-4 border border-slate-200 rounded-none">
                   <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
@@ -1177,12 +1189,12 @@ export default function CustomerReviewsRatings() {
                 <div className="grid grid-cols-1 gap-3.5 sm:gap-5">
                   <div>
                     <label className="block text-xs sm:text-sm font-bold text-slate-900 mb-1 sm:mb-1.5">
-                      Review Headline / Summary <span className="text-red-500">*</span>
+                      Review headline <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Excellent technician, fast turnaround and device working perfectly!"
+                      placeholder="Short headline"
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
                       className="w-full rounded-none border border-slate-300 bg-white px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#081F5C] focus:outline-none focus:ring-1 focus:ring-[#081F5C]"
@@ -1192,7 +1204,7 @@ export default function CustomerReviewsRatings() {
                   <div>
                     <div className="flex items-center justify-between mb-1 sm:mb-1.5">
                       <label className="block text-xs sm:text-sm font-bold text-slate-900">
-                        Detailed Service Feedback <span className="text-red-500">*</span>
+                        Feedback <span className="text-red-500">*</span>
                       </label>
                       <span className={cn("text-[11px] sm:text-xs font-medium", formComment.length >= 15 ? "text-[#081F5C] font-bold" : "text-slate-400")}>
                         {formComment.length} characters (min 15)
@@ -1202,7 +1214,7 @@ export default function CustomerReviewsRatings() {
                       rows={4}
                       required
                       minLength={15}
-                      placeholder="Share your experience regarding workmanship, technician communication, timeliness, and repair outcome..."
+                      placeholder="How was the service?"
                       value={formComment}
                       onChange={(e) => setFormComment(e.target.value)}
                       className="w-full rounded-none border border-slate-300 bg-white p-3 sm:p-4 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#081F5C] focus:outline-none focus:ring-1 focus:ring-[#081F5C]"

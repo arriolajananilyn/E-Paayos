@@ -171,14 +171,8 @@ function categoryTopBannerImage(category) {
 }
 
 function initialsFromName(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  if (!parts.length) return '?'
-  const first = parts[0]?.[0] ?? ''
-  const second = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
-  return `${first}${second}`.toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function staffRoleHeading(category) {

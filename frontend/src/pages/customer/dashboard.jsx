@@ -65,17 +65,6 @@ function formatDateShort(ymd) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function initialsFromShopName(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  if (!parts.length) return '?'
-  const first = parts[0]?.[0] ?? ''
-  const second = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
-  return `${first}${second}`.toUpperCase()
-}
-
 function resolveCatalogShopPhotoUrl(raw) {
   if (!raw || typeof raw !== 'string') return ''
   const s = raw.trim()
@@ -86,12 +75,12 @@ function resolveCatalogShopPhotoUrl(raw) {
 }
 
 function resolveShopPhotoUrl(shop) {
-  return (
-    resolveCatalogShopPhotoUrl(shop?.shopPlacePhoto) ||
-    resolveCatalogShopPhotoUrl(shop?.shopOwnerProfileImage) ||
-    resolveCatalogShopPhotoUrl(shop?.shopOwnerSelfieImage) ||
-    ''
-  )
+  return resolveCatalogShopPhotoUrl(shop?.shopPlacePhoto)
+}
+
+function firstLetterFromName(name) {
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function categoryBannerImage(category) {
@@ -104,11 +93,11 @@ function categoryBannerImage(category) {
 
 function categoryBadgeClass(category) {
   const normalized = String(category ?? '').toLowerCase()
-  if (normalized === 'vehicle') return 'bg-linear-to-r from-sky-600 to-blue-700 text-white'
-  if (normalized === 'gadget') return 'bg-linear-to-r from-violet-600 to-fuchsia-600 text-white'
-  if (normalized === 'appliance') return 'bg-linear-to-r from-emerald-600 to-teal-600 text-white'
-  if (normalized === 'others') return 'bg-linear-to-r from-amber-600 to-orange-600 text-white'
-  return 'bg-linear-to-r from-slate-600 to-slate-800 text-white'
+  if (normalized === 'vehicle') return 'bg-linear-to-r from-[#224d84] to-[#1086ce] text-white'
+  if (normalized === 'gadget') return 'bg-linear-to-r from-[#011e48] to-[#224d84] text-white'
+  if (normalized === 'appliance') return 'bg-linear-to-r from-[#1086ce] to-[#224d84] text-white'
+  if (normalized === 'others') return 'bg-linear-to-r from-[#224d84] to-[#011e48] text-white'
+  return 'bg-linear-to-r from-[#011e48] to-[#1086ce] text-white'
 }
 
 function navigateHash(path) {
@@ -145,7 +134,7 @@ function ShopProfileAvatar({ shop, className = '' }) {
   return (
     <div
       className={cn(
-        'relative h-9 w-9 sm:h-11 sm:w-11 shrink-0 overflow-hidden rounded-none border-2 border-white bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] shadow-2xs ring-1 ring-[#081F5C]/15',
+        'relative h-9 w-9 sm:h-11 sm:w-11 shrink-0 overflow-hidden rounded-none border-2 border-white bg-linear-to-br from-[#011e48] via-[#224d84] to-[#1086ce] shadow-2xs ring-1 ring-[#224d84]/15',
         className,
       )}
     >
@@ -160,7 +149,7 @@ function ShopProfileAvatar({ shop, className = '' }) {
         />
       ) : (
         <span className="flex h-full w-full items-center justify-center text-[10px] sm:text-xs font-bold text-white">
-          {initialsFromShopName(shop?.shopName)}
+          {firstLetterFromName(shop?.shopOwner || shop?.shopName)}
         </span>
       )}
     </div>
@@ -214,9 +203,9 @@ function FeaturedShopCard({ shop, readableShopAddress }) {
           go()
         }
       }}
-      className="group w-[185px] sm:w-[230px] max-w-[185px] sm:max-w-[230px] shrink-0 cursor-pointer overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
+      className="group w-[185px] sm:w-[230px] max-w-[185px] sm:max-w-[230px] shrink-0 cursor-pointer overflow-hidden rounded-none border border-slate-200 bg-white shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#224d84] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#224d84]"
     >
-      <div className="relative h-32 sm:h-44 w-full overflow-hidden bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6]">
+      <div className="relative h-32 sm:h-44 w-full overflow-hidden bg-linear-to-br from-[#011e48] via-[#224d84] to-[#1086ce]">
         {coverUrl ? (
           <img
             src={coverUrl}
@@ -233,7 +222,7 @@ function FeaturedShopCard({ shop, readableShopAddress }) {
         )}
 
         <div
-          className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#04133d]/80 via-[#081F5C]/15 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-linear-to-t from-[#011e48]/80 via-[#224d84]/15 to-transparent"
           aria-hidden
         />
 
@@ -259,8 +248,8 @@ function FeaturedShopCard({ shop, readableShopAddress }) {
         <Badge
           className={`absolute bottom-2 right-2 sm:bottom-2.5 sm:right-2.5 rounded-none px-1.5 sm:px-2 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider shadow-2xs backdrop-blur-sm ${
             isOnCall
-              ? 'border border-violet-400/40 bg-violet-600/95 text-white'
-              : 'border border-sky-400/40 bg-[#081F5C]/95 text-white'
+              ? 'border border-[#8fc8f3]/50 bg-[#1086ce]/95 text-white'
+              : 'border border-[#c9e8fd]/40 bg-[#224d84]/95 text-white'
           }`}
         >
           {isOnCall ? 'On-call' : 'Shop'}
@@ -284,7 +273,7 @@ function FeaturedShopCard({ shop, readableShopAddress }) {
           title={addressDisplay}
           className="mt-2 sm:mt-2.5 flex min-w-0 items-start gap-1 text-[10px] sm:text-[11px] leading-tight sm:leading-snug text-slate-600"
         >
-          <MapPin className="mt-0.5 h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-[#081F5C]" aria-hidden />
+          <MapPin className="mt-0.5 h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 text-[#224d84]" aria-hidden />
           <span className="min-w-0 line-clamp-2 break-words font-medium">{addressDisplay}</span>
         </p>
 
@@ -292,7 +281,7 @@ function FeaturedShopCard({ shop, readableShopAddress }) {
           <span className="text-[10px] sm:text-[11px] font-medium text-slate-600 truncate">
             <span className="font-bold text-slate-900 tabular-nums">{shop.completedJobs}</span> jobs
           </span>
-          <span className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#081F5C] transition-colors group-hover:text-[#1447a6]">
+          <span className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-[#224d84] transition-colors group-hover:text-[#1086ce]">
             View
             <ChevronRight
               className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 transition-transform group-hover:translate-x-0.5"
@@ -305,7 +294,7 @@ function FeaturedShopCard({ shop, readableShopAddress }) {
   )
 }
 
-const NAVY_BLUE_GRADIENT = 'from-[#04133d]/95 via-[#081F5C]/85 to-[#04133d]/70'
+const NAVY_BLUE_GRADIENT = 'from-[#011e48]/95 via-[#224d84]/85 to-[#011e48]/70'
 
 const HERO_SLIDES = [
   {
@@ -625,7 +614,7 @@ function CustomerDashboard() {
         ) : null}
 
         {/* 1. ULTRA-MODERN SPACIOUS HERO BANNER (SMOOTH FADE CAROUSEL) */}
-        <section className="relative overflow-hidden rounded-none bg-[#04133d] text-white shadow-[0_6px_24px_-6px_rgba(4,19,61,0.35)] min-h-[290px] sm:min-h-[320px] flex flex-col justify-between">
+        <section className="relative overflow-hidden rounded-none bg-[#011e48] text-white shadow-[0_6px_24px_-6px_rgba(4,19,61,0.35)] min-h-[290px] sm:min-h-[320px] flex flex-col justify-between">
           {/* Background Images Cross-Fade */}
           {HERO_SLIDES.map((slide, idx) => (
             <div
@@ -643,7 +632,7 @@ function CustomerDashboard() {
             </div>
           ))}
           {/* Constant Navy Blue Gradient Overlays */}
-          <div className="absolute inset-0 z-10 bg-linear-to-r from-[#04133d]/95 via-[#081F5C]/85 to-[#04133d]/70 pointer-events-none" />
+          <div className="absolute inset-0 z-10 bg-linear-to-r from-[#011e48]/95 via-[#224d84]/85 to-[#011e48]/70 pointer-events-none" />
           <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(8,31,92,0.4),transparent)] pointer-events-none" />
 
           {/* Content Body Stack with Fade Transition */}
@@ -662,8 +651,8 @@ function CustomerDashboard() {
                     )}
                   >
                     {/* Glassmorphic Badge */}
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-none bg-[#081F5C]/40 backdrop-blur-md px-2.5 py-0.5 sm:px-3 sm:py-1 text-sky-200 text-[10px] sm:text-xs font-semibold border border-sky-400/40 shadow-xs">
-                      <Sparkles className="size-3 sm:size-3.5 text-sky-300 animate-pulse shrink-0" />
+                    <div className="inline-flex items-center gap-1.5 sm:gap-2 rounded-none bg-[#224d84]/40 backdrop-blur-md px-2.5 py-0.5 sm:px-3 sm:py-1 text-[#c9e8fd] text-[10px] sm:text-xs font-semibold border border-[#8fc8f3]/40 shadow-xs">
+                      <Sparkles className="size-3 sm:size-3.5 text-[#8fc8f3] animate-pulse shrink-0" />
                       <span className="truncate">{slide.badge}</span>
                     </div>
 
@@ -682,9 +671,9 @@ function CustomerDashboard() {
                       {slide.perks.map((perk, pIdx) => (
                         <span
                           key={pIdx}
-                          className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-xs border border-white/15 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] text-sky-100 font-medium"
+                          className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-xs border border-white/15 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] text-[#c9e8fd] font-medium"
                         >
-                          <CheckCircle2 className="size-2.5 sm:size-3 text-sky-400 shrink-0" />
+                          <CheckCircle2 className="size-2.5 sm:size-3 text-[#8fc8f3] shrink-0" />
                           <span>{perk}</span>
                         </span>
                       ))}
@@ -700,7 +689,7 @@ function CustomerDashboard() {
                 <Button
                   type="button"
                   onClick={() => navigateHash(currentHero.primaryCtaLink)}
-                  className="bg-[#081F5C] hover:bg-[#1447a6] text-white font-bold rounded-none text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 shadow-lg shadow-[#081F5C]/35 transition-transform hover:scale-[1.02] cursor-pointer justify-center"
+                  className="bg-[#224d84] hover:bg-[#1086ce] text-white font-bold rounded-none text-xs sm:text-sm px-3 sm:px-5 py-2 sm:py-2.5 shadow-lg shadow-[#224d84]/35 transition-transform hover:scale-[1.02] cursor-pointer justify-center"
                 >
                   <span className="flex items-center gap-1.5 sm:gap-2 truncate">
                     <span className="truncate">{currentHero.primaryCtaText}</span>
@@ -728,7 +717,7 @@ function CustomerDashboard() {
                       className={cn(
                         'h-1.5 rounded-none transition-all duration-500 cursor-pointer',
                         idx === currentSlideIndex
-                          ? 'w-5 sm:w-6 bg-sky-400'
+                          ? 'w-5 sm:w-6 bg-[#8fc8f3]'
                           : 'w-2 bg-white/40 hover:bg-white/60',
                       )}
                       aria-label={`Go to slide ${idx + 1}`}
@@ -765,159 +754,74 @@ function CustomerDashboard() {
           </div>
         </section>
 
-        {/* 2. FULLY MODERN GRADIENT BOOKING STATUS CARDS WITH FADED WATERMARK ICONS (2 COLUMNS ON MOBILE) */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
-          {/* Card 1: Pending Requests (Warm Amber/Orange Gradient) */}
-          <div
-            onClick={() => navigateHash('#/customer/my-bookings')}
-            className="group relative overflow-hidden bg-gradient-to-br from-amber-500 via-orange-600 to-amber-900 p-2.5 sm:p-4 text-white shadow-lg shadow-amber-500/20 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-amber-500/35 border border-amber-300/40 rounded-none"
-          >
-            <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-amber-200/30 to-transparent rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
-            <Clock className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-22 text-white/20 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/30" />
-
-            <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-black/20 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[105px] sm:max-w-none">
-                  <Clock className="size-2.5 sm:size-3 text-amber-300 shrink-0" />
-                  <span className="truncate">Pending</span>
-                </span>
-                <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-amber-600 transition-colors shadow-xs shrink-0">
-                  <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
+          {[
+            {
+              label: 'Pending',
+              value: loading ? '—' : stats.pending,
+              helper: 'Awaiting shop review',
+              icon: Clock,
+              tone: 'text-amber-500',
+            },
+            {
+              label: 'Active',
+              value: loading ? '—' : stats.active,
+              helper: 'Confirmed / Working',
+              icon: Wrench,
+              tone: 'text-sky-600',
+            },
+            {
+              label: 'Completed',
+              value: loading ? '—' : stats.completed,
+              helper: 'Finished & delivered',
+              icon: CheckCircle2,
+              tone: 'text-teal-600',
+            },
+            {
+              label: 'Total',
+              value: loading ? '—' : stats.total,
+              helper: 'Total repair bookings',
+              icon: CalendarDays,
+              tone: 'text-[#224d84]',
+            },
+          ].map((card) => {
+            const CardIcon = card.icon
+            return (
+              <div
+                key={card.label}
+                onClick={() => navigateHash('#/customer/my-bookings')}
+                className="group relative overflow-hidden cursor-pointer rounded-none border border-[#c9e8fd] bg-white p-3 sm:p-4 shadow-[0_10px_28px_-18px_rgba(1,30,72,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#8fc8f3] hover:shadow-[0_16px_32px_-18px_rgba(1,30,72,0.5)]"
+              >
+                <CardIcon className={cn('pointer-events-none absolute -right-2 -bottom-3 size-16 sm:size-20 rotate-12 stroke-[1.15] opacity-[0.12] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6', card.tone)} />
+                <div className="relative z-10 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      {card.label}
+                    </p>
+                    <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-[#011e48] tabular-nums">
+                      {card.value}
+                    </p>
+                    <p className="mt-1 truncate text-[10px] sm:text-[11px] font-medium text-slate-500">
+                      {card.helper}
+                    </p>
+                  </div>
+                  <CardIcon className={cn('size-5 sm:size-6 shrink-0', card.tone)} />
                 </div>
               </div>
-
-              <div>
-                <div className="flex items-baseline gap-1.5 sm:gap-2">
-                  <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
-                    {loading ? '—' : stats.pending}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-bold text-amber-100 bg-amber-950/40 px-1 sm:px-1.5 py-0.5 border border-amber-300/30 rounded-none uppercase tracking-wider">
-                    Pending
-                  </span>
-                </div>
-                <p className="text-[10px] sm:text-[11px] text-amber-100/90 font-medium mt-0.5 leading-snug line-clamp-1 sm:line-clamp-none">
-                  Awaiting shop review
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Active / In-Progress (Ocean Cyan/Blue/Indigo Gradient) */}
-          <div
-            onClick={() => navigateHash('#/customer/my-bookings')}
-            className="group relative overflow-hidden bg-gradient-to-br from-[#081F5C] via-blue-600 to-slate-900 p-2.5 sm:p-4 text-white shadow-lg shadow-blue-500/20 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-500/35 border border-cyan-300/40 rounded-none"
-          >
-            <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-cyan-300/30 to-transparent rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
-            <Wrench className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-22 text-white/20 stroke-[1.2] -rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 group-hover:text-white/30" />
-
-            <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-black/20 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[105px] sm:max-w-none">
-                  <Wrench className="size-2.5 sm:size-3 text-cyan-300 shrink-0" />
-                  <span className="truncate">Active</span>
-                </span>
-                <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-blue-600 transition-colors shadow-xs shrink-0">
-                  <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-baseline gap-1.5 sm:gap-2">
-                  <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
-                    {loading ? '—' : stats.active}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-bold text-blue-100 bg-blue-950/40 px-1 sm:px-1.5 py-0.5 border border-blue-300/30 rounded-none uppercase tracking-wider">
-                    Active
-                  </span>
-                </div>
-                <p className="text-[10px] sm:text-[11px] text-blue-100/90 font-medium mt-0.5 leading-snug line-clamp-1 sm:line-clamp-none">
-                  Confirmed / Working
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Completed Jobs (Emerald Fresh Gradient) */}
-          <div
-            onClick={() => navigateHash('#/customer/my-bookings')}
-            className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-600 to-slate-950 p-2.5 sm:p-4 text-white shadow-lg shadow-emerald-500/20 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/35 border border-emerald-300/40 rounded-none"
-          >
-            <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-emerald-300/30 to-transparent rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
-            <CheckCircle2 className="pointer-events-none absolute -right-2 -top-2 size-14 sm:size-22 text-white/20 stroke-[1.2] rotate-6 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12 group-hover:text-white/30" />
-
-            <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-black/20 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[105px] sm:max-w-none">
-                  <CheckCircle2 className="size-2.5 sm:size-3 text-emerald-300 shrink-0" />
-                  <span className="truncate">Completed</span>
-                </span>
-                <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-emerald-600 transition-colors shadow-xs shrink-0">
-                  <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-baseline gap-1.5 sm:gap-2">
-                  <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
-                    {loading ? '—' : stats.completed}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-bold text-emerald-100 bg-emerald-950/40 px-1 sm:px-1.5 py-0.5 border border-emerald-300/30 rounded-none uppercase tracking-wider">
-                    Done
-                  </span>
-                </div>
-                <p className="text-[10px] sm:text-[11px] text-emerald-100/90 font-medium mt-0.5 leading-snug line-clamp-1 sm:line-clamp-none">
-                  Finished & delivered
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Total Requests (Royal Purple Gradient) */}
-          <div
-            onClick={() => navigateHash('#/customer/my-bookings')}
-            className="group relative overflow-hidden bg-gradient-to-br from-purple-600 via-violet-700 to-slate-950 p-2.5 sm:p-4 text-white shadow-lg shadow-purple-500/20 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-purple-500/35 border border-purple-300/40 rounded-none"
-          >
-            <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-purple-300/30 to-transparent rounded-full blur-xl group-hover:scale-125 transition-transform duration-500" />
-            <CalendarDays className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-22 text-white/20 stroke-[1.2] -rotate-6 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-12 group-hover:text-white/30" />
-
-            <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-black/20 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[105px] sm:max-w-none">
-                  <CalendarDays className="size-2.5 sm:size-3 text-purple-300 shrink-0" />
-                  <span className="truncate">Total</span>
-                </span>
-                <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-purple-600 transition-colors shadow-xs shrink-0">
-                  <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-baseline gap-1.5 sm:gap-2">
-                  <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm">
-                    {loading ? '—' : stats.total}
-                  </span>
-                  <span className="text-[9px] sm:text-[10px] font-bold text-purple-100 bg-purple-950/40 px-1 sm:px-1.5 py-0.5 border border-purple-300/30 rounded-none uppercase tracking-wider">
-                    All Time
-                  </span>
-                </div>
-                <p className="text-[10px] sm:text-[11px] text-purple-100/90 font-medium mt-0.5 leading-snug line-clamp-1 sm:line-clamp-none">
-                  Total repair bookings
-                </p>
-              </div>
-            </div>
-          </div>
+            )
+          })}
         </section>
 
         {/* 3. ACTIVE REPAIR STATUS CARD */}
         <section className={cn('bg-white p-3.5 sm:p-5 rounded-none border border-slate-200/80', cardShadow)}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
-              <div className="flex size-9 sm:size-10 shrink-0 items-center justify-center bg-[#081F5C] text-white shadow-sm">
+              <div className="flex size-9 sm:size-10 shrink-0 items-center justify-center bg-[#224d84] text-white shadow-sm">
                 <Wrench className="size-4 sm:size-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#081F5C] bg-blue-50 px-1.5 sm:px-2 py-0.5 border border-blue-200">
+                  <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#224d84] bg-[#c9e8fd] px-1.5 sm:px-2 py-0.5 border border-[#8fc8f3]">
                     {activeBooking
                       ? activeBooking.status === 'confirmed' || activeBooking.status === 'working'
                         ? 'Active Repair'
@@ -944,7 +848,7 @@ function CustomerDashboard() {
               onClick={() =>
                 navigateHash(activeBooking ? '#/customer/my-bookings' : '#/customer/find-services')
               }
-              className="w-full sm:w-auto bg-slate-900 hover:bg-[#081F5C] text-white font-semibold rounded-none text-xs px-4 py-2 shadow-xs shrink-0 cursor-pointer justify-center"
+              className="w-full sm:w-auto bg-[#011e48] hover:bg-[#224d84] text-white font-semibold rounded-none text-xs px-4 py-2 shadow-xs shrink-0 cursor-pointer justify-center"
             >
               {activeBooking ? 'Track Booking Status' : 'Find Services'}
             </Button>
@@ -992,14 +896,14 @@ function CustomerDashboard() {
                     'flex items-center gap-2 sm:gap-2.5 p-2 sm:p-3 bg-white text-left transition-all duration-200 border cursor-pointer',
                     controlShadow,
                     isSelected
-                      ? 'border-[#081F5C] bg-blue-50/60 text-[#081F5C]'
-                      : 'border-slate-200/80 hover:border-blue-300 text-slate-700',
+                      ? 'border-[#224d84] bg-[#c9e8fd]/60 text-[#224d84]'
+                      : 'border-slate-200/80 hover:border-[#8fc8f3] text-slate-700',
                   )}
                 >
                   <div
                     className={cn(
                       'flex size-7 sm:size-8 shrink-0 items-center justify-center text-white',
-                      isSelected ? 'bg-[#081F5C]' : 'bg-slate-800',
+                      isSelected ? 'bg-[#224d84]' : 'bg-slate-800',
                     )}
                   >
                     <CatIcon className="size-3.5 sm:size-4" />
@@ -1027,7 +931,7 @@ function CustomerDashboard() {
             </div>
             <button
               type="button"
-              className="inline-flex shrink-0 items-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#081F5C] transition-colors hover:text-[#1447a6] cursor-pointer"
+              className="inline-flex shrink-0 items-center gap-0.5 sm:gap-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#224d84] transition-colors hover:text-[#1086ce] cursor-pointer"
               onClick={() => navigateHash('#/customer/find-services')}
             >
               <span>View all</span> <ChevronRight className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
@@ -1125,7 +1029,7 @@ function CustomerDashboard() {
           )}
         >
           <div className="text-center max-w-xl mx-auto space-y-1">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#081F5C]">
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#224d84]">
               Direct Repair Specialist Network
             </span>
             <h2 className="text-base sm:text-2xl font-bold text-slate-900">
@@ -1165,7 +1069,7 @@ function CustomerDashboard() {
                   key={idx}
                   className="p-2.5 sm:p-4 bg-slate-50 border border-slate-100 text-center space-y-1.5 sm:space-y-2 flex flex-col items-center justify-start"
                 >
-                  <div className="size-8 sm:size-10 mx-auto bg-blue-100 text-[#081F5C] flex items-center justify-center font-bold shrink-0">
+                  <div className="size-8 sm:size-10 mx-auto bg-[#c9e8fd] text-[#224d84] flex items-center justify-center font-bold shrink-0">
                     <ItemIcon className="size-4 sm:size-5" />
                   </div>
                   <h3 className="font-bold text-xs sm:text-sm text-slate-900 line-clamp-1">{item.title}</h3>
@@ -1189,7 +1093,7 @@ function CustomerDashboard() {
               type="button"
               variant="ghost"
               onClick={() => navigateHash('#/customer/reviews-ratings')}
-              className="text-[#081F5C] hover:text-[#1447a6] text-[11px] sm:text-xs font-semibold gap-0.5 sm:gap-1 cursor-pointer p-0 h-auto"
+              className="text-[#224d84] hover:text-[#1086ce] text-[11px] sm:text-xs font-semibold gap-0.5 sm:gap-1 cursor-pointer p-0 h-auto"
             >
               <span>View All</span> <ChevronRight className="size-3 sm:size-3.5" />
             </Button>
@@ -1214,16 +1118,16 @@ function CustomerDashboard() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-2.5 pt-2 border-t border-slate-100">
-                  <Avatar className="size-7 sm:size-8 rounded-none border border-blue-200 shrink-0">
+                  <Avatar className="size-7 sm:size-8 rounded-none border border-[#8fc8f3] shrink-0">
                     <AvatarImage src={t.avatar} alt={t.name} />
-                    <AvatarFallback className="bg-[#081F5C] text-white font-bold text-[10px] sm:text-xs rounded-none">
+                    <AvatarFallback className="bg-[#224d84] text-white font-bold text-[10px] sm:text-xs rounded-none">
                       {t.name[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <h4 className="text-[11px] sm:text-xs font-bold text-slate-900 flex items-center gap-1 truncate">
                       <span className="truncate">{t.name}</span>
-                      <BadgeCheck className="size-3 sm:size-3.5 text-blue-600 shrink-0" />
+                      <BadgeCheck className="size-3 sm:size-3.5 text-[#1086ce] shrink-0" />
                     </h4>
                     <span className="text-[9px] sm:text-[10px] text-slate-400 block truncate">{t.purchasedItem}</span>
                   </div>
@@ -1236,13 +1140,13 @@ function CustomerDashboard() {
         {/* 9. E-PAAYOS CUSTOMER SUPPORT & CARE BANNER */}
         <section
           className={cn(
-            'bg-slate-900 text-white p-4 sm:p-8 space-y-3.5 sm:space-y-4 rounded-none border border-slate-800',
+            'bg-[#011e48] text-white p-4 sm:p-8 space-y-3.5 sm:space-y-4 rounded-none border border-[#224d84]',
             cardShadow,
           )}
         >
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-6">
             <div className="space-y-1.5 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 text-sky-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-sky-500/10 px-2 sm:px-2.5 py-0.5 border border-sky-500/20">
+              <div className="inline-flex items-center gap-1.5 text-[#8fc8f3] text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-[#1086ce]/10 px-2 sm:px-2.5 py-0.5 border border-[#1086ce]/20">
                 <Headphones className="size-3 sm:size-3.5" />
                 <span>E-Paayos Support &amp; Customer Care</span>
               </div>
@@ -1259,7 +1163,7 @@ function CustomerDashboard() {
                 <Button
                   type="button"
                   onClick={() => navigateHash('#/customer/messages')}
-                  className="w-full sm:w-auto bg-[#081F5C] hover:bg-[#1447a6] text-[#ffffff] font-bold rounded-none text-xs px-3 sm:px-4 py-2.5 shadow-sm gap-1.5 cursor-pointer justify-center"
+                  className="w-full sm:w-auto bg-[#224d84] hover:bg-[#1086ce] text-[#ffffff] font-bold rounded-none text-xs px-3 sm:px-4 py-2.5 shadow-sm gap-1.5 cursor-pointer justify-center"
                 >
                   <MessageSquare className="size-3.5 sm:size-4" />
                   <span>Support</span>

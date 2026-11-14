@@ -623,7 +623,7 @@ function MechanicTechnicianWorkInfo() {
               <span>Edit Professional Work Info</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 mt-0.5">
-              Update your contact info, primary specialization, work shift hours, and technician notes.
+              Update your contact, specialty, and schedule.
             </DialogDescription>
           </DialogHeader>
 
@@ -636,7 +636,7 @@ function MechanicTechnicianWorkInfo() {
                 id="edit-phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+63 9XX XXX XXXX"
+                placeholder="Phone number"
                 className="rounded-none border-slate-300 text-xs font-mono"
               />
             </div>
@@ -649,7 +649,7 @@ function MechanicTechnicianWorkInfo() {
                 id="edit-spec"
                 value={specialization}
                 onChange={(e) => setSpecialization(e.target.value)}
-                placeholder="e.g. Vehicle Diagnostics & Overhaul"
+                placeholder="e.g. Diagnostics"
                 className="rounded-none border-slate-300 text-xs font-medium"
               />
             </div>
@@ -662,7 +662,7 @@ function MechanicTechnicianWorkInfo() {
                 id="edit-exp"
                 value={experience}
                 onChange={(e) => setExperience(e.target.value)}
-                placeholder="e.g. 5+ Years Professional Practice"
+                placeholder="e.g. 5 years"
                 className="rounded-none border-slate-300 text-xs font-medium"
               />
             </div>
@@ -675,20 +675,20 @@ function MechanicTechnicianWorkInfo() {
                 id="edit-schedule"
                 value={schedule}
                 onChange={(e) => setSchedule(e.target.value)}
-                placeholder="e.g. Mon - Sat (8:00 AM - 5:00 PM)"
+                placeholder="e.g. Mon–Sat, 8 AM–5 PM"
                 className="rounded-none border-slate-300 text-xs font-medium"
               />
             </div>
 
             <div className="grid gap-1.5">
               <Label htmlFor="edit-notes" className="text-xs font-extrabold uppercase text-slate-700">
-                Technician Notes / Bio
+                Notes
               </Label>
               <Textarea
                 id="edit-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Enter summary notes regarding your technical expertise..."
+                placeholder="Short note about your work"
                 rows={3}
                 className="rounded-none border-slate-300 text-xs font-medium resize-y"
               />

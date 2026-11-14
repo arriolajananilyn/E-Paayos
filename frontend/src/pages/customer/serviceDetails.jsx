@@ -38,6 +38,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react'
+import ShopSchedulePicker from '../../components/bookings/ShopSchedulePicker.jsx'
 import ShopAddressGoogleMap from '../../components/ShopAddressGoogleMap.jsx'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -55,6 +56,7 @@ import { Label } from '../../components/ui/label'
 import { NativeSelect } from '../../components/ui/native-select'
 import { Textarea } from '../../components/ui/textarea'
 import CustomerLayout, { readCustomerUserSession } from '../../layout/customerlayout.jsx'
+import { formatSlotLabel, isTimeSlotBooked, shopScheduleError } from '../../lib/shopAvailability'
 import { resolveProfilePsgcLabels, formatReadableShopAddress } from '../../lib/psgcResolve'
 import { SERVICE_TYPES, staffAssignedLabel } from './findServices.jsx'
 
@@ -177,19 +179,13 @@ function resolveReviewMediaSrc(src) {
 }
 
 function initialsFromName(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  if (!parts.length) return '?'
-  const first = parts[0]?.[0] ?? ''
-  const second = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
-  return `${first}${second}`.toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function resolveOwnerThumbSrc(detail) {
   if (!detail || typeof detail !== 'object') return ''
-  const candidates = [detail.shopPlacePhoto, detail.shopOwnerProfileImage, detail.shopOwnerSelfieImage]
+  const candidates = [detail.shopPlacePhoto]
   for (const raw of candidates) {
     const value = String(raw ?? '').trim()
     if (!value) continue
@@ -208,7 +204,7 @@ function OwnerThumb({ src, ownerName, className = 'h-9 w-9' }) {
       {showImage ? (
         <img src={src} alt="" className="h-full w-full object-cover" onError={() => setImageFailed(true)} />
       ) : (
-        <span className="text-xs font-bold text-white">{initialsFromName(ownerName) || '?'}</span>
+        <span className="text-xs font-bold text-white">{String(ownerName ?? '').trim().charAt(0).toUpperCase() || '?'}</span>
       )}
     </span>
   )
@@ -247,14 +243,6 @@ function categoryBadgeClass(category) {
   if (normalized === 'appliance') return 'rounded-none bg-linear-to-r from-emerald-600 to-teal-600 text-white font-bold px-2.5 py-0.5 text-[10px] uppercase tracking-wider'
   if (normalized === 'others') return 'rounded-none bg-linear-to-r from-amber-600 to-orange-600 text-white font-bold px-2.5 py-0.5 text-[10px] uppercase tracking-wider'
   return 'rounded-none bg-linear-to-r from-slate-600 to-slate-800 text-white font-bold px-2.5 py-0.5 text-[10px] uppercase tracking-wider'
-}
-
-function localDateInputMin() {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
 }
 
 function formatDateForConfirm(ymd) {
@@ -330,6 +318,10 @@ export default function CustomerServiceDetails({ serviceId }) {
   const [bookSubmitting, setBookSubmitting] = useState(false)
   const [bookError, setBookError] = useState('')
   const [bookSuccess, setBookSuccess] = useState('')
+  const [bookedTimes, setBookedTimes] = useState([])
+  const [bookedTimesLoading, setBookedTimesLoading] = useState(false)
+  const [bookedTimesError, setBookedTimesError] = useState('')
+  const [bookedTimesRefreshKey, setBookedTimesRefreshKey] = useState(0)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [termsDialogOpen, setTermsDialogOpen] = useState(false)
   const bookingModalScrollRef = useRef(null)
@@ -724,10 +716,58 @@ export default function CustomerServiceDetails({ serviceId }) {
     }
   }, [issuePhotoPreviews])
 
+  useEffect(() => {
+    if (!bookDialogOpen || !bookForm.preferredDate || !serviceId || !isLikelyMongoId(serviceId)) {
+      setBookedTimes([])
+      setBookedTimesLoading(false)
+      setBookedTimesError('')
+      return
+    }
+    let cancelled = false
+    setBookedTimesLoading(true)
+    setBookedTimesError('')
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `${API_URL}/api/catalog/shop-services/${encodeURIComponent(serviceId)}/booked-times?date=${encodeURIComponent(bookForm.preferredDate)}`,
+          { headers: authHeaders() },
+        )
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.message || 'Could not load booked times.')
+        const list = Array.isArray(data?.bookedTimes) ? data.bookedTimes : []
+        if (!cancelled) {
+          setBookedTimes(list)
+          setBookForm((current) => {
+            if (
+              current.preferredTime &&
+              isTimeSlotBooked(detail?.shopOperatingHours, current.preferredTime, list)
+            ) {
+              return { ...current, preferredTime: '' }
+            }
+            return current
+          })
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setBookedTimes([])
+          setBookedTimesError(err?.message || 'Could not check already booked times.')
+        }
+      } finally {
+        if (!cancelled) setBookedTimesLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [bookDialogOpen, bookForm.preferredDate, serviceId, detail?.shopOperatingHours, bookedTimesRefreshKey])
+
   const openBookDialog = () => {
     if (!detail || !serviceId) return
     setBookError('')
     setBookSuccess('')
+    setBookedTimes([])
+    setBookedTimesError('')
+    setBookedTimesLoading(false)
     setBookingStep('form')
     setTermsAccepted(false)
     setLocationCaptureError('')
@@ -812,6 +852,25 @@ export default function CustomerServiceDetails({ serviceId }) {
   const handleBookingFormSubmit = (e) => {
     e.preventDefault()
     if (!detail || !serviceId || !isLikelyMongoId(serviceId)) return
+    if (bookedTimesLoading) {
+      setBookError('Checking available times for that date. Please wait a moment.')
+      return
+    }
+    const scheduleError = shopScheduleError(
+      detail.daysOfOperation,
+      detail.shopOperatingHours,
+      bookForm.preferredDate,
+      bookForm.preferredTime,
+    )
+    if (scheduleError) {
+      setBookError(scheduleError)
+      return
+    }
+    if (isTimeSlotBooked(detail.shopOperatingHours, bookForm.preferredTime, bookedTimes)) {
+      setBookForm((current) => ({ ...current, preferredTime: '' }))
+      setBookError('That time slot is already booked at this shop. Please choose another available time.')
+      return
+    }
     const form = e.currentTarget
     if (!form.reportValidity()) return
     setBookError('')
@@ -872,8 +931,14 @@ export default function CustomerServiceDetails({ serviceId }) {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
+        if (res.status === 409) {
+          setBookingStep('form')
+          setBookForm((current) => ({ ...current, preferredTime: '' }))
+          setBookedTimesRefreshKey((k) => k + 1)
+        }
         throw new Error(data?.message || 'Could not submit booking.')
       }
+      setBookedTimesRefreshKey((k) => k + 1)
       setBookSuccess(data?.message || 'Booking request sent.')
       if (bookingModalScrollRef.current) {
         bookingModalScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1886,19 +1951,22 @@ export default function CustomerServiceDetails({ serviceId }) {
           setBookDialogOpen(open)
         }}
       >
-        <DialogContent className="flex max-h-[92dvh] sm:max-h-[min(94dvh,46rem)] w-[calc(100%-1rem)] sm:max-w-2xl flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)] transition-all duration-300">
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[92dvh] sm:max-h-[min(94dvh,46rem)] w-[calc(100%-1rem)] sm:max-w-2xl flex-col gap-0 overflow-hidden rounded-none border border-slate-800 bg-white p-0 shadow-[0_12px_36px_rgba(8,31,92,0.3)] transition-all duration-300"
+        >
           {/* Header Banner */}
-          <div className="relative overflow-hidden border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-4 sm:px-5 py-3 sm:py-4 text-white shadow-md">
+          <div className="relative shrink-0 overflow-hidden border-b border-white/10 bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 sm:px-5 py-3 sm:py-3.5 text-white shadow-md">
             <div className="pointer-events-none absolute -right-8 -top-8 size-32 rounded-full bg-indigo-500/20 blur-2xl" />
-            <div className="relative z-10 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="relative z-10 flex items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
                 <div
                   className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-none text-white shadow-md border transition-all duration-300 ${
                     bookSuccess
                       ? 'bg-emerald-600 border-emerald-400/40'
                       : bookingStep === 'confirm'
                         ? 'bg-emerald-600 border-emerald-400/40'
-                        : 'bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] border-blue-400/30'
+                        : 'bg-white/15 border-white/25'
                   }`}
                 >
                   {bookSuccess ? (
@@ -1909,7 +1977,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <CalendarCheck className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
                   )}
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <DialogTitle className="text-sm sm:text-base font-extrabold uppercase tracking-wider text-white leading-tight">
                       {bookSuccess
@@ -1922,8 +1990,8 @@ export default function CustomerServiceDetails({ serviceId }) {
                       <span
                         className={`rounded-none px-2 py-0.5 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all duration-300 ${
                           bookingStep === 'confirm' && !bookSuccess
-                            ? 'border border-emerald-400/30 bg-emerald-500/20 text-emerald-300'
-                            : 'border border-blue-400/30 bg-blue-500/20 text-blue-200'
+                            ? 'border border-emerald-400/40 bg-emerald-500/25 text-emerald-200'
+                            : 'border border-blue-300/35 bg-blue-500/25 text-blue-100'
                         }`}
                       >
                         {bookingStep === 'confirm' && !bookSuccess
@@ -1932,7 +2000,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-300 font-medium truncate">
+                  <DialogDescription className="mt-1 text-xs text-blue-100/85 font-medium leading-snug line-clamp-2">
                     {bookSuccess ? (
                       'Your repair request was submitted successfully.'
                     ) : bookingStep === 'confirm' ? (
@@ -1940,25 +2008,36 @@ export default function CustomerServiceDetails({ serviceId }) {
                     ) : detail ? (
                       <>
                         Requesting <span className="font-bold text-white">{detail.serviceName}</span> at{' '}
-                        <span className="font-bold text-slate-200">{detail.shopName?.trim() || 'Shop'}</span>
+                        <span className="font-bold text-blue-100">{detail.shopName?.trim() || 'Shop'}</span>
                       </>
                     ) : null}
-                  </p>
+                  </DialogDescription>
                 </div>
               </div>
 
-              {!bookSuccess && (
-                <div className="hidden sm:flex items-center gap-1.5 rounded-none bg-white/10 px-2.5 py-1 border border-white/15 text-xs font-bold uppercase tracking-wider transition-all">
-                  <span
-                    className={`h-2 w-2 rounded-full transition-colors duration-300 ${
-                      bookingStep === 'form' ? 'bg-blue-400 animate-pulse' : 'bg-emerald-400'
-                    }`}
-                  />
-                  <span className="text-slate-200 text-[11px]">
-                    {bookingStep === 'form' ? 'Step 1 of 2' : 'Step 2 of 2'}
-                  </span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {!bookSuccess && (
+                  <div className="hidden sm:inline-flex items-center gap-1.5 rounded-none bg-white/15 px-2.5 py-1 border border-white/25 text-[11px] font-bold uppercase tracking-wider text-white whitespace-nowrap shrink-0 transition-all">
+                    <span
+                      className={`h-2 w-2 rounded-full shrink-0 transition-colors duration-300 ${
+                        bookingStep === 'form' ? 'bg-sky-300 animate-pulse' : 'bg-emerald-400'
+                      }`}
+                    />
+                    <span>
+                      {bookingStep === 'form' ? 'Step 1 of 2' : 'Step 2 of 2'}
+                    </span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  disabled={bookSubmitting}
+                  onClick={() => !bookSubmitting && setBookDialogOpen(false)}
+                  className="size-8 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/15 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+                  aria-label="Close dialog"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -2106,7 +2185,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <div className="space-y-1.5">
                       <Label htmlFor="book-contact-name" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <User className="h-3.5 w-3.5 text-[#081F5C]" />
-                        Contact Full Name
+                        Contact name
                       </Label>
                       <Input
                         id="book-contact-name"
@@ -2115,7 +2194,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                         required
                         value={bookForm.contactName}
                         onChange={(ev) => setBookForm((f) => ({ ...f, contactName: ev.target.value }))}
-                        placeholder="e.g. Juan dela Cruz"
+                        placeholder="Full name"
                         className={dialogInputClass}
                       />
                     </div>
@@ -2123,7 +2202,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <div className="space-y-1.5">
                       <Label htmlFor="book-contact-phone" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Phone className="h-3.5 w-3.5 text-[#081F5C]" />
-                        Mobile / Phone Number
+                        Phone number
                       </Label>
                       <Input
                         id="book-contact-phone"
@@ -2155,45 +2234,30 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <span className="text-[10px] sm:text-xs font-semibold text-slate-400">Required</span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="book-pref-date" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-[#081F5C]" />
-                        Preferred Date
-                      </Label>
-                      <Input
-                        id="book-pref-date"
-                        name="preferredDate"
-                        type="date"
-                        required
-                        min={localDateInputMin()}
-                        value={bookForm.preferredDate}
-                        onChange={(ev) => setBookForm((f) => ({ ...f, preferredDate: ev.target.value }))}
-                        className={dialogInputClass}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="book-pref-time" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5 text-[#081F5C]" />
-                        Preferred Time
-                      </Label>
-                      <Input
-                        id="book-pref-time"
-                        name="preferredTime"
-                        type="time"
-                        required
-                        value={bookForm.preferredTime}
-                        onChange={(ev) => setBookForm((f) => ({ ...f, preferredTime: ev.target.value }))}
-                        className={dialogInputClass}
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-[#081F5C]" />
+                      Preferred date and time
+                    </Label>
+                    <ShopSchedulePicker
+                      daysOfOperation={detail?.daysOfOperation}
+                      operatingHours={detail?.shopOperatingHours}
+                      date={bookForm.preferredDate}
+                      time={bookForm.preferredTime}
+                      bookedTimes={bookedTimes}
+                      loadingTimes={bookedTimesLoading}
+                      timesError={bookedTimesError}
+                      onChange={({ date, time }) => {
+                        setBookError('')
+                        setBookForm((current) => ({ ...current, preferredDate: date, preferredTime: time }))
+                      }}
+                    />
                   </div>
 
                   {/* Service Mode Selector Cards */}
                   <div className="space-y-2 pt-1">
                     <Label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
-                      Service Fulfillment Option
+                      Service option
                     </Label>
                     {detail?.type === 'both' ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -2226,7 +2290,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                               )}
                             </div>
                             <p className="text-xs text-slate-500 leading-snug mt-0.5 font-medium">
-                              Bring your item directly to the shop.
+                              Bring the item to the shop.
                             </p>
                           </div>
                         </button>
@@ -2253,7 +2317,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                               )}
                             </div>
                             <p className="text-xs text-slate-500 leading-snug mt-0.5 font-medium">
-                              Technician visits your service address.
+                              A technician visits your address.
                             </p>
                           </div>
                         </button>
@@ -2263,10 +2327,10 @@ export default function CustomerServiceDetails({ serviceId }) {
                         <Info className="h-4 w-4 text-[#081F5C] shrink-0" />
                         <span>
                           {detail?.type === 'home'
-                            ? 'Fixed Option: This service is available as Home Service only.'
+                            ? 'Home service only.'
                             : detail?.type === 'in-shop'
-                              ? 'Fixed Option: This service is available as In-Shop Visit only.'
-                              : 'Service option configured by provider.'}
+                              ? 'In-shop visit only.'
+                              : 'Set by the provider.'}
                         </span>
                       </div>
                     )}
@@ -2288,7 +2352,7 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                     <div className="space-y-1.5">
                       <Label htmlFor="book-service-address" className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                        Full Service Address
+                        Service address
                       </Label>
                       <Textarea
                         id="book-service-address"
@@ -2297,7 +2361,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                         rows={2}
                         value={bookForm.serviceAddress}
                         onChange={(ev) => setBookForm((f) => ({ ...f, serviceAddress: ev.target.value }))}
-                        placeholder="House / Unit no., Street name, Barangay, City / Municipality"
+                        placeholder="House no., street, barangay, city"
                         className={`${dialogInputClass} min-h-16 resize-y`}
                       />
                     </div>
@@ -2307,9 +2371,9 @@ export default function CustomerServiceDetails({ serviceId }) {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white p-2.5 sm:p-3 border border-blue-200">
                         <div className="min-w-0">
                           <p className="text-xs font-extrabold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                            <Navigation className="h-3.5 w-3.5 text-[#081F5C]" /> Precise GPS Location (Optional)
+                            <Navigation className="h-3.5 w-3.5 text-[#081F5C]" /> GPS pin (optional)
                           </p>
-                          <p className="text-xs text-slate-500 font-medium mt-0.5">Helps technician navigate directly to your pin.</p>
+                          <p className="text-xs text-slate-500 font-medium mt-0.5">Helps the technician find you.</p>
                         </div>
                         <Button
                           type="button"
@@ -2370,7 +2434,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                   <div className="space-y-1.5">
                     <Label htmlFor="book-problem" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                       <FileText className="h-3.5 w-3.5 text-[#081F5C]" />
-                      Issue / Service Description
+                      Issue description
                     </Label>
                     <Textarea
                       id="book-problem"
@@ -2379,7 +2443,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                       rows={3}
                       value={bookForm.problemDescription}
                       onChange={(ev) => setBookForm((f) => ({ ...f, problemDescription: ev.target.value }))}
-                      placeholder="Describe the item or device, model/brand if known, main symptoms, and when the issue started..."
+                      placeholder="Item, symptoms, and when it started"
                       className={`${dialogInputClass} min-h-[4.5rem] resize-y`}
                     />
                   </div>
@@ -2389,7 +2453,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="book-issue-photos" className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                         <Camera className="h-3.5 w-3.5 text-[#081F5C]" />
-                        Upload Item Photos (Optional)
+                        Photos (optional)
                       </Label>
                       <span className="text-[10px] sm:text-xs font-semibold text-slate-400">Max 6 photos</span>
                     </div>
@@ -2458,7 +2522,7 @@ export default function CustomerServiceDetails({ serviceId }) {
 
                   <div className="space-y-1.5 pt-1">
                     <Label htmlFor="book-notes" className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                      Additional Notes (Optional)
+                      Notes (optional)
                     </Label>
                     <Textarea
                       id="book-notes"
@@ -2466,7 +2530,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                       rows={2}
                       value={bookForm.notes}
                       onChange={(ev) => setBookForm((f) => ({ ...f, notes: ev.target.value }))}
-                      placeholder="e.g. preferred time to call, gate codes, parking instructions..."
+                      placeholder="Call time, gate code, parking"
                       className={`${dialogInputClass} min-h-12 resize-y`}
                     />
                   </div>
@@ -2475,7 +2539,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                 {/* Dialog Footer Actions for Form Step */}
                 <DialogFooter className="m-0 mx-0 mb-0 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 border-t border-slate-200 bg-white px-4 sm:px-6 py-3.5 sm:py-4 pb-4">
                   <span className="text-xs font-semibold text-slate-400 hidden sm:inline-block">
-                    Verify all info before proceeding to confirmation.
+                    Check the details, then continue.
                   </span>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto justify-end">
                     <Button
@@ -2553,7 +2617,7 @@ export default function CustomerServiceDetails({ serviceId }) {
                         </p>
                         <p className="text-xs font-extrabold text-[#081F5C] flex items-center gap-1 truncate">
                           <Clock className="h-3 w-3 text-[#081F5C]" />
-                          {bookForm.preferredTime || '—'}
+                          {bookForm.preferredTime ? formatSlotLabel(bookForm.preferredTime) : '—'}
                         </p>
                       </div>
                     </div>
@@ -2735,7 +2799,7 @@ export default function CustomerServiceDetails({ serviceId }) {
           aria-describedby="terms-policies-description"
         >
           {/* Header */}
-          <DialogHeader className="p-4 sm:p-5 pb-3 border-b border-slate-200 bg-slate-50/90 shrink-0 text-left">
+          <DialogHeader className="p-4 sm:p-5 pr-10 pb-3 border-b border-slate-200 bg-slate-50/90 shrink-0 text-left">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center bg-[#081F5C] text-white shrink-0">
                 <ShieldCheck className="h-5 w-5" />

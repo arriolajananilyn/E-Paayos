@@ -1131,7 +1131,7 @@ export default function CustomerTrackRefix({ bookingId: propBookingId }) {
       {/* SHOP NOTE MODAL */}
       <Dialog open={Boolean(activeNoteModal)} onOpenChange={() => setActiveNoteModal(null)}>
         <DialogContent className="max-w-md p-5 rounded-none">
-          <DialogHeader>
+          <DialogHeader className="shrink-0 pr-8">
             <DialogTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
               <FileText className="size-4 text-indigo-600" />
               <span>{activeNoteModal?.title || 'Shop Note'}</span>
@@ -1155,18 +1155,38 @@ export default function CustomerTrackRefix({ bookingId: propBookingId }) {
 
       {/* RE-APPLY REFIX CLAIM DIALOG */}
       <Dialog open={reapplyOpen} onOpenChange={setReapplyOpen}>
-        <DialogContent className="max-w-lg p-5 rounded-none">
-          <DialogHeader>
-            <DialogTitle className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <RotateCcw className="size-4 text-indigo-600" />
-              <span>Re-apply Refix / Warranty Claim</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Update your issue description or provide clearer photos for {booking.shopName} to re-evaluate your warranty claim.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent
+          showCloseButton={false}
+          className="w-[calc(100%-1.5rem)] max-w-lg max-h-[90dvh] flex flex-col gap-0 p-0 overflow-hidden rounded-none border border-slate-200 bg-white shadow-2xl"
+        >
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="size-8 bg-white/15 flex items-center justify-center border border-white/20 shrink-0">
+                  <RotateCcw className="size-4 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                    Re-apply Refix / Warranty Claim
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-blue-100/85 mt-0.5">
+                    Update the issue or add clearer photos.
+                  </DialogDescription>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isSubmittingReapply}
+                onClick={() => setReapplyOpen(false)}
+                className="size-8 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/15 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+                aria-label="Close dialog"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
 
-          <div className="space-y-3.5 my-2">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5">
             {reapplyError && (
               <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
                 {reapplyError}
@@ -1175,26 +1195,26 @@ export default function CustomerTrackRefix({ bookingId: propBookingId }) {
 
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
-                Reason for Refix / Problem Summary <span className="text-rose-500">*</span>
+                Reason <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 value={claimReason}
                 onChange={(e) => setClaimReason(e.target.value)}
-                placeholder="e.g. Issue recurred, noise still present, etc."
+                placeholder="e.g. Noise is still there"
                 className="w-full px-3 py-2 border border-slate-300 text-xs rounded-none focus:outline-none focus:border-indigo-600"
               />
             </div>
 
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
-                Detailed Observations
+                Details
               </label>
               <textarea
                 rows={3}
                 value={claimDetails}
                 onChange={(e) => setClaimDetails(e.target.value)}
-                placeholder="Describe when and how the defect happens in detail..."
+                placeholder="When and how it happens"
                 className="w-full px-3 py-2 border border-slate-300 text-xs rounded-none focus:outline-none focus:border-indigo-600"
               />
             </div>
@@ -1234,7 +1254,7 @@ export default function CustomerTrackRefix({ bookingId: propBookingId }) {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="m-0 mx-0 mb-0 shrink-0 border-t border-slate-200 bg-slate-50/70 px-4 sm:px-5 py-3.5 gap-2 sm:gap-2">
             <Button
               type="button"
               variant="outline"

@@ -12,6 +12,11 @@ import {
   getUserForAdmin,
   approveUserForAdmin,
   rejectUserForAdmin,
+  warnUserForAdmin,
+  restrictUserForAdmin,
+  unrestrictUserForAdmin,
+  getMyModerationStatus,
+  acknowledgeMyWarning,
   forgotPassword,
   resetPassword,
   changePassword,
@@ -21,8 +26,10 @@ import {
 import { listPublicAnnouncements, incrementAnnouncementView } from "../controllers/announcementController.js"
 import {
   createCustomerComplaint,
+  createProviderComplaint,
   listCustomerComplaints,
   listProviderComplaints,
+  listProviderFiledComplaints,
   respondToComplaintAsProvider,
 } from "../controllers/complaintController.js"
 import { protect, adminOnly } from "../middleware/authMiddleware.js"
@@ -52,6 +59,8 @@ router.post("/login", loginUser)
 router.post("/forgot-password", forgotPassword)
 router.post("/reset-password", resetPassword)
 router.get("/me", protect, getMe)
+router.get("/me/moderation", protect, getMyModerationStatus)
+router.post("/me/warnings/:warningId/acknowledge", protect, acknowledgeMyWarning)
 router.patch("/me/change-password", protect, changePassword)
 router.patch("/me/password", protect, changePassword)
 router.patch("/me/delivery-addresses", protect, patchMyDeliveryAddresses)
@@ -62,6 +71,9 @@ router.patch("/me/shop", protect, updateShopOwnerShopInfo)
 router.get("/admin/list", protect, adminOnly, listUsersForAdmin)
 router.patch("/admin/:id/approve", protect, adminOnly, approveUserForAdmin)
 router.patch("/admin/:id/reject", protect, adminOnly, rejectUserForAdmin)
+router.post("/admin/:id/warn", protect, adminOnly, warnUserForAdmin)
+router.post("/admin/:id/restrict", protect, adminOnly, restrictUserForAdmin)
+router.post("/admin/:id/unrestrict", protect, adminOnly, unrestrictUserForAdmin)
 router.get("/admin/:id", protect, adminOnly, getUserForAdmin)
 
 // Customer Complaints / Reports
@@ -70,6 +82,8 @@ router.get("/complaints/my", protect, listCustomerComplaints)
 
 // Service Provider Complaints & Explanations (Shop Owner / Technician)
 router.get("/complaints/provider", protect, listProviderComplaints)
+router.get("/complaints/provider/filed", protect, listProviderFiledComplaints)
+router.post("/complaints/provider", protect, createProviderComplaint)
 router.patch("/complaints/provider/:id/respond", protect, respondToComplaintAsProvider)
 
 export default router

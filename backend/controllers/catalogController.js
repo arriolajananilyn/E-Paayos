@@ -7,14 +7,31 @@ import { formatReadableShopAddress } from "../utils/psgcResolve.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 
 const shopOwnerSelect =
-  "fullName shopName profileImage selfieImage shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress shopLandmark shopPlacePhoto accountApprovalStatus role operatingHours daysOfOperation repairServicesOffered businessType yearsOfOperation numberOfEmployees shopDescription laborRatingMin laborRatingMax warrantySettings createdAt"
+  "fullName shopName profileImage selfieImage shopRegion shopProvince shopCityMunicipality shopBarangay shopDetailedAddress shopLandmark shopPlacePhoto accountApprovalStatus moderationStatus restrictedUntil role operatingHours daysOfOperation repairServicesOffered businessType yearsOfOperation numberOfEmployees shopDescription laborRatingMin laborRatingMax warrantySettings createdAt"
 
 function normalizeBuffer(raw) {
   if (!raw) return null
-  if (Buffer.isBuffer(raw)) return raw
-  if (raw?.type === "Buffer" && Array.isArray(raw.data)) return Buffer.from(raw.data)
+  if (Buffer.isBuffer(raw)) return raw.length ? raw : null
+  if (raw?.type === "Buffer" && Array.isArray(raw.data)) {
+    const buf = Buffer.from(raw.data)
+    return buf.length ? buf : null
+  }
+  // Mongoose lean() returns BSON Binary. `position` is the write cursor at the
+  // end of the valid bytes, not a start offset.
+  if (typeof raw.buffer !== "undefined" && raw.buffer?.byteLength != null) {
+    try {
+      const view = Buffer.from(raw.buffer)
+      const cursor = Number(raw.position)
+      const end = cursor > 0 && cursor <= view.length ? cursor : view.length
+      const slice = view.subarray(0, end)
+      return slice.length ? Buffer.from(slice) : null
+    } catch {
+      /* fall through */
+    }
+  }
   try {
-    return Buffer.from(raw)
+    const buf = Buffer.from(raw)
+    return buf.length ? buf : null
   } catch {
     return null
   }
@@ -22,7 +39,7 @@ function normalizeBuffer(raw) {
 
 function bufferToDataUrl(raw, contentType) {
   const buf = normalizeBuffer(raw)
-  if (!buf) return ""
+  if (!buf?.length) return ""
   const ct = contentType || "application/octet-stream"
   return `data:${ct};base64,${buf.toString("base64")}`
 }
@@ -30,7 +47,13 @@ function bufferToDataUrl(raw, contentType) {
 function isApprovedShopOwner(u) {
   if (!u || !isServiceProviderRole(u.role)) return false
   const st = u.accountApprovalStatus
-  return st === "approved" || st === undefined || st === null
+  if (!(st === "approved" || st === undefined || st === null)) return false
+  if (u.moderationStatus === "restricted") {
+    if (!u.restrictedUntil || new Date(u.restrictedUntil).getTime() > Date.now()) {
+      return false
+    }
+  }
+  return true
 }
 
 /** Sync fallback for search blob when PSGC resolve not yet run (codes still searchable). */

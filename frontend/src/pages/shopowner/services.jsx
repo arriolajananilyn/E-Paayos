@@ -23,7 +23,6 @@ import { toast } from 'sonner'
 import {
   CheckCircle,
   ChevronDown,
-  ChevronRight,
   Clock,
   DollarSign,
   FileText,
@@ -264,62 +263,45 @@ function categoryBadge(category) {
 }
 
 function initialsFromName(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  if (!parts.length) return '?'
-  const a = parts[0]?.[0] ?? ''
-  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
-  return (a + b).toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 const STAT_CARD_GRADIENT = {
-  services: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
-  active: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
-  inactive: "from-slate-600 via-slate-700 to-slate-900 border-slate-500/30",
-  booked: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
+  services: 'text-[#224d84]',
+  active: 'text-emerald-600',
+  inactive: 'text-slate-500',
+  booked: 'text-sky-600',
 }
 
 function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
-  const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services
+  const iconTone = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.services ?? 'text-[#224d84]'
   const helperText = helper || sub
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
-        onClick ? "cursor-pointer" : "",
-        gradient,
+        'group relative overflow-hidden rounded-none border border-[#c9e8fd] bg-white p-3 sm:p-4 shadow-[0_10px_28px_-18px_rgba(1,30,72,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#8fc8f3] hover:shadow-[0_16px_32px_-18px_rgba(1,30,72,0.5)]',
+        onClick ? 'cursor-pointer' : '',
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
-
-      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
-            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
-            <span className="truncate">{label}</span>
-          </span>
-          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
-            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
-              {value}
-            </span>
-          </div>
+      <Icon className={cn('pointer-events-none absolute -right-2 -bottom-3 size-16 sm:size-20 rotate-12 stroke-[1.15] opacity-[0.12] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6', iconTone)} />
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-[#011e48] tabular-nums">
+            {value}
+          </p>
           {helperText ? (
-            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+            <p className="mt-1 truncate text-[10px] sm:text-[11px] font-medium text-slate-500">
               {helperText}
             </p>
           ) : null}
         </div>
+        <Icon className={cn('size-5 sm:size-6 shrink-0', iconTone)} />
       </div>
     </div>
   )
@@ -346,7 +328,7 @@ function ServicesSearchBar({ value, onChange }) {
       <div className="relative w-full min-w-0 max-w-full">
         <Input
           className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
-          placeholder="Search services by title, category, subcategory…"
+          placeholder="Search services"
           value={value}
           onChange={onChange}
           aria-label="Search services"
@@ -1057,8 +1039,8 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
             </DialogTitle>
             <DialogDescription className="text-xs font-medium text-slate-500 mt-0.5">
               {variant === 'independent'
-                ? 'Changes are saved for your independent provider account.'
-                : 'Changes are saved to the server for your shop catalog.'}
+                ? 'Saved to your provider account.'
+                : 'Saved to your shop catalog.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -1072,7 +1054,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                   id="svc-name"
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder='e.g. "Motorcycle Tune-up"'
+                  placeholder="e.g. Tune-up"
                   className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                 />
               </div>
@@ -1112,7 +1094,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                     id="svc-subcategory"
                     value={form.subcategory}
                     onChange={(e) => setForm((f) => ({ ...f, subcategory: e.target.value }))}
-                    placeholder='e.g. "Phone", "Motorcycle", "Laundry"'
+                    placeholder="e.g. Phone"
                     className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                   />
                 </div>
@@ -1127,7 +1109,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                     id="svc-other-category"
                     value={form.otherCategory}
                     onChange={(e) => setForm((f) => ({ ...f, otherCategory: e.target.value }))}
-                    placeholder='Type category (e.g. "Computer", "Plumbing")'
+                    placeholder="e.g. Plumbing"
                     className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                   />
                 </div>
@@ -1141,7 +1123,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                   id="svc-desc"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Describe what is included in this service, procedure, and scope..."
+                  placeholder="What's included"
                   rows={3}
                   className="rounded-none border-slate-300 text-xs font-medium shadow-2xs focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                 />
@@ -1152,7 +1134,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                   <span>Labor Price Range (PHP) <span className="text-rose-500">*</span></span>
                 </Label>
                 <p className="text-[11px] text-slate-500 leading-snug">
-                  Shown to customers on Find Services. Enter the typical labor fee range for this service.
+                  Shown on Find Services.
                 </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-1">
                   <div className="grid gap-1">
@@ -1478,7 +1460,7 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
                   <Textarea
                     id="walkin-problem"
                     rows={2}
-                    placeholder="Describe issue, procedure, or request requested by walk-in customer..."
+                    placeholder="What needs to be done"
                     value={walkInForm.problemDescription}
                     onChange={(e) => setWalkInForm((f) => ({ ...f, problemDescription: e.target.value }))}
                     className="rounded-none border-slate-300 text-xs font-medium focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
@@ -1487,11 +1469,11 @@ export function ServicesCatalogBody({ variant = 'shop' }) {
 
                 <div className="grid gap-1.5">
                   <Label htmlFor="walkin-notes" className="text-xs font-extrabold uppercase tracking-wider text-slate-700">
-                    Additional Notes / Device or Vehicle Details (Optional)
+                    Additional notes (optional)
                   </Label>
                   <Input
                     id="walkin-notes"
-                    placeholder="e.g. Model, Plate Number, Serial Number, or special instructions"
+                    placeholder="Model, plate, or serial no."
                     value={walkInForm.notes}
                     onChange={(e) => setWalkInForm((f) => ({ ...f, notes: e.target.value }))}
                     className="rounded-none border-slate-300 text-xs font-medium focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"

@@ -646,7 +646,7 @@ export default function CustomerBookingHistory() {
             <div className="relative w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Search history ref, service, shop..."
+                placeholder="Search ref, service, shop"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-none border-0 bg-white px-4 py-2.5 pr-10 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)] font-medium"

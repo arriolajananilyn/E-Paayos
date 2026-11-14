@@ -5,6 +5,7 @@ import { getCatalogShopContextByServiceId, listCatalogShopServices } from "../co
 import {
   createCustomerBooking,
   createCustomerBookingReview,
+  getShopBookedTimesForDate,
   listCustomerBookings,
   getCustomerBookingById,
   payCustomerBooking,
@@ -18,6 +19,7 @@ router.use(protect, requireCustomer)
 
 router.get("/shop-services", listCatalogShopServices)
 router.get("/shop-services/context/:serviceId", getCatalogShopContextByServiceId)
+router.get("/shop-services/:serviceId/booked-times", getShopBookedTimesForDate)
 router.get("/shop-services/:serviceId/reviews", listServiceReviewsForCustomer)
 router.get("/bookings", listCustomerBookings)
 router.get("/bookings/:id", getCustomerBookingById)

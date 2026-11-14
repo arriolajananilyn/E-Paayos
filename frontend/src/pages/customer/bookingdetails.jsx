@@ -1973,21 +1973,38 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
           }
         }}
       >
-        <DialogContent className="max-w-lg md:max-w-xl w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white shadow-2xl border border-slate-200 rounded-none">
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-lg md:max-w-xl w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden bg-white shadow-2xl border border-slate-200 rounded-none"
+        >
           {/* Header */}
-          <div className="bg-gradient-to-r from-[#081F5C] via-[#0E2E85] to-[#123B9B] px-5 py-4 text-white shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="size-9 bg-white/10 backdrop-blur-xs flex items-center justify-center border border-white/20">
-                <RotateCcw className="size-4.5 text-white" />
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-9 bg-white/15 flex items-center justify-center border border-white/20 shrink-0">
+                  <RotateCcw className="size-4.5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-sm sm:text-base font-bold tracking-tight text-white leading-tight">
+                    Request Warranty Re-Repair
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-blue-100/85 mt-0.5">
+                    Request a free re-repair under warranty.
+                  </DialogDescription>
+                </div>
               </div>
-              <div>
-                <DialogTitle className="text-base sm:text-lg font-black tracking-tight text-white">
-                  Request Warranty Re-Repair
-                </DialogTitle>
-                <DialogDescription className="text-xs text-blue-100 mt-0.5">
-                  Submit a warranty claim for a free re-repair or inspection on your completed service.
-                </DialogDescription>
-              </div>
+              <button
+                type="button"
+                disabled={isSubmittingClaim}
+                onClick={() => {
+                  setShowWarrantyClaimDialog(false)
+                  setClaimError('')
+                }}
+                className="size-8 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/15 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+                aria-label="Close dialog"
+              >
+                <X className="size-4" />
+              </button>
             </div>
           </div>
 
@@ -2050,8 +2067,8 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                 </div>
                 <p className="text-[11px] leading-relaxed pt-0.5 text-slate-700">
                   {warrantyCoverage?.isLaborActive
-                    ? '100% Free Labor Guarantee: Under your warranty coverage, the rework labor fee is ₱0 (waived).'
-                    : 'The standard labor warranty period for this service has ended. The provider will review your request on a case-by-case basis.'}
+                    ? 'Labor is free while this warranty is active.'
+                    : 'Warranty has ended. The shop will still review this request.'}
                 </p>
               </div>
 
@@ -2067,19 +2084,19 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                     className="w-full h-9.5 px-3 pr-9 border border-slate-300 bg-white text-xs text-slate-800 outline-none focus:border-indigo-600 transition-colors cursor-pointer font-medium appearance-none"
                   >
                     <option value="Same issue persists (problem returned after repair)">
-                      Same issue persists (problem returned after repair)
+                      Same issue came back
                     </option>
                     <option value="Item / unit stopped working properly">
-                      Item / unit stopped working properly
+                      Unit not working properly
                     </option>
                     <option value="Defective or malfunctioning replacement part">
-                      Defective or malfunctioning replacement part
+                      Replacement part failed
                     </option>
                     <option value="Incomplete repair or loose assembly">
-                      Incomplete repair or loose assembly
+                      Incomplete or loose repair
                     </option>
                     <option value="New issue occurred after service">
-                      New issue occurred after service
+                      New issue after service
                     </option>
                     <option value="Other warranty concern">
                       Other warranty concern
@@ -2103,7 +2120,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
                   rows={3}
                   value={claimDetails}
                   onChange={(e) => setClaimDetails(e.target.value)}
-                  placeholder="Please describe what is happening, when the problem started recurring, and any specific errors or symptoms..."
+                  placeholder="What happened, and when"
                   className="w-full p-2.5 border border-slate-300 text-xs text-slate-800 resize-none outline-none focus:border-indigo-600 transition-colors leading-relaxed"
                 />
               </div>
@@ -2256,16 +2273,39 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
           }
         }}
       >
-        <DialogContent className="flex max-h-[calc(100vh-3rem)] flex-col overflow-hidden sm:max-w-lg rounded-none" showCloseButton>
-          <DialogHeader className="border-b border-slate-100 pb-3">
-            <DialogTitle className="text-lg font-black text-slate-900">Pay Now</DialogTitle>
-            <DialogDescription className="text-xs">
-              Service fee payment for <span className="font-bold text-slate-900">{booking.serviceName}</span> from{' '}
-              <span className="font-bold text-slate-900">{booking.shopName}</span>.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[calc(100vh-3rem)] w-[calc(100vw-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg rounded-none border border-slate-200 bg-white shadow-2xl"
+        >
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-2.5 min-w-0">
+                <div className="flex size-8 items-center justify-center bg-white/15 text-white border border-white/20 shrink-0">
+                  <CreditCard className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                    Pay Now
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-blue-100/85 mt-0.5 leading-snug line-clamp-2">
+                    Service fee payment for <span className="font-bold text-white">{booking.serviceName}</span> from{' '}
+                    <span className="font-bold text-blue-100">{booking.shopName}</span>.
+                  </DialogDescription>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isSubmittingPayment}
+                onClick={() => setShowPayDialog(false)}
+                className="size-8 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/15 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+                aria-label="Close dialog"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
 
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-xs sm:text-sm">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-5 text-xs sm:text-sm">
             <div className="bg-slate-50 p-3.5 border border-slate-200 rounded-none space-y-2">
               <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Service Fee Breakdown</p>
               <div className="space-y-1 text-xs">
@@ -2390,7 +2430,7 @@ export default function CustomerBookingDetails({ bookingId: propBookingId }) {
             {payError ? <p className="text-xs font-bold text-rose-600 bg-rose-50 p-2 border border-rose-200">{payError}</p> : null}
           </div>
 
-          <DialogFooter className="m-0 mx-0 mb-0 shrink-0 gap-2 border-t border-slate-200 pt-3.5 pb-3.5 sm:pb-4 px-1 sm:px-2 flex flex-col-reverse sm:flex-row sm:justify-end">
+          <DialogFooter className="m-0 mx-0 mb-0 shrink-0 gap-2 border-t border-slate-200 bg-slate-50/70 px-4 sm:px-5 py-3.5 flex flex-col-reverse sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="outline"

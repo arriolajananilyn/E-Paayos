@@ -42,10 +42,10 @@ import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import { MechanicTopBar } from "./mechanicBookingShared.jsx"
 
-const navyDeep = "#04133d"
-const navy = "#081F5C"
-const navyMuted = "#0b2b73"
-const navyBright = "#1447a6"
+const navyDeep = "#011e48"
+const navy = "#224d84"
+const navyMuted = "#1086ce"
+const navyBright = "#1086ce"
 const pageBaseNavyGradient = `linear-gradient(145deg, ${navyDeep} 0%, ${navy} 35%, ${navyMuted} 65%, ${navyBright} 100%)`
 
 const DASHBOARD_META = { title: "Dashboard", description: "Overview of your mechanic workspace." }
@@ -99,67 +99,57 @@ function normalizeStatus(s) {
   return String(s || "").toLowerCase()
 }
 
-const STAT_CARD_GRADIENT = {
-  pending: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
-  confirmed: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
-  working: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
-  today: "from-sky-600 via-cyan-700 to-slate-950 border-cyan-400/30",
-  completed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+const STAT_ICON_TONE = {
+  pending: "text-amber-500",
+  confirmed: "text-sky-600",
+  working: "text-purple-600",
+  today: "text-cyan-600",
+  completed: "text-teal-600",
 }
 
 function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick, className }) {
-  const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.confirmed
+  const iconTone = STAT_ICON_TONE[variant] ?? STAT_ICON_TONE.confirmed
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border cursor-pointer",
-        gradient,
+        "group relative overflow-hidden cursor-pointer rounded-none border border-[#c9e8fd] bg-white p-3 sm:p-4 shadow-[0_10px_28px_-18px_rgba(1,30,72,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#8fc8f3] hover:shadow-[0_16px_32px_-18px_rgba(1,30,72,0.5)]",
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
+      <Icon className={cn("pointer-events-none absolute -right-2 -bottom-3 size-16 sm:size-20 rotate-12 stroke-[1.15] opacity-[0.12] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6", iconTone)} />
 
-      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
-            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
-            <span className="truncate">{label}</span>
-          </span>
-          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
-            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
-              {value}
-            </span>
-          </div>
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-[#011e48] tabular-nums">
+            {value}
+          </p>
           {helper ? (
-            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+            <p className="mt-1 truncate text-[10px] sm:text-[11px] font-medium text-slate-500">
               {helper}
             </p>
           ) : null}
         </div>
+        <Icon className={cn("size-5 sm:size-6 shrink-0", iconTone)} />
       </div>
     </div>
   )
 }
 
 const selectShell =
-  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
+  "h-9 w-full appearance-none rounded-none border border-slate-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-slate-800 shadow-xs outline-none focus-visible:border-[#1086ce] focus-visible:ring-2 focus-visible:ring-[#1086ce]/20"
 
 function chipTone(t) {
   return (
     {
-      blue: "linear-gradient(145deg, rgba(8,31,92,0.95) 0%, rgba(20,71,166,0.82) 55%, rgba(59,130,246,0.72) 100%)",
-      emerald: "linear-gradient(145deg, rgba(4,120,87,0.95) 0%, rgba(16,185,129,0.88) 55%, rgba(52,211,153,0.72) 100%)",
-      purple: "linear-gradient(145deg, rgba(124,58,237,0.95) 0%, rgba(139,92,246,0.82) 55%, rgba(167,139,250,0.72) 100%)",
-      orange: "linear-gradient(145deg, rgba(180,83,9,0.95) 0%, rgba(245,158,11,0.88) 55%, rgba(251,191,36,0.72) 100%)",
-    }[t] || "linear-gradient(145deg, rgba(8,31,92,0.95) 0%, rgba(20,71,166,0.82) 55%, rgba(59,130,246,0.72) 100%)"
+      blue: "linear-gradient(145deg, #011e48 0%, #224d84 55%, #1086ce 100%)",
+      emerald: "linear-gradient(145deg, #224d84 0%, #1086ce 50%, #224d84 100%)",
+      purple: "linear-gradient(145deg, #011e48 0%, #1086ce 60%, #224d84 100%)",
+      orange: "linear-gradient(145deg, #1086ce 0%, #224d84 50%, #011e48 100%)",
+    }[t] || "linear-gradient(145deg, #011e48 0%, #224d84 55%, #1086ce 100%)"
   )
 }
 
@@ -605,7 +595,7 @@ function MechanicTechnicianDashboard() {
 
             <SidebarFooter className="gap-2 px-3 py-2 group-data-[collapsible=icon]:items-center">
               <div className="flex items-center gap-2 overflow-hidden rounded-sm border border-white/15 bg-white/10 px-2.5 py-2 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:p-1">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#081F5C]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#224d84]">
                   {(user.fullName || user.email || "M").charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
@@ -616,7 +606,7 @@ function MechanicTechnicianDashboard() {
             </SidebarFooter>
           </Sidebar>
 
-          <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-blue-50 via-violet-100 to-indigo-100 dark:from-slate-900 dark:via-violet-950/40 dark:to-indigo-950/50">
+          <SidebarInset className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-linear-to-br from-[#c9e8fd] via-[#8fc8f3]/50 to-[#c9e8fd] dark:from-[#011e48] dark:via-[#224d84]/45 dark:to-[#011e48]">
             <MechanicTopBar
               title={DASHBOARD_META.title}
               description={DASHBOARD_META.description}
@@ -639,7 +629,7 @@ function MechanicTechnicianDashboard() {
                 ) : null}
                 {bookingsLoading ? (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <Spinner className="size-8 text-[#081F5C]" />
+                    <Spinner className="size-8 text-[#224d84]" />
                     <p className="mt-3 text-sm font-medium text-slate-600">Loading technician workspace...</p>
                   </div>
                 ) : (
@@ -693,7 +683,7 @@ function MechanicTechnicianDashboard() {
                             config={{
                               series: {
                                 label: "Jobs",
-                                color: "#1447a6",
+                                color: "#1086ce",
                               },
                             }}
                             className="aspect-auto h-[250px] w-full [&_.recharts-responsive-container]:!h-full"
@@ -701,8 +691,8 @@ function MechanicTechnicianDashboard() {
                             <AreaChart data={chartSeries} margin={{ top: 12, right: 12, left: -20, bottom: 4 }}>
                               <defs>
                                 <linearGradient id="fillMechanicJobs" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#1447a6" stopOpacity={0.4} />
-                                  <stop offset="95%" stopColor="#081F5C" stopOpacity={0.02} />
+                                  <stop offset="5%" stopColor="#1086ce" stopOpacity={0.4} />
+                                  <stop offset="95%" stopColor="#224d84" stopOpacity={0.02} />
                                 </linearGradient>
                               </defs>
                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(148 163 184 / 0.35)" />
@@ -724,11 +714,11 @@ function MechanicTechnicianDashboard() {
                               <Area
                                 type="monotone"
                                 dataKey="value"
-                                stroke="#081F5C"
+                                stroke="#224d84"
                                 strokeWidth={2.5}
                                 fillOpacity={1}
                                 fill="url(#fillMechanicJobs)"
-                                activeDot={{ r: 5, strokeWidth: 2, stroke: "#ffffff", fill: "#1447a6" }}
+                                activeDot={{ r: 5, strokeWidth: 2, stroke: "#ffffff", fill: "#1086ce" }}
                               />
                             </AreaChart>
                           </ChartContainer>
@@ -738,7 +728,7 @@ function MechanicTechnicianDashboard() {
                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs pt-2 border-t border-slate-100">
                           <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="h-2 w-2 rounded-full bg-blue-600 shrink-0" />
+                              <span className="h-2 w-2 rounded-full bg-[#1086ce] shrink-0" />
                               <span className="text-slate-500 truncate">Total Completed:</span>
                             </div>
                             <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
@@ -747,7 +737,7 @@ function MechanicTechnicianDashboard() {
                           </div>
                           <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                              <span className="h-2 w-2 rounded-full bg-[#224d84] shrink-0" />
                               <span className="text-slate-500 truncate">Peak Volume:</span>
                             </div>
                             <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
@@ -756,7 +746,7 @@ function MechanicTechnicianDashboard() {
                           </div>
                           <div className="flex items-center justify-between sm:justify-start gap-2 rounded-none bg-slate-50 px-2.5 py-1.5 ring-1 ring-slate-200/50">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                              <span className="h-2 w-2 rounded-full bg-[#8fc8f3] shrink-0" />
                               <span className="text-slate-500 truncate">Avg / Slot:</span>
                             </div>
                             <span className="font-bold text-slate-900 tabular-nums sm:ml-auto">
@@ -779,24 +769,24 @@ function MechanicTechnicianDashboard() {
                           <PieChart width={220} height={200}>
                             <defs>
                               <linearGradient id="gradMechPiePending" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#f59e0b" />
-                                <stop offset="100%" stopColor="#d97706" />
+                                <stop offset="0%" stopColor="#011e48" />
+                                <stop offset="100%" stopColor="#224d84" />
                               </linearGradient>
                               <linearGradient id="gradMechPieConfirmed" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#0ea5e9" />
-                                <stop offset="100%" stopColor="#0369a1" />
+                                <stop offset="0%" stopColor="#224d84" />
+                                <stop offset="100%" stopColor="#1086ce" />
                               </linearGradient>
                               <linearGradient id="gradMechPieWorking" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#8b5cf6" />
-                                <stop offset="100%" stopColor="#5b21b6" />
+                                <stop offset="0%" stopColor="#1086ce" />
+                                <stop offset="100%" stopColor="#8fc8f3" />
                               </linearGradient>
                               <linearGradient id="gradMechPieCompleted" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#10b981" />
-                                <stop offset="100%" stopColor="#059669" />
+                                <stop offset="0%" stopColor="#8fc8f3" />
+                                <stop offset="100%" stopColor="#c9e8fd" />
                               </linearGradient>
                               <linearGradient id="gradMechPieCancelled" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#64748b" />
-                                <stop offset="100%" stopColor="#334155" />
+                                <stop offset="0%" stopColor="#224d84" />
+                                <stop offset="100%" stopColor="#011e48" />
                               </linearGradient>
                             </defs>
                             <Pie
@@ -836,14 +826,14 @@ function MechanicTechnicianDashboard() {
                                 style={{
                                   background:
                                     row.key === "pending"
-                                      ? "linear-gradient(90deg,#f59e0b,#d97706)"
+                                      ? "linear-gradient(90deg,#011e48,#224d84)"
                                       : row.key === "confirmed"
-                                        ? "linear-gradient(90deg,#0ea5e9,#0369a1)"
+                                        ? "linear-gradient(90deg,#224d84,#1086ce)"
                                         : row.key === "working"
-                                          ? "linear-gradient(90deg,#8b5cf6,#5b21b6)"
+                                          ? "linear-gradient(90deg,#1086ce,#8fc8f3)"
                                           : row.key === "completed"
-                                            ? "linear-gradient(90deg,#10b981,#059669)"
-                                            : "linear-gradient(90deg,#64748b,#334155)",
+                                            ? "linear-gradient(90deg,#8fc8f3,#c9e8fd)"
+                                            : "linear-gradient(90deg,#224d84,#011e48)",
                                 }}
                               />
                               <span className="truncate text-slate-600 font-medium">{row.name}</span>
@@ -881,18 +871,18 @@ function MechanicTechnicianDashboard() {
                             const s = o.status
                             const badgeClass =
                               s === "pending"
-                                ? "bg-amber-50 text-amber-700 border-amber-200"
+                                ? "bg-[#c9e8fd] text-[#011e48] border-[#8fc8f3]"
                                 : s === "confirmed"
-                                  ? "bg-sky-50 text-sky-700 border-sky-200"
+                                  ? "bg-[#8fc8f3] text-[#011e48] border-[#1086ce]/50"
                                   : s === "working"
-                                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                                    ? "bg-[#1086ce]/15 text-[#011e48] border-[#1086ce]/45"
                                     : s === "completed"
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                      : "bg-slate-100 text-slate-700 border-slate-200"
+                                      ? "bg-[#224d84]/12 text-[#011e48] border-[#224d84]/35"
+                                      : "bg-[#011e48]/10 text-[#011e48] border-[#011e48]/25"
                             return (
                               <div
                                 key={o.rowKey}
-                                className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-blue-50/30 p-2.5 sm:p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3"
+                                className="flex flex-col rounded-none bg-gradient-to-r from-white via-slate-50/50 to-[#c9e8fd]/30 p-2.5 sm:p-3 border border-slate-200/60 shadow-xs transition hover:border-slate-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3"
                               >
                                 <div className="space-y-1 min-w-0">
                                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
@@ -952,53 +942,53 @@ function MechanicTechnicianDashboard() {
                     </section>
 
                     {/* E-Paayos Navy Blue Footer Banner */}
-                    <footer className="mt-4 sm:mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#04133d] via-[#081F5C] to-[#0b2b73] p-4 sm:p-6 md:p-8 text-slate-200 border border-[#1447a6]/40 shadow-2xl">
-                      <div className="pointer-events-none absolute -top-16 -right-16 size-64 bg-[#1447a6]/25 blur-3xl rounded-full" />
-                      <div className="pointer-events-none absolute -bottom-16 -left-16 size-64 bg-[#081F5C]/40 blur-3xl rounded-full" />
-                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#081F5C] via-[#1447a6] to-sky-400" />
+                    <footer className="mt-4 sm:mt-6 relative overflow-hidden rounded-none bg-gradient-to-br from-[#011e48] via-[#224d84] to-[#1086ce] p-4 sm:p-6 md:p-8 text-slate-200 border border-[#1086ce]/40 shadow-2xl">
+                      <div className="pointer-events-none absolute -top-16 -right-16 size-64 bg-[#1086ce]/25 blur-3xl rounded-full" />
+                      <div className="pointer-events-none absolute -bottom-16 -left-16 size-64 bg-[#224d84]/40 blur-3xl rounded-full" />
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#224d84] via-[#1086ce] to-[#8fc8f3]" />
 
                       <div className="relative z-10 grid gap-4 sm:gap-6 md:grid-cols-12 md:items-center">
                         <div className="md:col-span-5 space-y-2 sm:space-y-3">
                           <div className="flex items-center gap-2.5 sm:gap-3">
-                            <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#081F5C] to-[#1447a6] text-white shadow-md shadow-blue-900/40 border border-white/10">
+                            <div className="flex size-8 sm:size-9 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-[#224d84] to-[#1086ce] text-white shadow-md shadow-[#011e48]/40 border border-white/10">
                               <LayoutDashboard className="size-4" />
                             </div>
                             <div>
                               <h3 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 sm:gap-2 flex-wrap">
                                 E-Paayos Technician Workspace
-                                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-[#1447a6]/30 text-blue-200 border border-blue-400/30 px-1.5 sm:px-2 py-0.5 rounded-none">
+                                <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-[#1086ce]/30 text-[#c9e8fd] border border-[#8fc8f3]/30 px-1.5 sm:px-2 py-0.5 rounded-none">
                                   v2.4 Pro
                                 </span>
                               </h3>
-                              <p className="text-[11px] sm:text-xs text-blue-200/80">
+                              <p className="text-[11px] sm:text-xs text-[#c9e8fd]/80">
                                 Official Mechanic & Technician Operations Portal
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-blue-200/90 pt-0.5 sm:pt-1">
+                          <div className="flex items-center gap-2 text-[11px] sm:text-xs text-[#c9e8fd]/90 pt-0.5 sm:pt-1">
                             <span className="relative flex size-2">
-                              <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-400 opacity-75" />
-                              <span className="relative inline-flex size-2 rounded-full bg-sky-400" />
+                              <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#8fc8f3] opacity-75" />
+                              <span className="relative inline-flex size-2 rounded-full bg-[#8fc8f3]" />
                             </span>
-                            <span className="font-semibold text-sky-300">All Systems Operational</span>
-                            <span className="text-blue-400/60">•</span>
+                            <span className="font-semibold text-[#8fc8f3]">All Systems Operational</span>
+                            <span className="text-[#8fc8f3]/60">•</span>
                             <span>Real-time Sync Active</span>
                           </div>
                         </div>
 
-                        <div className="md:col-span-4 flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 text-xs font-medium text-blue-100">
+                        <div className="md:col-span-4 flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 text-xs font-medium text-[#c9e8fd]">
                           <a href="#/mechanic/technician/assigned-request" className="hover:text-white transition-colors flex items-center gap-1">
-                            <ClipboardList className="size-3.5 text-sky-400" /> Assigned Requests
+                            <ClipboardList className="size-3.5 text-[#8fc8f3]" /> Assigned Requests
                           </a>
                           <a href="#/mechanic/technician/service-history" className="hover:text-white transition-colors flex items-center gap-1">
-                            <History className="size-3.5 text-blue-400" /> Service History
+                            <History className="size-3.5 text-[#8fc8f3]" /> Service History
                           </a>
                           <a href="#/mechanic/technician/messages" className="hover:text-white transition-colors flex items-center gap-1">
-                            <MessageSquare className="size-3.5 text-indigo-300" /> Messages
+                            <MessageSquare className="size-3.5 text-[#c9e8fd]" /> Messages
                           </a>
                           <a href="#/mechanic/technician/work-info" className="hover:text-white transition-colors flex items-center gap-1">
-                            <Briefcase className="size-3.5 text-amber-300" /> Work Info
+                            <Briefcase className="size-3.5 text-[#c9e8fd]" /> Work Info
                           </a>
                         </div>
 
@@ -1006,7 +996,7 @@ function MechanicTechnicianDashboard() {
                           <p className="text-xs font-semibold text-white">
                             © {new Date().getFullYear()} E-Paayos Portal.
                           </p>
-                          <p className="text-[10px] sm:text-[11px] text-blue-200/70 leading-tight">
+                          <p className="text-[10px] sm:text-[11px] text-[#c9e8fd]/70 leading-tight">
                             Connecting Local Technicians & Quality Repairs
                           </p>
                         </div>

@@ -87,7 +87,12 @@ const STATUS_CONFIG = {
   },
 }
 
-export default function CustomerComplaintsModal({ open, onOpenChange, initialTicket = "" }) {
+export default function CustomerComplaintsModal({ open, onOpenChange, isOpen, onClose, initialTicket = "" }) {
+  const modalOpen = typeof open === "boolean" ? open : Boolean(isOpen)
+  const handleModalOpenChange = (val) => {
+    if (onOpenChange) onOpenChange(val)
+    if (!val && onClose) onClose()
+  }
   const [complaints, setComplaints] = useState([])
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
@@ -121,10 +126,10 @@ export default function CustomerComplaintsModal({ open, onOpenChange, initialTic
   }, [initialTicket])
 
   useEffect(() => {
-    if (open) {
+    if (modalOpen) {
       fetchMyComplaints()
     }
-  }, [open, fetchMyComplaints])
+  }, [modalOpen, fetchMyComplaints])
 
   const filtered = complaints.filter((c) => {
     if (filterStatus !== "all" && c.status !== filterStatus) return false
@@ -140,7 +145,7 @@ export default function CustomerComplaintsModal({ open, onOpenChange, initialTic
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={modalOpen} onOpenChange={handleModalOpenChange}>
         <DialogContent
           className="max-h-[92vh] max-w-[calc(100vw-1.5rem)] sm:max-w-4xl overflow-hidden flex flex-col p-0 border border-slate-200 bg-white shadow-2xl rounded-none dark:border-slate-800 dark:bg-slate-900"
           showCloseButton

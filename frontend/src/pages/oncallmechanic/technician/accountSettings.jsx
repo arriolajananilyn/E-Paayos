@@ -992,7 +992,7 @@ export default function OnCallMechanicAccountSettings() {
                       value={profileForm.fullName}
                       onChange={(e) => setProfileForm((prev) => ({ ...prev, fullName: e.target.value }))}
                       className="w-full rounded-sm border border-slate-300 px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
-                      placeholder="Enter your full name"
+                      placeholder="Full name"
                     />
                   </div>
 
@@ -1011,7 +1011,7 @@ export default function OnCallMechanicAccountSettings() {
                         />
                         <Lock className="absolute right-3 top-2.5 h-4 w-4 text-slate-400" />
                       </div>
-                      <p className="mt-1 text-[11px] text-slate-400">Email address change requires administrative support.</p>
+                      <p className="mt-1 text-[11px] text-slate-400">Email changes need admin help.</p>
                     </div>
 
                     <div>
@@ -1028,7 +1028,7 @@ export default function OnCallMechanicAccountSettings() {
                         className="w-full rounded-sm border border-slate-300 px-3.5 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
                         placeholder="09XXXXXXXXX"
                       />
-                      <p className="mt-1 text-[11px] text-slate-400">Used for customer booking notifications & calls (max 11 digits).</p>
+                      <p className="mt-1 text-[11px] text-slate-400">For booking calls. Max 11 digits.</p>
                     </div>
                   </div>
 
@@ -1086,7 +1086,7 @@ export default function OnCallMechanicAccountSettings() {
                         value={passwordForm.currentPassword}
                         onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
                         className="w-full rounded-sm border border-slate-300 px-3.5 py-2 pr-10 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
-                        placeholder="Enter current password"
+                        placeholder="Current password"
                       />
                       <button
                         type="button"
@@ -1127,7 +1127,7 @@ export default function OnCallMechanicAccountSettings() {
                           value={passwordForm.confirmPassword}
                           onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
                           className="w-full rounded-sm border border-slate-300 px-3.5 py-2 pr-10 text-xs sm:text-sm text-slate-900 outline-none transition focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
-                          placeholder="Re-type new password"
+                          placeholder="New password"
                         />
                         <button
                           type="button"
@@ -1389,7 +1389,7 @@ export default function OnCallMechanicAccountSettings() {
                       value={paymentForm.notes}
                       onChange={(e) => setPaymentForm((prev) => ({ ...prev, notes: e.target.value }))}
                       className="w-full rounded-sm border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
-                      placeholder="e.g. Please send screenshot of receipt after payment"
+                      placeholder="e.g. Send a receipt screenshot"
                     />
                   </div>
 

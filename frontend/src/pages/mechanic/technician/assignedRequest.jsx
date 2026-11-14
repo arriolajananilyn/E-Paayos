@@ -1235,7 +1235,7 @@ function MechanicTechnicianAssignedRequest() {
                     <div className="relative w-full min-w-0 max-w-full">
                       <Input
                         className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-10 pl-3.5 sm:pr-12 sm:pl-4 text-xs sm:text-sm font-medium shadow-xs placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#04133d]/25"
-                        placeholder="Search name, phone, service, shop, notes…"
+                        placeholder="Search name, phone, service"
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         aria-label="Search assigned requests"
@@ -2250,7 +2250,7 @@ function MechanicTechnicianAssignedRequest() {
                   </span>
                 </div>
                 <p className="text-[11px] leading-relaxed text-emerald-800">
-                  Under warranty coverage, approved re-repair labor is 100% free of charge to the customer (Original labor: {formatPhp(reviewClaimBooking.serviceFeeLaborRateAtCalc || 0)}).
+                  Approved rework labor is free. Original labor: {formatPhp(reviewClaimBooking.serviceFeeLaborRateAtCalc || 0)}.
                 </p>
               </div>
 
@@ -2370,13 +2370,13 @@ function MechanicTechnicianAssignedRequest() {
                     <div className="space-y-3 p-3.5 bg-emerald-50/50 border border-emerald-200">
                       <div>
                         <Label className="text-[11px] font-bold text-slate-800 block mb-1">
-                          Resolution Note &amp; Re-repair Arrangement:
+                          Resolution note
                         </Label>
                         <Textarea
                           rows={2}
                           value={resolutionNotes}
                           onChange={(e) => setResolutionNotes(e.target.value)}
-                          placeholder="e.g. We will inspect and fix the unit at ₱0 labor fee..."
+                          placeholder="We'll inspect and fix it. Labor is free."
                           className="rounded-none border-slate-300 text-xs bg-white focus:border-emerald-600 leading-relaxed"
                         />
                       </div>
@@ -2390,7 +2390,7 @@ function MechanicTechnicianAssignedRequest() {
                         rows={3}
                         value={claimRejectionReason}
                         onChange={(e) => setClaimRejectionReason(e.target.value)}
-                        placeholder="e.g. The issue was caused by unauthorized tampering not covered by warranty..."
+                        placeholder="e.g. Not covered. Unit was tampered with."
                         className="rounded-none border-rose-300 text-xs bg-white focus:border-rose-600 leading-relaxed"
                       />
                       <p className="text-[10px] text-slate-500">Minimum 5 characters ({claimRejectionReason.trim().length}/5).</p>
@@ -2521,12 +2521,12 @@ function MechanicTechnicianAssignedRequest() {
             {/* Re-repair Notes */}
             <div className="space-y-1.5">
               <Label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                Diagnostic & Work Notes (Optional)
+                Work notes (optional)
               </Label>
               <Input
                 value={refixWorkingNotes}
                 onChange={(e) => setRefixWorkingNotes(e.target.value)}
-                placeholder="e.g. Disassembling unit to check motor brushes / replace component..."
+                placeholder="e.g. Replaced the part"
                 className="rounded-none text-xs"
               />
             </div>
@@ -2756,19 +2756,19 @@ function MechanicTechnicianAssignedRequest() {
                 <span>Warranty Rework Verification</span>
               </span>
               <p className="text-emerald-950/85 text-[11px] leading-relaxed">
-                Confirm that the reported issue has been diagnosed, repaired, and verified through testing. Under warranty, this labor is 100% free of charge.
+                Confirm the issue was fixed and tested. Labor stays free under warranty.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-800">
-                Testing Notes &amp; Observations (Optional)
+                Testing notes (optional)
               </Label>
               <Textarea
                 rows={3}
                 value={refixFixedNotes}
                 onChange={(e) => setRefixFixedNotes(e.target.value)}
-                placeholder="e.g. Completed rework and load-tested for 30 minutes. Operational parameters normal..."
+                placeholder="e.g. Tested and working"
                 className="rounded-none text-xs"
               />
             </div>
@@ -2847,19 +2847,19 @@ function MechanicTechnicianAssignedRequest() {
                 </Badge>
               </div>
               <p className="text-teal-950/85 text-[11px] leading-relaxed">
-                Confirm that the re-repaired unit has been released back to the customer. This will finalize the rework request under the Free Labor Guarantee.
+                Confirm the unit was returned. This closes the free rework.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-800">
-                Handover / Resolution Remarks (Optional)
+                Handover notes (optional)
               </Label>
               <Textarea
                 rows={2}
                 value={refixResolvedNotes}
                 onChange={(e) => setRefixResolvedNotes(e.target.value)}
-                placeholder="e.g. Unit tested and handed over to customer in good working order."
+                placeholder="e.g. Tested and returned to the customer"
                 className="rounded-none text-xs"
               />
             </div>

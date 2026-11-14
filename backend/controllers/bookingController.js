@@ -25,6 +25,7 @@ import {
 } from "../utils/bookingAutoMessages.js"
 import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
 import { formatReadableShopAddress } from "../utils/psgcResolve.js"
+import { isTimeSlotBooked, shopScheduleError } from "../utils/shopAvailability.js"
 
 function clean(value) {
   return typeof value === "string" ? value.trim() : ""
@@ -191,7 +192,13 @@ async function recomputeServiceAndProviderRatings(shopServiceId, shopOwnerId) {
 function isApprovedShopOwner(u) {
   if (!u || !isServiceProviderRole(u.role)) return false
   const st = u.accountApprovalStatus
-  return st === "approved" || st === undefined || st === null
+  if (!(st === "approved" || st === undefined || st === null)) return false
+  if (u.moderationStatus === "restricted") {
+    if (!u.restrictedUntil || new Date(u.restrictedUntil).getTime() > Date.now()) {
+      return false
+    }
+  }
+  return true
 }
 
 /** @param {string} ymd "YYYY-MM-DD" */
@@ -218,6 +225,49 @@ function parseOptionalCoord(v) {
   const n = parseFloat(s)
   return Number.isFinite(n) ? n : undefined
 }
+
+/**
+ * GET /api/catalog/shop-services/:serviceId/booked-times?date=YYYY-MM-DD
+ * Returns active booked preferredTime values ("HH:mm") for the shop on the selected date.
+ */
+export const getShopBookedTimesForDate = asyncHandler(async (req, res) => {
+  const serviceId = clean(req.params.serviceId)
+  const dateYmd = clean(req.query.date)
+
+  if (!serviceId || !mongoose.Types.ObjectId.isValid(serviceId)) {
+    res.status(400)
+    throw new Error("Invalid service id")
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateYmd)) {
+    res.status(400)
+    throw new Error("Please provide a valid date (YYYY-MM-DD)")
+  }
+
+  const svc = await ShopService.findById(serviceId).select("shopOwner status").lean()
+  if (!svc || svc.status !== "active") {
+    res.status(404)
+    throw new Error("Service not found or not available for booking")
+  }
+
+  const dayStart = new Date(`${dateYmd}T00:00:00.000Z`)
+  const dayEnd = new Date(`${dateYmd}T23:59:59.999Z`)
+
+  const rows = await Booking.find({
+    shopOwner: svc.shopOwner,
+    preferredDate: { $gte: dayStart, $lte: dayEnd },
+    status: { $nin: ["cancelled", "completed"] },
+  })
+    .select("preferredTime")
+    .lean()
+
+  const bookedTimes = [...new Set(rows.map((r) => clean(r.preferredTime)).filter(isValidPreferredTime))].sort()
+
+  return res.json({
+    date: dateYmd,
+    shopOwnerId: String(svc.shopOwner),
+    bookedTimes,
+  })
+})
 
 /**
  * POST body: shopServiceId, contactName, contactPhone, preferredDate (YYYY-MM-DD),
@@ -275,10 +325,39 @@ export const createCustomerBooking = asyncHandler(async (req, res) => {
     throw new Error("Service not found or not available for booking")
   }
 
-  const owner = await User.findById(svc.shopOwner).select("role accountApprovalStatus shopName fullName").lean()
+  const owner = await User.findById(svc.shopOwner)
+    .select("role accountApprovalStatus moderationStatus restrictedUntil shopName fullName operatingHours daysOfOperation")
+    .lean()
   if (!isApprovedShopOwner(owner)) {
     res.status(404)
     throw new Error("This shop is not accepting bookings right now")
+  }
+
+  const scheduleError = shopScheduleError(
+    owner.daysOfOperation,
+    owner.operatingHours,
+    preferredDateRaw,
+    preferredTime,
+  )
+  if (scheduleError) {
+    res.status(400)
+    throw new Error(scheduleError)
+  }
+
+  const dayStart = new Date(`${preferredDateRaw}T00:00:00.000Z`)
+  const dayEnd = new Date(`${preferredDateRaw}T23:59:59.999Z`)
+  const existingDayBookings = await Booking.find({
+    shopOwner: svc.shopOwner,
+    preferredDate: { $gte: dayStart, $lte: dayEnd },
+    status: { $nin: ["cancelled", "completed"] },
+  })
+    .select("preferredTime")
+    .lean()
+
+  const existingTimes = existingDayBookings.map((b) => clean(b.preferredTime)).filter(Boolean)
+  if (isTimeSlotBooked(owner.operatingHours, preferredTime, existingTimes)) {
+    res.status(409)
+    throw new Error("That time slot is already booked at this shop for the selected date. Please choose another time.")
   }
 
   const loc = svc.location

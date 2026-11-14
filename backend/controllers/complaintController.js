@@ -49,6 +49,7 @@ export const listAdminComplaints = asyncHandler(async (req, res) => {
     category,
     priority,
     targetType,
+    reporterRole,
     search,
     page = 1,
     limit = 50,
@@ -70,21 +71,44 @@ export const listAdminComplaints = asyncHandler(async (req, res) => {
   if (targetType && targetType !== "all") {
     filter.targetType = targetType
   }
+  if (reporterRole && reporterRole !== "all") {
+    if (reporterRole === "customer") {
+      filter.$or = [
+        ...(filter.$or || []),
+        { reporterRole: "customer" },
+        { reporterRole: { $exists: false } },
+        { reporterRole: "" },
+      ]
+    } else if (reporterRole === "provider") {
+      filter.reporterRole = { $in: ["shop-owner", "oncall-mechanic-technician", "mechanic-technician"] }
+    } else {
+      filter.reporterRole = reporterRole
+    }
+  }
 
   if (search && search.trim()) {
     const s = search.trim()
     const regex = new RegExp(s, "i")
-    filter.$or = [
+    const searchOr = [
       { ticketNumber: regex },
       { customerName: regex },
       { customerEmail: regex },
       { customerPhone: regex },
+      { reporterName: regex },
+      { reporterEmail: regex },
+      { reportedUserName: regex },
       { targetShopName: regex },
       { targetTechnicianName: regex },
       { subject: regex },
       { description: regex },
       { bookingServiceTitle: regex },
     ]
+    if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, { $or: searchOr }]
+      delete filter.$or
+    } else {
+      filter.$or = searchOr
+    }
   }
 
   const p = Math.max(1, parseInt(page, 10) || 1)
@@ -93,11 +117,17 @@ export const listAdminComplaints = asyncHandler(async (req, res) => {
 
   const sort = { [sortBy]: sortOrder === "asc" ? 1 : -1 }
 
+  const userModerationFields =
+    "fullName email phoneNumber shopName role profilePicture moderationStatus warningCount restrictedUntil"
+
   const [complaints, total] = await Promise.all([
     Complaint.find(filter)
-      .populate("customer", "fullName email phone profilePicture")
-      .populate("targetShop", "fullName email phone shopName shopAddress profilePicture")
-      .populate("booking", "problemDescription status preferredDate preferredTime contactName contactPhone serviceFeeLaborRateAtCalc serviceFeeMaterialsAmount")
+      .populate("reporter", userModerationFields)
+      .populate("reportedUser", userModerationFields)
+      .populate("customer", userModerationFields)
+      .populate("targetShop", `${userModerationFields} shopAddress`)
+      .populate("targetTechnician", userModerationFields)
+      .populate("booking", "problemDescription status preferredDate preferredTime contactName contactPhone serviceFeeLaborRateAtCalc serviceFeeMaterialsAmount serviceMode")
       .sort(sort)
       .skip(skip)
       .limit(l)
@@ -183,9 +213,15 @@ export const getComplaintById = asyncHandler(async (req, res) => {
     ? { _id: id }
     : { ticketNumber: id.toUpperCase() }
 
+  const userModerationFields =
+    "fullName email phoneNumber shopName role profilePicture moderationStatus warningCount restrictedUntil"
+
   const complaint = await Complaint.findOne(query)
-    .populate("customer", "fullName email phone profilePicture")
-    .populate("targetShop", "fullName email phone shopName shopAddress profilePicture")
+    .populate("reporter", userModerationFields)
+    .populate("reportedUser", userModerationFields)
+    .populate("customer", userModerationFields)
+    .populate("targetShop", `${userModerationFields} shopAddress`)
+    .populate("targetTechnician", userModerationFields)
     .populate("booking")
     .populate("reviewedBy", "fullName email")
     .lean()
@@ -237,8 +273,9 @@ export const updateComplaintAdmin = asyncHandler(async (req, res) => {
 
   await complaint.save()
 
-  // Optional: send automated message to customer via direct chat
-  if (notifyCustomer && complaint.customer && status !== prevStatus) {
+  // Optional: send automated message to reporter via direct chat
+  const notifyTargetId = complaint.reporter || complaint.customer
+  if (notifyCustomer && notifyTargetId && status !== prevStatus) {
     try {
       const statusLabel =
         status === "under_investigation"
@@ -251,7 +288,7 @@ export const updateComplaintAdmin = asyncHandler(async (req, res) => {
           ? "has been closed/dismissed"
           : "has been updated"
 
-      const text = `📢 [E-Paayos Admin Notice] Your Complaint Ticket #${complaint.ticketNumber} ${statusLabel}.\n\n` +
+      const text = `📢 [E-Paayos Admin Notice] Your Report Ticket #${complaint.ticketNumber} ${statusLabel}.\n\n` +
         `• Subject: ${complaint.subject}\n` +
         (complaint.adminAction ? `• Action Taken: ${complaint.adminAction}\n` : "") +
         (complaint.resolutionRemarks ? `• Official Remarks: ${complaint.resolutionRemarks}\n` : "") +
@@ -259,7 +296,7 @@ export const updateComplaintAdmin = asyncHandler(async (req, res) => {
 
       await sendDirectMessage({
         fromUserId: req.user._id,
-        toUserId: complaint.customer,
+        toUserId: notifyTargetId,
         content: text,
       })
     } catch (err) {
@@ -326,11 +363,17 @@ export const createCustomerComplaint = asyncHandler(async (req, res) => {
 
   let shopName = targetShopName || ""
   let shopId = targetShopId || null
+  let techId = targetTechnicianId || null
+  let techName = targetTechnicianName || ""
+  let resolvedTargetType = targetType
   let serviceTitle = ""
   let bookingDoc = null
 
   if (bookingId && mongoose.Types.ObjectId.isValid(bookingId)) {
-    bookingDoc = await Booking.findById(bookingId).populate("shopOwner", "fullName shopName").populate("shopService", "name title").lean()
+    bookingDoc = await Booking.findById(bookingId)
+      .populate("shopOwner", "fullName shopName role")
+      .populate("shopService", "name title")
+      .lean()
     if (bookingDoc) {
       if (!shopId && bookingDoc.shopOwner) {
         shopId = bookingDoc.shopOwner._id
@@ -338,7 +381,25 @@ export const createCustomerComplaint = asyncHandler(async (req, res) => {
       if (!shopName && bookingDoc.shopOwner) {
         shopName = bookingDoc.shopOwner.shopName || bookingDoc.shopOwner.fullName || ""
       }
+      if (bookingDoc.shopOwner?.role === "oncall-mechanic-technician") {
+        resolvedTargetType = "technician"
+        if (!techId) techId = bookingDoc.shopOwner._id
+        if (!techName) techName = bookingDoc.shopOwner.fullName || bookingDoc.shopOwner.shopName || ""
+      } else if (bookingDoc.assignedTechnician && !techId) {
+        techId = bookingDoc.assignedTechnician
+        if (!techName) techName = bookingDoc.assignedTechnicianName || ""
+      }
       serviceTitle = bookingDoc.shopService?.name || bookingDoc.shopService?.title || bookingDoc.problemDescription || ""
+    }
+  } else if (shopId && mongoose.Types.ObjectId.isValid(shopId)) {
+    const providerDoc = await User.findById(shopId).select("fullName shopName role").lean()
+    if (providerDoc) {
+      if (!shopName) shopName = providerDoc.shopName || providerDoc.fullName || ""
+      if (providerDoc.role === "oncall-mechanic-technician") {
+        resolvedTargetType = "technician"
+        if (!techId) techId = providerDoc._id
+        if (!techName) techName = providerDoc.fullName || providerDoc.shopName || ""
+      }
     }
   }
 
@@ -347,17 +408,32 @@ export const createCustomerComplaint = asyncHandler(async (req, res) => {
   const randomSuffix = Math.floor(1000 + Math.random() * 9000)
   const ticketNumber = `CMP-${yyyymm}-${randomSuffix}`
 
+  const resolvedCustomerName = customer?.fullName || req.user.fullName || "Customer"
+  const resolvedCustomerEmail = customer?.email || req.user.email || ""
+  const resolvedCustomerPhone = customer?.phoneNumber || customer?.phone || customer?.mobile || ""
+
+  const primaryReportedUserId = shopId || techId || null
+  const primaryReportedName = shopName || techName || ""
+
   const newComplaint = await Complaint.create({
     ticketNumber,
+    reporter: customerId,
+    reporterRole: customer?.role || req.user.role || "customer",
+    reporterName: resolvedCustomerName,
+    reporterEmail: resolvedCustomerEmail,
+    reporterPhone: resolvedCustomerPhone,
     customer: customerId,
-    customerName: customer?.fullName || req.user.fullName || "Customer",
-    customerEmail: customer?.email || req.user.email || "",
-    customerPhone: customer?.phone || customer?.mobile || "",
-    targetType,
+    customerName: resolvedCustomerName,
+    customerEmail: resolvedCustomerEmail,
+    customerPhone: resolvedCustomerPhone,
+    targetType: resolvedTargetType,
+    reportedUser: primaryReportedUserId,
+    reportedUserRole: resolvedTargetType === "technician" ? "oncall-mechanic-technician" : "shop-owner",
+    reportedUserName: primaryReportedName,
     targetShop: shopId,
     targetShopName: shopName,
-    targetTechnician: targetTechnicianId || null,
-    targetTechnicianName: targetTechnicianName || "",
+    targetTechnician: techId,
+    targetTechnicianName: techName,
     booking: bookingDoc?._id || (bookingId && mongoose.Types.ObjectId.isValid(bookingId) ? bookingId : null),
     bookingServiceTitle: serviceTitle,
     category,
@@ -394,6 +470,127 @@ export const createCustomerComplaint = asyncHandler(async (req, res) => {
 })
 
 /**
+ * @desc Service provider (shop owner / on-call mechanic / technician) submits a report against a customer
+ * @route POST /api/users/complaints/provider
+ * @access Service Provider
+ */
+export const createProviderComplaint = asyncHandler(async (req, res) => {
+  const providerId = req.user._id
+  const provider = await User.findById(providerId).lean()
+
+  const {
+    targetCustomerId,
+    targetCustomerName,
+    bookingId,
+    category = "fake_booking",
+    subject,
+    description,
+    evidencePhotos = [],
+    priority = "medium",
+  } = req.body
+
+  if (!subject || !subject.trim()) {
+    res.status(400)
+    throw new Error("Report subject/title is required.")
+  }
+
+  if (!description || !description.trim()) {
+    res.status(400)
+    throw new Error("Detailed description of the incident is required.")
+  }
+
+  let customerId = targetCustomerId && mongoose.Types.ObjectId.isValid(targetCustomerId) ? targetCustomerId : null
+  let customerName = targetCustomerName ? String(targetCustomerName).trim() : ""
+  let customerEmail = ""
+  let customerPhone = ""
+  let serviceTitle = ""
+  let bookingDoc = null
+
+  if (bookingId && mongoose.Types.ObjectId.isValid(bookingId)) {
+    bookingDoc = await Booking.findById(bookingId)
+      .populate("customer", "fullName email phoneNumber")
+      .populate("shopService", "name title")
+      .lean()
+    if (bookingDoc) {
+      if (!customerId && bookingDoc.customer?._id) {
+        customerId = bookingDoc.customer._id
+      }
+      if (!customerName) {
+        customerName = bookingDoc.customer?.fullName || bookingDoc.contactName || ""
+      }
+      customerEmail = bookingDoc.customer?.email || ""
+      customerPhone = bookingDoc.customer?.phoneNumber || bookingDoc.contactPhone || ""
+      serviceTitle = bookingDoc.shopService?.name || bookingDoc.shopService?.title || bookingDoc.problemDescription || ""
+    }
+  }
+
+  if (customerId && (!customerName || !customerEmail)) {
+    const custDoc = await User.findById(customerId).select("fullName email phoneNumber").lean()
+    if (custDoc) {
+      if (!customerName) customerName = custDoc.fullName || ""
+      if (!customerEmail) customerEmail = custDoc.email || ""
+      if (!customerPhone) customerPhone = custDoc.phoneNumber || ""
+    }
+  }
+
+  const yyyymm = new Date().toISOString().slice(0, 7).replace("-", "")
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000)
+  const ticketNumber = `RPT-${yyyymm}-${randomSuffix}`
+
+  const reporterDisplay =
+    provider?.shopName?.trim() || provider?.fullName || req.user.fullName || "Service Provider"
+
+  const newComplaint = await Complaint.create({
+    ticketNumber,
+    reporter: providerId,
+    reporterRole: provider?.role || req.user.role || "shop-owner",
+    reporterName: reporterDisplay,
+    reporterEmail: provider?.email || req.user.email || "",
+    reporterPhone: provider?.phoneNumber || "",
+    customer: customerId,
+    customerName: customerName || "Customer",
+    customerEmail,
+    customerPhone,
+    targetType: "customer",
+    reportedUser: customerId,
+    reportedUserRole: "customer",
+    reportedUserName: customerName || "Customer",
+    targetShop: providerId,
+    targetShopName: reporterDisplay,
+    booking: bookingDoc?._id || (bookingId && mongoose.Types.ObjectId.isValid(bookingId) ? bookingId : null),
+    bookingServiceTitle: serviceTitle,
+    category,
+    subject: subject.trim(),
+    description: description.trim(),
+    evidencePhotos: Array.isArray(evidencePhotos) ? evidencePhotos : [],
+    priority: ["urgent", "high", "medium", "low"].includes(priority) ? priority : "medium",
+    status: "pending",
+  })
+
+  if (customerId) {
+    try {
+      await sendDirectMessage({
+        fromUserId: providerId,
+        toUserId: customerId,
+        content:
+          `📢 [LMD-PESO Notice] Incident Report #${ticketNumber} has been filed by ${reporterDisplay} regarding booking (${serviceTitle || "Service"}).\n\n` +
+          `• Subject: ${subject.trim()}\n` +
+          `• Category: ${category}\n` +
+          `The E-Paayos Administrator will review this report.`,
+      })
+    } catch (err) {
+      console.warn("Could not send customer notice:", err?.message || err)
+    }
+  }
+
+  res.status(201).json({
+    success: true,
+    message: `Incident report #${ticketNumber} submitted to E-Paayos Administration.`,
+    data: newComplaint,
+  })
+})
+
+/**
  * @desc Get current customer's filed complaints
  * @route GET /api/users/complaints/my
  * @access Customer
@@ -401,9 +598,31 @@ export const createCustomerComplaint = asyncHandler(async (req, res) => {
 export const listCustomerComplaints = asyncHandler(async (req, res) => {
   const customerId = req.user._id
 
-  const complaints = await Complaint.find({ customer: customerId })
+  const complaints = await Complaint.find({
+    $or: [{ reporter: customerId }, { customer: customerId, targetType: { $ne: "customer" } }],
+  })
     .populate("targetShop", "fullName shopName shopAddress")
     .populate("booking", "ref problemDescription serviceMode")
+    .sort({ createdAt: -1 })
+    .lean()
+
+  res.json({ success: true, data: complaints })
+})
+
+/**
+ * @desc Get complaints filed BY the logged-in service provider against customers
+ * @route GET /api/users/complaints/provider/filed
+ * @access Service Provider
+ */
+export const listProviderFiledComplaints = asyncHandler(async (req, res) => {
+  const providerId = req.user._id
+
+  const complaints = await Complaint.find({
+    reporter: providerId,
+  })
+    .populate("reportedUser", "fullName email phoneNumber moderationStatus")
+    .populate("customer", "fullName email phoneNumber")
+    .populate("booking", "ref problemDescription serviceMode preferredDate")
     .sort({ createdAt: -1 })
     .lean()
 
@@ -418,11 +637,24 @@ export const listCustomerComplaints = asyncHandler(async (req, res) => {
 export const listProviderComplaints = asyncHandler(async (req, res) => {
   const providerId = req.user._id
 
+  const providerBookingIds = await Booking.find({
+    $or: [{ shopOwner: providerId }, { assignedTechnician: providerId }],
+  }).distinct("_id")
+
   const complaints = await Complaint.find({
-    $or: [{ targetShop: providerId }, { targetTechnician: providerId }],
+    targetType: { $ne: "customer" },
+    reporter: { $ne: providerId },
+    $or: [
+      { targetShop: providerId },
+      { targetTechnician: providerId },
+      { reportedUser: providerId },
+      ...(providerBookingIds.length > 0 ? [{ booking: { $in: providerBookingIds } }] : []),
+    ],
   })
     .populate("customer", "fullName email phone")
-    .populate("booking", "ref problemDescription serviceMode")
+    .populate("reporter", "fullName email phoneNumber role")
+    .populate("targetShop", "fullName shopName role")
+    .populate("booking", "ref problemDescription serviceMode preferredDate")
     .sort({ createdAt: -1 })
     .lean()
 
@@ -450,9 +682,26 @@ export const respondToComplaintAsProvider = asyncHandler(async (req, res) => {
     throw new Error("Complaint not found.")
   }
 
-  const isTarget =
+  let isTarget =
     String(complaint.targetShop) === String(providerId) ||
-    String(complaint.targetTechnician) === String(providerId)
+    String(complaint.targetTechnician) === String(providerId) ||
+    String(complaint.reportedUser) === String(providerId)
+
+  if (!isTarget && complaint.booking) {
+    const linkedBooking = await Booking.findById(complaint.booking)
+      .select("shopOwner assignedTechnician")
+      .lean()
+    if (
+      linkedBooking &&
+      (String(linkedBooking.shopOwner) === String(providerId) ||
+        String(linkedBooking.assignedTechnician) === String(providerId))
+    ) {
+      isTarget = true
+      if (!complaint.targetShop && linkedBooking.shopOwner) {
+        complaint.targetShop = linkedBooking.shopOwner
+      }
+    }
+  }
 
   if (!isTarget && req.user.role !== "admin") {
     res.status(403)
@@ -460,7 +709,7 @@ export const respondToComplaintAsProvider = asyncHandler(async (req, res) => {
   }
 
   complaint.providerExplanation = explanation.trim()
-  if (Array.isArray(explanationPhotos) && explanationPhotos.length > 0) {
+  if (Array.isArray(explanationPhotos)) {
     complaint.providerExplanationPhotos = explanationPhotos
   }
   complaint.providerRespondedAt = new Date()
@@ -471,13 +720,14 @@ export const respondToComplaintAsProvider = asyncHandler(async (req, res) => {
 
   await complaint.save()
 
-  // Notify customer
-  if (complaint.customer) {
+  // Notify reporter / customer
+  const notifyId = complaint.reporter || complaint.customer
+  if (notifyId) {
     try {
       await sendDirectMessage({
         fromUserId: providerId,
-        toUserId: complaint.customer,
-        content: `💬 [E-Paayos Complaint Update] The service provider (${complaint.targetShopName || req.user.fullName}) has submitted an official response/explanation regarding your Complaint #${complaint.ticketNumber}.\n\n` +
+        toUserId: notifyId,
+        content: `💬 [E-Paayos Complaint Update] The reported party (${complaint.targetShopName || req.user.fullName}) has submitted an official response/explanation regarding your Ticket #${complaint.ticketNumber}.\n\n` +
           `• Explanation: "${explanation.trim().slice(0, 200)}..."\n\n` +
           `The LMD-PESO Administrator will review both statements for dispute resolution.`,
       })
@@ -494,7 +744,7 @@ export const respondToComplaintAsProvider = asyncHandler(async (req, res) => {
 })
 
 /**
- * @desc LMD-PESO Administrator requests explanation from service provider
+ * @desc LMD-PESO Administrator requests explanation from reported party (shop, technician, or customer)
  * @route POST /api/admin/complaints/:id/request-explanation
  * @access Admin
  */
@@ -506,32 +756,58 @@ export const requestProviderExplanation = asyncHandler(async (req, res) => {
     throw new Error("Complaint not found.")
   }
 
+  if (!complaint.reportedUser && !complaint.targetShop && !complaint.targetTechnician && complaint.booking) {
+    const linkedBooking = await Booking.findById(complaint.booking)
+      .populate("shopOwner", "fullName shopName role")
+      .lean()
+    if (linkedBooking?.shopOwner?._id) {
+      complaint.targetShop = linkedBooking.shopOwner._id
+      complaint.reportedUser = linkedBooking.shopOwner._id
+      if (!complaint.targetShopName) {
+        complaint.targetShopName = linkedBooking.shopOwner.shopName || linkedBooking.shopOwner.fullName || ""
+      }
+      if (linkedBooking.shopOwner.role === "oncall-mechanic-technician") {
+        complaint.targetType = "technician"
+        complaint.targetTechnician = linkedBooking.shopOwner._id
+        complaint.targetTechnicianName = linkedBooking.shopOwner.fullName || linkedBooking.shopOwner.shopName || ""
+      }
+    }
+  }
+
   complaint.explanationRequestedAt = new Date()
   if (complaint.status === "pending") {
     complaint.status = "under_investigation"
   }
   await complaint.save()
 
-  const targetProviderId = complaint.targetShop || complaint.targetTechnician
-  if (targetProviderId) {
+  const targetUserId =
+    complaint.targetType === "customer"
+      ? complaint.reportedUser || complaint.customer
+      : complaint.reportedUser || complaint.targetShop || complaint.targetTechnician
+  const targetLabel =
+    complaint.targetType === "customer"
+      ? complaint.reportedUserName || complaint.customerName || "Customer"
+      : complaint.targetShopName || complaint.targetTechnicianName || "Provider"
+
+  if (targetUserId) {
     try {
       await sendDirectMessage({
         fromUserId: req.user._id,
-        toUserId: targetProviderId,
-        content: `⚠️ [LMD-PESO Official Inquiry] You are officially requested by the LMD-PESO Administrator to provide an explanation/defense regarding Complaint #${complaint.ticketNumber}.\n\n` +
-          `• Complainant: ${complaint.customerName}\n` +
+        toUserId: targetUserId,
+        content: `⚠️ [LMD-PESO Official Inquiry] You are officially requested by the E-Paayos Administrator to provide an explanation/defense regarding Ticket #${complaint.ticketNumber}.\n\n` +
+          `• Complainant: ${complaint.reporterName || complaint.customerName}\n` +
           `• Subject: ${complaint.subject}\n` +
           `• Category: ${complaint.category}\n\n` +
-          `Please log into your Provider Portal to submit your official statement and counter-evidence within 48 hours for arbitration.`,
+          `Please submit your official statement and supporting evidence within 48 hours for administrative review.`,
       })
     } catch (err) {
-      console.warn("Failed to notify provider:", err?.message)
+      console.warn("Failed to notify reported party:", err?.message)
     }
   }
 
   res.json({
     success: true,
-    message: `Official inquiry notice sent to service provider (${complaint.targetShopName || "Provider"}).`,
+    message: `Official inquiry notice sent to ${targetLabel}.`,
     data: complaint,
   })
 })

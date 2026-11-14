@@ -175,7 +175,8 @@ function CalendarDayButton({
         defaultClassNames.day,
         className
       )}
-      {...props} />
+      {...props}
+      type="button" />
   );
 }
 

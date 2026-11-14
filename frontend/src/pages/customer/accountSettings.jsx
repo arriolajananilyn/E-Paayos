@@ -335,7 +335,7 @@ export default function AccountSettings() {
     const username = loggedUser?.username || loggedUser?.email?.split("@")[0] || "juandc_epaayos"
     const email = loggedUser?.email || "juan.delacruz@email.com"
     const phone = loggedUser?.contactNumber || loggedUser?.phone || "+63 917 889 4521"
-    const avatarUrl = loggedUser?.profileImage || loggedUser?.avatar || loggedUser?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80"
+    const avatarUrl = loggedUser?.profileImage || loggedUser?.avatar || loggedUser?.avatarUrl || ""
     const buyerType = loggedUser?.customerType || "Residential Service Client"
     const bio = loggedUser?.bio || "Customer using E-Paayos service booking platform for home & appliance repairs in Marinduque."
 
@@ -930,7 +930,7 @@ export default function AccountSettings() {
     toast.success("Notification preferences saved.")
   }
 
-  const userInitials = (profile.firstName[0] || "J") + (profile.lastName[0] || "D")
+  const userInitials = String(profile.firstName || profile.lastName || "C").trim().charAt(0).toUpperCase()
   const currentDisplayAvatar = avatarPreview || profile.avatarUrl
 
   return (
@@ -1387,13 +1387,13 @@ export default function AccountSettings() {
 
                   <div>
                     <label className="mb-1 block text-xs font-bold text-slate-700">
-                      Short Bio & Service Preferences
+                      Notes
                     </label>
                     <textarea
                       rows={3}
                       value={profile.bio}
                       onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                      placeholder="Tell service technicians about your preferred appointment times or location landmarks..."
+                      placeholder="Preferred time or landmark"
                       className={cn(inputStyle, "h-auto py-2 resize-none")}
                     />
                   </div>
@@ -1435,7 +1435,7 @@ export default function AccountSettings() {
                       )}
                     </div>
                     <p className="text-xs text-slate-500">
-                      Manage home & workshop service locations for fast technician booking & dispatch in Marinduque.
+                      Saved locations for bookings.
                     </p>
                   </div>
 
@@ -1637,7 +1637,7 @@ export default function AccountSettings() {
                           type={security.showNew ? "text" : "password"}
                           value={security.newPassword}
                           onChange={(e) => setSecurity({ ...security, newPassword: e.target.value })}
-                          placeholder="At least 6 characters"
+                          placeholder="Min. 6 characters"
                           required
                           className={inputStyle}
                         />
@@ -1660,7 +1660,7 @@ export default function AccountSettings() {
                           type={security.showConfirm ? "text" : "password"}
                           value={security.confirmPassword}
                           onChange={(e) => setSecurity({ ...security, confirmPassword: e.target.value })}
-                          placeholder="Re-enter new password"
+                          placeholder="New password"
                           required
                           className={inputStyle}
                         />
@@ -1900,18 +1900,37 @@ export default function AccountSettings() {
 
       {/* ── ADDRESS MODAL ─────────────────────────────────────────────────── */}
       <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-none p-0 overflow-hidden border border-slate-200">
-          <DialogHeader className="p-4 bg-gradient-to-r from-[#04133d] to-[#081F5C] text-white space-y-1">
-            <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
-              <MapPin className="size-4 text-sky-400" />
-              {editingAddress ? "Edit Service Address" : "Add New Service Address"}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-300">
-              Provide delivery or service dispatch details in Marinduque.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent
+          showCloseButton={false}
+          className="w-[calc(100%-1.5rem)] sm:max-w-md max-h-[90dvh] flex flex-col gap-0 bg-white rounded-none p-0 overflow-hidden border border-slate-200 shadow-2xl"
+        >
+          <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex size-8 items-center justify-center bg-white/15 text-sky-300 border border-white/20 shrink-0">
+                  <MapPin className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+                    {editingAddress ? "Edit Service Address" : "Add New Service Address"}
+                  </DialogTitle>
+                  <DialogDescription className="text-[11px] text-blue-100/80 font-normal mt-0.5">
+                    Address for service visits.
+                  </DialogDescription>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddressModalOpen(false)}
+                className="size-8 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/15 transition-colors shrink-0 cursor-pointer"
+                aria-label="Close dialog"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+          </div>
 
-          <form onSubmit={handleSaveAddress} className="p-4 space-y-3.5">
+          <form onSubmit={handleSaveAddress} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 space-y-3.5">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-bold text-slate-700">
@@ -1919,7 +1938,7 @@ export default function AccountSettings() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Home, Main Shop, Farm"
+                  placeholder="e.g. Home"
                   value={addressForm.label}
                   onChange={(e) => setAddressForm({ ...addressForm, label: e.target.value })}
                   required
@@ -2008,7 +2027,7 @@ export default function AccountSettings() {
               </label>
               <input
                 type="text"
-                placeholder="e.g. House 12, Sitio Centro, near Barangay Hall"
+                placeholder="House no., street, landmark"
                 value={addressForm.street}
                 onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
                 required

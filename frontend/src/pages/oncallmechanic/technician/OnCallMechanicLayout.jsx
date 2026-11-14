@@ -106,6 +106,7 @@ export default function OnCallMechanicLayout({
   const [sidebarOpen, setSidebarOpen] = useState(onCallMechanicSidebarOpenState)
   const [profileOpen, setProfileOpen] = useState(false)
   const [independentEventUnread, setIndependentEventUnread] = useState(null)
+  const [pendingComplaintsCount, setPendingComplaintsCount] = useState(0)
   const profileMenuRef = useRef(null)
 
   useEffect(() => {
@@ -163,6 +164,35 @@ export default function OnCallMechanicLayout({
     window.addEventListener(EPAAYOS_UNREAD_EVENT, fn)
     return () => window.removeEventListener(EPAAYOS_UNREAD_EVENT, fn)
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    let cancelled = false
+    const fetchPendingComplaints = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+        const res = await fetch(`${API_URL}/api/users/complaints/provider`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!cancelled && res.ok && Array.isArray(json?.data)) {
+          const count = json.data.filter(
+            (c) => !c.providerExplanation && c.status !== 'resolved' && c.status !== 'dismissed'
+          ).length
+          setPendingComplaintsCount(count)
+        }
+      } catch {
+        // silent fail
+      }
+    }
+    fetchPendingComplaints()
+    window.addEventListener('epaayos:provider-complaints-updated', fetchPendingComplaints)
+    return () => {
+      cancelled = true
+      window.removeEventListener('epaayos:provider-complaints-updated', fetchPendingComplaints)
+    }
+  }, [user, activeSection])
 
   const independentHeaderUnread = onNotifSection ? (independentEventUnread ?? independentNotifUnread) : independentNotifUnread
 
@@ -329,7 +359,14 @@ export default function OnCallMechanicLayout({
                         className={sidebarMenuButtonClass}
                       >
                         <ShieldAlert className="size-[18px] opacity-90 text-amber-300" />
-                        <span className="whitespace-nowrap">Complaints & Reports</span>
+                        <span className="flex items-center justify-between gap-2 flex-1 whitespace-nowrap">
+                          <span>Complaints &amp; Reports</span>
+                          {pendingComplaintsCount > 0 && (
+                            <span className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-amber-400 px-1.5 text-[10px] font-black text-[#04133d]">
+                              {pendingComplaintsCount}
+                            </span>
+                          )}
+                        </span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>

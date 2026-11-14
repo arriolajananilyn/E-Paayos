@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken"
 import asyncHandler from "express-async-handler"
 import { User } from "../models/userModel.js"
+import { formatRestrictionPayload, syncExpiredRestrictionIfNeeded } from "../utils/userModeration.js"
 
 export const protect = asyncHandler(async (req, res, next) => {
   let token
@@ -47,6 +48,17 @@ export const protect = asyncHandler(async (req, res, next) => {
           ? `Your registration was not approved. Reason: ${user.approvalRejectionReason.trim()}`
           : "Your registration was not approved."
       )
+    }
+
+    if (user.moderationStatus === "restricted") {
+      await syncExpiredRestrictionIfNeeded(user)
+      if (user.moderationStatus === "restricted") {
+        const isModerationCheck =
+          req.originalUrl && req.originalUrl.startsWith("/api/users/me/moderation")
+        if (!isModerationCheck) {
+          return res.status(403).json(formatRestrictionPayload(user))
+        }
+      }
     }
   }
 

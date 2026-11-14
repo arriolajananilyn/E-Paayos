@@ -87,13 +87,8 @@ function mapRegisteredMechanicFromApi(u) {
 }
 
 function initials(name) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join('')
-    .toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function formatJoined(iso) {
@@ -188,54 +183,43 @@ function roleBadge(role) {
 
 const STAT_CARD_GRADIENT = {
   /** Headcount — brand navy */
-  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  total: 'text-[#224d84]',
   /** On duty — success greens */
-  active: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
+  active: 'text-emerald-600',
   /** Away — warm amber */
-  'on-leave': "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  'on-leave': 'text-amber-500',
   /** Not on roster — cool neutral */
-  inactive: "from-slate-600 via-slate-700 to-slate-950 border-slate-400/30",
+  inactive: 'text-slate-500',
 }
 
 function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
-  const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total
+  const iconTone = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.total ?? 'text-[#224d84]'
   const helperText = helper || sub
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
-        onClick ? "cursor-pointer" : "",
-        gradient,
+        'group relative overflow-hidden rounded-none border border-[#c9e8fd] bg-white p-3 sm:p-4 shadow-[0_10px_28px_-18px_rgba(1,30,72,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#8fc8f3] hover:shadow-[0_16px_32px_-18px_rgba(1,30,72,0.5)]',
+        onClick ? 'cursor-pointer' : '',
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
-
-      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
-            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
-            <span className="truncate">{label}</span>
-          </span>
-          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
-            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
-              {value}
-            </span>
-          </div>
+      <Icon className={cn('pointer-events-none absolute -right-2 -bottom-3 size-16 sm:size-20 rotate-12 stroke-[1.15] opacity-[0.12] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6', iconTone)} />
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-[#011e48] tabular-nums">
+            {value}
+          </p>
           {helperText ? (
-            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+            <p className="mt-1 truncate text-[10px] sm:text-[11px] font-medium text-slate-500">
               {helperText}
             </p>
           ) : null}
         </div>
+        <Icon className={cn('size-5 sm:size-6 shrink-0', iconTone)} />
       </div>
     </div>
   )
@@ -572,7 +556,7 @@ function ManageEmployeePage() {
             <div className="relative w-full min-w-0 max-w-full">
               <Input
                 className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-10 pl-3.5 sm:pr-12 sm:pl-4 text-xs sm:text-sm font-medium shadow-xs placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:border-white/10 dark:bg-[#04133d]/25"
-                placeholder="Search by name, email, or role…"
+                placeholder="Search name, email, role"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 aria-label="Search employees"
@@ -873,8 +857,7 @@ function ManageEmployeePage() {
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">Edit roster entry</DialogTitle>
             <DialogDescription className="text-xs leading-relaxed">
-              Profile details come from the technician&apos;s registration. You can set their shop role label and roster
-              status here.
+              Set their shop role and roster status.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-1 text-xs">
@@ -927,7 +910,7 @@ function ManageEmployeePage() {
               </div>
             </div>
             <div className="grid gap-1">
-              <Label htmlFor="emp-spec" className="text-xs">Course / skills (from registration)</Label>
+              <Label htmlFor="emp-spec" className="text-xs">Skills</Label>
               <Input id="emp-spec" value={form.specialization} readOnly className="bg-muted/50 text-xs h-9" />
             </div>
           </div>

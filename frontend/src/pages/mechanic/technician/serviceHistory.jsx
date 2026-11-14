@@ -98,14 +98,8 @@ function formatPhp(amount) {
 }
 
 function initialsFromName(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  if (!parts.length) return '?'
-  const a = parts[0]?.[0] ?? ''
-  const b = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
-  return (a + b).toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function formatPreferredDate(value) {

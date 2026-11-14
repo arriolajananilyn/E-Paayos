@@ -11,7 +11,6 @@ import {
   SlidersHorizontal,
   Smartphone,
   Star,
-  Store,
   UserRound,
   WashingMachine,
   Wrench,
@@ -35,7 +34,13 @@ function resolveCatalogShopPhotoUrl(raw) {
   if (!raw || typeof raw !== 'string') return ''
   const s = raw.trim()
   if (!s) return ''
-  if (s.startsWith('data:') || s.startsWith('http://') || s.startsWith('https://')) return s
+  if (s.startsWith('data:')) {
+    const comma = s.indexOf(',')
+    const payload = comma >= 0 ? s.slice(comma + 1).replace(/\s/g, '') : ''
+    if (payload.length < 32) return ''
+    return s
+  }
+  if (s.startsWith('http://') || s.startsWith('https://')) return s
   if (s.startsWith('/uploads/')) return `${API_URL}${s}`
   return s
 }
@@ -61,14 +66,8 @@ function serviceTypeBadge(type) {
 }
 
 function initialsFromName(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  if (!parts.length) return '?'
-  const first = parts[0]?.[0] ?? ''
-  const second = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
-  return `${first}${second}`.toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function categoryIcon(category) {
@@ -97,7 +96,8 @@ function categoryTopBannerImage(category) {
 }
 
 function ServiceOwnerThumb({ src, ownerName, IconComponent }) {
-  const [imageFailed, setImageFailed] = useState(false)
+  const [failedSrc, setFailedSrc] = useState('')
+  const imageFailed = Boolean(src) && failedSrc === src
   const canShowImage = Boolean(src) && !imageFailed
   return (
     <span className="inline-flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 overflow-hidden rounded-none border border-white/40 bg-linear-to-br from-[#04133d] via-[#081F5C] to-[#1447a6] text-white shadow-2xs">
@@ -106,11 +106,11 @@ function ServiceOwnerThumb({ src, ownerName, IconComponent }) {
           src={src}
           alt=""
           className="h-full w-full object-cover"
-          onError={() => setImageFailed(true)}
+          onError={() => setFailedSrc(src)}
         />
       ) : (
         <span className="flex h-full w-full items-center justify-center bg-[#081F5C]/55 text-[10px] sm:text-xs font-bold text-white">
-          {initialsFromName(ownerName) || <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />}
+          {String(ownerName ?? '').trim().charAt(0).toUpperCase() || <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />}
         </span>
       )}
     </span>
@@ -137,10 +137,7 @@ export function CatalogServiceCard({ item, readableShopAddresses, shopAddressesR
     Number.isFinite(Number(item.shopStaffCount)) && Number(item.shopStaffCount) >= 0
       ? Number(item.shopStaffCount)
       : displayedStaff.length
-  const shopThumb =
-    resolveCatalogShopPhotoUrl(item.shopPlacePhoto) ||
-    resolveCatalogShopPhotoUrl(item.shopOwnerProfileImage) ||
-    resolveCatalogShopPhotoUrl(item.shopOwnerSelfieImage)
+  const shopThumb = resolveCatalogShopPhotoUrl(item.shopPlacePhoto)
   const topBannerImage = categoryTopBannerImage(item.category)
   const ratingNum = Number(item.shopRating)
   const ratingLabel = Number.isFinite(ratingNum) ? ratingNum.toFixed(1) : '—'
@@ -327,20 +324,13 @@ function buildTopMarqueeSegment(entries, minCards) {
   return out
 }
 
-function heroImageForCatalogRow(row) {
-  const thumb =
-    resolveCatalogShopPhotoUrl(row.shopPlacePhoto) ||
-    resolveCatalogShopPhotoUrl(row.shopOwnerProfileImage) ||
-    resolveCatalogShopPhotoUrl(row.shopOwnerSelfieImage)
-  if (thumb) return thumb
-  const banner = categoryTopBannerImage(row.category)
-  return typeof banner === 'string' && banner ? banner : ''
-}
-
 function TopPreviewServiceCard({ catalogRow, kind, locationLine }) {
   const isIndependent = kind === 'independent'
   const ownerLabel = isIndependent ? 'Business owner' : 'Shop owner'
-  const imageSrc = heroImageForCatalogRow(catalogRow)
+  const shopPhoto = resolveCatalogShopPhotoUrl(catalogRow.shopPlacePhoto)
+  const headerPhoto = categoryTopBannerImage(catalogRow.category)
+  const [failedPhoto, setFailedPhoto] = useState('')
+  const showShopPhoto = Boolean(shopPhoto) && failedPhoto !== shopPhoto
   const rating = Number(catalogRow.shopRating) || 0
   const jobs = Math.max(0, Number(catalogRow.completedJobs) || 0)
 
@@ -361,18 +351,33 @@ function TopPreviewServiceCard({ catalogRow, kind, locationLine }) {
       }}
       className="w-[210px] sm:w-[280px] max-w-[210px] sm:max-w-[280px] shrink-0 cursor-pointer gap-1.5 sm:gap-2 overflow-hidden rounded-none border border-slate-200 bg-white p-0 shadow-[0_3px_8px_rgba(15,23,42,0.14)] transition-all duration-300 hover:border-[#081F5C] hover:shadow-[0_6px_16px_rgba(8,31,92,0.22)] hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#081F5C]"
     >
-      <div className="relative aspect-5/2 w-full overflow-hidden bg-slate-100">
-        {imageSrc ? (
+      <div className="relative aspect-5/2 w-full overflow-hidden bg-[#04133d]">
+        {showShopPhoto ? (
           <img
-            src={imageSrc}
+            key={shopPhoto}
+            src={shopPhoto}
             alt=""
             className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
+            onError={() => setFailedPhoto(shopPhoto)}
           />
         ) : (
-          <div className="flex h-full min-h-14 sm:min-h-16 w-full items-center justify-center bg-linear-to-br from-slate-100 to-slate-200">
-            <Store className="h-7 w-7 sm:h-9 sm:w-9 text-slate-400" aria-hidden />
+          <div
+            className="relative h-full w-full bg-[#04133d] bg-cover bg-center"
+            style={
+              headerPhoto
+                ? {
+                    backgroundImage: `linear-gradient(to right, rgba(4,19,61,0.85), rgba(8,31,92,0.35)), url(${headerPhoto})`,
+                  }
+                : undefined
+            }
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="inline-flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center border border-white/40 bg-[#081F5C]/75 text-lg sm:text-2xl font-bold text-white shadow-2xs">
+                {String(catalogRow.shopName || catalogRow.shopOwner || '?').trim().charAt(0).toUpperCase() || '?'}
+              </span>
+            </div>
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/60 to-transparent" aria-hidden />
@@ -630,6 +635,7 @@ function CustomerFindServices() {
     setCatalogLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/catalog/shop-services`, {
+        cache: 'no-store',
         headers: catalogAuthHeaders(),
       })
       if (!res.ok) {

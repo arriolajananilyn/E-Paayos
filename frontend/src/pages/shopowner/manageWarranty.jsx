@@ -718,7 +718,7 @@ export default function ShopOwnerManageWarranty() {
                 <div className="relative w-full min-w-0 max-w-full">
                   <Input
                     className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
-                    placeholder="Search by customer name, phone, ref, service…"
+                    placeholder="Search customer, phone, ref"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     aria-label="Search warranty records"
@@ -1260,7 +1260,7 @@ export default function ShopOwnerManageWarranty() {
                             handleAddCoveredItem()
                           }
                         }}
-                        placeholder="Add new covered warranty item..."
+                        placeholder="Add covered item"
                         className="flex-1 rounded-none border border-slate-300 bg-slate-50/50 px-2.5 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C]"
                       />
                       <button
@@ -1336,7 +1336,7 @@ export default function ShopOwnerManageWarranty() {
                             handleAddVoidCondition()
                           }
                         }}
-                        placeholder="Add new void condition..."
+                        placeholder="Add void condition"
                         className="flex-1 rounded-none border border-slate-300 bg-slate-50/50 px-2.5 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:bg-white focus:border-amber-600 focus:ring-1 focus:ring-amber-600"
                       />
                       <button
@@ -1376,25 +1376,14 @@ export default function ShopOwnerManageWarranty() {
                     setWarrantySettings((prev) => ({ ...prev, warrantyPolicyTerms: e.target.value }))
                   }
                   className="w-full rounded-none border border-slate-300 px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-[#081F5C] focus:ring-2 focus:ring-[#081F5C]/15"
-                  placeholder="Enter specific warranty policies, guarantee terms, and customer guidelines..."
+                  placeholder="Warranty terms"
                 />
-                <p className="text-[11px] text-slate-400">
-                  This policy statement is presented to customers during booking confirmation and on completed service receipts.
-                </p>
               </div>
 
               {/* Claim Resolution Flow Information */}
-              <div className="rounded-none border border-blue-100 bg-blue-50/70 p-3.5 sm:p-4 text-xs text-blue-950 space-y-2">
-                <div className="flex items-center gap-1.5 font-bold text-[#081F5C]">
-                  <Info className="h-4 w-4 shrink-0" />
-                  <span>How Warranty Claims Work on E-Paayos:</span>
-                </div>
-                <ol className="list-decimal pl-5 space-y-1 text-slate-700 text-[11px] sm:text-xs">
-                  <li>Customer submits a warranty inspection claim under their completed booking history.</li>
-                  <li>Your shop receives a priority warranty notification and reviews the issue within 24–48 hours.</li>
-                  <li>Upon inspection and verification, eligible repairs or part replacements are fulfilled at zero additional labor cost.</li>
-                </ol>
-              </div>
+              <p className="text-[11px] text-slate-500">
+                Customers file claims from completed bookings. Eligible rework is free of labor.
+              </p>
 
               {/* Actions Footer */}
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">

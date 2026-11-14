@@ -27,7 +27,6 @@ import {
   CheckCircle,
   CheckCircle2,
   ChevronDown,
-  ChevronRight,
   ClipboardList,
   Clock,
   DollarSign,
@@ -91,53 +90,42 @@ function fileToDataUrl(file) {
 }
 
 const REQUEST_STAT_GRADIENT = {
-  pending: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
-  confirmed: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
-  working: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
-  fixed: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
-  completed: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
-  total: "from-[#04133d] via-[#081F5C] to-[#1447a6] border-[#1447a6]/40",
+  pending: 'text-amber-500',
+  confirmed: 'text-sky-600',
+  working: 'text-purple-600',
+  fixed: 'text-emerald-600',
+  completed: 'text-teal-600',
+  total: 'text-[#224d84]',
 }
 
 function StatGradientCard({ label, value, sub, helper, icon: Icon, variant, onClick, className }) {
-  const gradient = REQUEST_STAT_GRADIENT[variant] ?? REQUEST_STAT_GRADIENT.total
+  const iconTone = REQUEST_STAT_GRADIENT[variant] ?? REQUEST_STAT_GRADIENT.total ?? 'text-[#224d84]'
   const helperText = helper || sub
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-2.5 sm:p-4 text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg rounded-none border",
-        onClick ? "cursor-pointer" : "",
-        gradient,
+        'group relative overflow-hidden rounded-none border border-[#c9e8fd] bg-white p-3 sm:p-4 shadow-[0_10px_28px_-18px_rgba(1,30,72,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#8fc8f3] hover:shadow-[0_16px_32px_-18px_rgba(1,30,72,0.5)]',
+        onClick ? 'cursor-pointer' : '',
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-28 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-20 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
-
-      <div className="relative z-10 space-y-1.5 sm:space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[11px] font-black uppercase tracking-wider bg-black/25 backdrop-blur-md border border-white/25 text-white rounded-none shadow-xs truncate max-w-[110px] sm:max-w-none">
-            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
-            <span className="truncate">{label}</span>
-          </span>
-          <div className="size-5 sm:size-6 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shadow-xs shrink-0">
-            <ChevronRight className="size-3 sm:size-3.5 transition-transform group-hover:translate-x-0.5" />
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-baseline gap-1.5 sm:gap-2">
-            <span className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-sm tabular-nums">
-              {value}
-            </span>
-          </div>
+      <Icon className={cn('pointer-events-none absolute -right-2 -bottom-3 size-16 sm:size-20 rotate-12 stroke-[1.15] opacity-[0.12] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6', iconTone)} />
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-[#011e48] tabular-nums">
+            {value}
+          </p>
           {helperText ? (
-            <p className="text-[10px] sm:text-[11px] text-white/85 font-medium mt-0.5 sm:mt-1 leading-snug truncate">
+            <p className="mt-1 truncate text-[10px] sm:text-[11px] font-medium text-slate-500">
               {helperText}
             </p>
           ) : null}
         </div>
+        <Icon className={cn('size-5 sm:size-6 shrink-0', iconTone)} />
       </div>
     </div>
   )
@@ -152,7 +140,7 @@ function BookingSearchBar({ value, onChange }) {
       <div className="relative w-full min-w-0 max-w-full">
         <Input
           className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20"
-          placeholder="Search by name, phone, service, notes…"
+          placeholder="Search name, phone, service"
           value={value}
           onChange={onChange}
           aria-label="Search booking requests"
@@ -2189,13 +2177,13 @@ function OnCallMechanicServiceRequestPage() {
             {/* Handover / Turnover Notes */}
             <div className="space-y-1.5">
               <Label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                Handover Notes / Remarks <span className="text-slate-400 font-normal">(Optional)</span>
+                Handover notes (optional)
               </Label>
               <Textarea
                 rows={2}
                 value={completionNotes}
                 onChange={(e) => setCompletionNotes(e.target.value)}
-                placeholder="e.g. Item tested in customer presence, released in good condition, warranty terms explained..."
+                placeholder="e.g. Tested and released"
                 className="w-full text-xs rounded-none border-slate-200 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
               />
             </div>
@@ -2269,7 +2257,7 @@ function OnCallMechanicServiceRequestPage() {
           <DialogHeader className="shrink-0 border-b border-slate-100 pb-3.5">
             <DialogTitle className="text-xl font-black text-slate-900">Decline Service Request</DialogTitle>
             <DialogDescription className="text-xs font-medium text-slate-500 mt-0.5">
-              Please explain why you are declining this request. This reason is saved with the booking record.
+              Reason is saved with the booking.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2 text-xs sm:text-sm">
@@ -2283,7 +2271,7 @@ function OnCallMechanicServiceRequestPage() {
                 setRejectReason(e.target.value)
                 if (rejectReasonError) setRejectReasonError('')
               }}
-              placeholder="e.g. Fully booked on that schedule, outside service area, parts unavailable..."
+              placeholder="e.g. Fully booked, or parts unavailable"
               rows={4}
               className="rounded-none border-slate-300 text-xs font-medium min-h-[100px] resize-y focus:border-rose-600 focus:ring-1 focus:ring-rose-600 shadow-2xs"
               aria-invalid={!!rejectReasonError}
@@ -2404,7 +2392,7 @@ function OnCallMechanicServiceRequestPage() {
                   </span>
                 </div>
                 <p className="text-[11px] leading-relaxed text-emerald-800">
-                  Under warranty coverage, approved re-repair labor is 100% free of charge to the customer (Original labor: {formatPhp(reviewClaimBooking.serviceFeeLaborRateAtCalc || 0)}).
+                  Approved rework labor is free. Original labor: {formatPhp(reviewClaimBooking.serviceFeeLaborRateAtCalc || 0)}.
                 </p>
               </div>
 
@@ -2583,13 +2571,13 @@ function OnCallMechanicServiceRequestPage() {
 
                       <div>
                         <Label className="text-[11px] font-bold text-slate-800 block mb-1">
-                          Resolution Note &amp; Re-repair Arrangement:
+                          Resolution note
                         </Label>
                         <Textarea
                           rows={2}
                           value={resolutionNotes}
                           onChange={(e) => setResolutionNotes(e.target.value)}
-                          placeholder="e.g. We will inspect and fix the unit at ₱0 labor fee..."
+                          placeholder="We'll inspect and fix it. Labor is free."
                           className="rounded-none border-slate-300 text-xs bg-white focus:border-emerald-600 leading-relaxed"
                         />
                       </div>
@@ -2603,7 +2591,7 @@ function OnCallMechanicServiceRequestPage() {
                         rows={3}
                         value={claimRejectionReason}
                         onChange={(e) => setClaimRejectionReason(e.target.value)}
-                        placeholder="e.g. The issue was caused by unauthorized physical tampering or external factors not covered by the warranty policy..."
+                        placeholder="e.g. Not covered. Unit was tampered with."
                         className="rounded-none border-rose-300 text-xs bg-white focus:border-rose-600 leading-relaxed"
                       />
                       <p className="text-[10px] text-slate-500">Minimum 5 characters ({claimRejectionReason.trim().length}/5).</p>
@@ -2734,12 +2722,12 @@ function OnCallMechanicServiceRequestPage() {
             {/* Re-repair Notes */}
             <div className="space-y-1.5">
               <Label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                Diagnostic & Work Notes (Optional)
+                Work notes (optional)
               </Label>
               <Input
                 value={refixWorkingNotes}
                 onChange={(e) => setRefixWorkingNotes(e.target.value)}
-                placeholder="e.g. Disassembling unit to check motor brushes / replace component..."
+                placeholder="e.g. Replaced the part"
                 className="rounded-none text-xs"
               />
             </div>
@@ -2969,19 +2957,19 @@ function OnCallMechanicServiceRequestPage() {
                 <span>Warranty Rework Verification</span>
               </span>
               <p className="text-emerald-950/85 text-[11px] leading-relaxed">
-                Confirm that the reported issue has been diagnosed, repaired, and verified through testing. Under warranty, this labor is 100% free of charge.
+                Confirm the issue was fixed and tested. Labor stays free under warranty.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-800">
-                Testing Notes &amp; Observations (Optional)
+                Testing notes (optional)
               </Label>
               <Textarea
                 rows={3}
                 value={refixFixedNotes}
                 onChange={(e) => setRefixFixedNotes(e.target.value)}
-                placeholder="e.g. Completed rework and load-tested for 30 minutes. Operational parameters normal..."
+                placeholder="e.g. Tested and working"
                 className="rounded-none text-xs"
               />
             </div>
@@ -3060,19 +3048,19 @@ function OnCallMechanicServiceRequestPage() {
                 </Badge>
               </div>
               <p className="text-teal-950/85 text-[11px] leading-relaxed">
-                Confirm that the re-repaired unit has been released back to the customer. This will finalize the rework request under the Free Labor Guarantee.
+                Confirm the unit was returned. This closes the free rework.
               </p>
             </div>
 
             <div className="space-y-1.5">
               <Label className="text-xs font-bold text-slate-800">
-                Handover / Resolution Remarks (Optional)
+                Handover notes (optional)
               </Label>
               <Textarea
                 rows={2}
                 value={refixResolvedNotes}
                 onChange={(e) => setRefixResolvedNotes(e.target.value)}
-                placeholder="e.g. Unit tested and handed over to customer in good working order."
+                placeholder="e.g. Tested and returned to the customer"
                 className="rounded-none text-xs"
               />
             </div>

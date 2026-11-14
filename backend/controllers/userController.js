@@ -5,10 +5,13 @@ import path from "path"
 import { fileURLToPath } from "url"
 import crypto from "crypto"
 import { User } from "../models/userModel.js"
+import { Complaint } from "../models/complaintModel.js"
 import { generateToken } from "../utils/generateToken.js"
 import { isServiceProviderRole } from "../utils/serviceProviderRoles.js"
 import { shouldStoreUploadsInline } from "../utils/portableUploads.js"
 import { sendEmail } from "../utils/sendEmail.js"
+import { sendDirectMessage } from "../services/directMessage.js"
+import { formatRestrictionPayload, syncExpiredRestrictionIfNeeded } from "../utils/userModeration.js"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -166,7 +169,11 @@ function toStoredServiceType(value) {
 export const listShopOwnersForRegistration = asyncHandler(async (_req, res) => {
   const owners = await User.find({
     role: "shop-owner",
-    $nor: [{ accountApprovalStatus: "pending" }, { accountApprovalStatus: "rejected" }],
+    $nor: [
+      { accountApprovalStatus: "pending" },
+      { accountApprovalStatus: "rejected" },
+      { moderationStatus: "restricted" },
+    ],
   })
     .select("_id shopName fullName shopDetailedAddress shopLandmark")
     .sort({ shopName: 1, fullName: 1 })
@@ -538,6 +545,12 @@ export const loginUser = asyncHandler(async (req, res) => {
           "Please submit a new registration using accurate details that match your registration information and valid ID.",
       })
     }
+    if (user.moderationStatus === "restricted") {
+      await syncExpiredRestrictionIfNeeded(user)
+      if (user.moderationStatus === "restricted") {
+        return res.status(403).json(formatRestrictionPayload(user))
+      }
+    }
   }
 
   return res.json({
@@ -877,15 +890,63 @@ export const patchMyWarrantySettings = asyncHandler(async (req, res) => {
 
 /** Admin dashboard: list platform users (excludes other admin accounts). */
 export const listUsersForAdmin = asyncHandler(async (_req, res) => {
-  const users = await User.find({ role: { $ne: "admin" } })
-    .select(
-      "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus barangay cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason employedByShopOwner"
-    )
-    .populate("employedByShopOwner", "shopName fullName email")
-    .sort({ createdAt: -1 })
-    .lean()
+  const [users, complaints] = await Promise.all([
+    User.find({ role: { $ne: "admin" } })
+      .select(
+        "fullName email role phoneCode phoneNumber createdAt shopName shopJobTitle shopManagedStatus barangay cityMunicipality province courseProgram accountApprovalStatus approvalRejectionReason employedByShopOwner moderationStatus warningCount warnings restrictedAt restrictedUntil restrictionReason restrictionCategory restrictionRelatedTicket moderationLogs"
+      )
+      .populate("employedByShopOwner", "shopName fullName email")
+      .sort({ createdAt: -1 })
+      .lean(),
+    Complaint.find({})
+      .select("customer reporter reportedUser targetShop targetTechnician status")
+      .lean(),
+  ])
 
-  return res.json(users)
+  const againstCounts = new Map()
+  const filedCounts = new Map()
+  const openAgainstCounts = new Map()
+
+  for (const c of complaints) {
+    const reporterId = c.reporter ? String(c.reporter) : c.customer ? String(c.customer) : null
+    if (reporterId) {
+      filedCounts.set(reporterId, (filedCounts.get(reporterId) || 0) + 1)
+    }
+
+    const targets = new Set(
+      [c.reportedUser, c.targetShop, c.targetTechnician].filter(Boolean).map((id) => String(id))
+    )
+    const isOpen = c.status === "pending" || c.status === "under_investigation"
+    for (const tid of targets) {
+      if (tid === reporterId) continue
+      againstCounts.set(tid, (againstCounts.get(tid) || 0) + 1)
+      if (isOpen) {
+        openAgainstCounts.set(tid, (openAgainstCounts.get(tid) || 0) + 1)
+      }
+    }
+  }
+
+  const now = Date.now()
+  const enriched = users.map((u) => {
+    const uid = String(u._id)
+    const warnings = Array.isArray(u.warnings) ? u.warnings : []
+    const unackCount = warnings.filter((w) => !w.acknowledged).length
+    let moderationStatus = u.moderationStatus || "active"
+    if (moderationStatus === "restricted" && u.restrictedUntil && new Date(u.restrictedUntil).getTime() < now) {
+      moderationStatus = Number(u.warningCount || warnings.length || 0) > 0 ? "warned" : "active"
+    }
+    return {
+      ...u,
+      moderationStatus,
+      warningCount: Number(u.warningCount ?? warnings.length ?? 0),
+      unacknowledgedWarningCount: unackCount,
+      complaintsAgainstCount: againstCounts.get(uid) || 0,
+      openComplaintsAgainstCount: openAgainstCounts.get(uid) || 0,
+      complaintsFiledCount: filedCounts.get(uid) || 0,
+    }
+  })
+
+  return res.json(enriched)
 })
 
 /** Admin: full registration record for one user (password omitted). */
@@ -896,21 +957,48 @@ export const getUserForAdmin = asyncHandler(async (req, res) => {
     throw new Error("Invalid user id")
   }
 
-  const user = await User.findById(id)
+  const userDoc = await User.findById(id)
     .select("-password")
     .populate("employedByShopOwner", "shopName fullName email")
-    .lean()
 
-  if (!user) {
+  if (!userDoc) {
     res.status(404)
     throw new Error("User not found")
   }
-  if (user.role === "admin") {
+  if (userDoc.role === "admin") {
     res.status(403)
     throw new Error("Cannot view this account")
   }
 
-  return res.json(shapeAdminUserPayload(user))
+  if (userDoc.moderationStatus === "restricted") {
+    await syncExpiredRestrictionIfNeeded(userDoc)
+  }
+
+  const user = userDoc.toObject()
+  const oid = user._id
+
+  const [complaintsAgainst, complaintsFiled] = await Promise.all([
+    Complaint.find({
+      $or: [{ reportedUser: oid }, { targetShop: oid }, { targetTechnician: oid }],
+    })
+      .select("ticketNumber subject category priority status createdAt reporterName customerName targetShopName reportedUserName adminAction moderationOutcome linkedWarningRef")
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean(),
+    Complaint.find({
+      $or: [{ reporter: oid }, { customer: oid }],
+    })
+      .select("ticketNumber subject category priority status createdAt targetShopName reportedUserName adminAction")
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean(),
+  ])
+
+  const shaped = shapeAdminUserPayload(user)
+  shaped.complaintsAgainst = complaintsAgainst
+  shaped.complaintsFiled = complaintsFiled
+
+  return res.json(shaped)
 })
 
 export const approveUserForAdmin = asyncHandler(async (req, res) => {
@@ -971,6 +1059,423 @@ export const rejectUserForAdmin = asyncHandler(async (req, res) => {
     _id: user._id,
     accountApprovalStatus: user.accountApprovalStatus,
     approvalRejectionReason: user.approvalRejectionReason,
+  })
+})
+
+/**
+ * @desc    Admin issues a formal warning notice to a user (appears as a formal modal form on user's screen)
+ * @route   POST /api/users/admin/:id/warn
+ * @access  Admin
+ */
+export const warnUserForAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid user id")
+  }
+
+  const title = trimStr(req.body?.title)
+  const reason = trimStr(req.body?.reason)
+  const correctiveAction = trimStr(req.body?.correctiveAction) || ""
+  const severity = ["minor", "moderate", "severe", "final_warning"].includes(req.body?.severity)
+    ? req.body.severity
+    : "moderate"
+  const category = trimStr(req.body?.category) || "policy_violation"
+  const relatedComplaintId = req.body?.relatedComplaintId
+  let relatedTicketNumber = trimStr(req.body?.relatedTicketNumber) || ""
+
+  if (!title) {
+    res.status(400)
+    throw new Error("Warning title / subject is required")
+  }
+  if (!reason) {
+    res.status(400)
+    throw new Error("Detailed warning reason is required")
+  }
+
+  const user = await User.findById(id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+  if (user.role === "admin") {
+    res.status(403)
+    throw new Error("Cannot issue warning to an admin account")
+  }
+
+  let linkedComplaintDoc = null
+  if (relatedComplaintId && mongoose.Types.ObjectId.isValid(relatedComplaintId)) {
+    linkedComplaintDoc = await Complaint.findById(relatedComplaintId)
+    if (linkedComplaintDoc && !relatedTicketNumber) {
+      relatedTicketNumber = linkedComplaintDoc.ticketNumber || ""
+    }
+  }
+
+  const existingWarnings = Array.isArray(user.warnings) ? user.warnings : []
+  const nextStrikeNumber = Math.max(Number(user.warningCount || 0), existingWarnings.length) + 1
+  const yyyymm = new Date().toISOString().slice(0, 7).replace("-", "")
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000)
+  const referenceCode = `WRN-${yyyymm}-${randomSuffix}`
+
+  const warningEntry = {
+    referenceCode,
+    warningNumber: nextStrikeNumber,
+    severity,
+    category,
+    title,
+    reason,
+    correctiveAction,
+    relatedComplaint: linkedComplaintDoc ? linkedComplaintDoc._id : null,
+    relatedTicketNumber,
+    issuedBy: req.user._id,
+    issuedByName: req.user.fullName || "E-Paayos Administrator",
+    issuedAt: new Date(),
+    acknowledged: false,
+    acknowledgedAt: null,
+    acknowledgmentNote: "",
+  }
+
+  user.warnings = [...existingWarnings, warningEntry]
+  user.warningCount = nextStrikeNumber
+  if (user.moderationStatus !== "restricted") {
+    user.moderationStatus = "warned"
+  }
+
+  if (!Array.isArray(user.moderationLogs)) user.moderationLogs = []
+  user.moderationLogs.push({
+    action: "warned",
+    summary: `Formal Warning #${nextStrikeNumber} (${referenceCode}) issued: ${title}`,
+    details: reason,
+    relatedTicketNumber,
+    actorId: req.user._id,
+    actorName: req.user.fullName || "Administrator",
+    createdAt: new Date(),
+  })
+
+  await user.save({ validateBeforeSave: false })
+
+  if (linkedComplaintDoc) {
+    linkedComplaintDoc.linkedWarningRef = referenceCode
+    linkedComplaintDoc.moderationOutcome =
+      linkedComplaintDoc.moderationOutcome === "restricted" ? "restricted" : "warned"
+    if (linkedComplaintDoc.status === "pending" || linkedComplaintDoc.status === "under_investigation") {
+      linkedComplaintDoc.status = "action_taken"
+    }
+    if (!linkedComplaintDoc.adminAction) {
+      linkedComplaintDoc.adminAction = `Formal Warning #${nextStrikeNumber} (${referenceCode}) Issued`
+    }
+    linkedComplaintDoc.reviewedBy = req.user._id
+    linkedComplaintDoc.reviewedAt = new Date()
+    await linkedComplaintDoc.save()
+  }
+
+  try {
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: user._id,
+      content:
+        `⚠️ [E-Paayos Official Warning Notice #${nextStrikeNumber} · ${referenceCode}]\n\n` +
+        `• Subject: ${title}\n` +
+        `• Severity: ${severity.replace("_", " ").toUpperCase()}\n` +
+        (relatedTicketNumber ? `• Related Ticket: #${relatedTicketNumber}\n` : "") +
+        `• Reason: ${reason}\n` +
+        (correctiveAction ? `• Required Action: ${correctiveAction}\n` : "") +
+        `\nPlease review and acknowledge the formal warning notice form displayed on your account. Repeated violations may lead to account restriction.`,
+    })
+  } catch (err) {
+    console.warn("Could not send direct message for warning:", err?.message || err)
+  }
+
+  const savedWarning = user.warnings[user.warnings.length - 1]
+  return res.status(201).json({
+    success: true,
+    message: `Formal Warning #${nextStrikeNumber} (${referenceCode}) issued to ${user.fullName}.`,
+    warning: savedWarning,
+    moderationStatus: user.moderationStatus,
+    warningCount: user.warningCount,
+  })
+})
+
+/**
+ * @desc    Admin restricts a user account (temporary or indefinite)
+ * @route   POST /api/users/admin/:id/restrict
+ * @access  Admin
+ */
+export const restrictUserForAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid user id")
+  }
+
+  const reason = trimStr(req.body?.reason)
+  const category = trimStr(req.body?.category) || "repeat_violation"
+  const rawDuration = req.body?.durationDays
+  const durationDays =
+    rawDuration === null || rawDuration === undefined || rawDuration === "" || Number(rawDuration) <= 0
+      ? 0
+      : Math.min(365, Math.round(Number(rawDuration)))
+  const relatedComplaintId = req.body?.relatedComplaintId
+  let relatedTicketNumber = trimStr(req.body?.relatedTicketNumber) || ""
+
+  if (!reason) {
+    res.status(400)
+    throw new Error("Restriction reason is required")
+  }
+
+  const user = await User.findById(id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+  if (user.role === "admin") {
+    res.status(403)
+    throw new Error("Cannot restrict an admin account")
+  }
+
+  let linkedComplaintDoc = null
+  if (relatedComplaintId && mongoose.Types.ObjectId.isValid(relatedComplaintId)) {
+    linkedComplaintDoc = await Complaint.findById(relatedComplaintId)
+    if (linkedComplaintDoc && !relatedTicketNumber) {
+      relatedTicketNumber = linkedComplaintDoc.ticketNumber || ""
+    }
+  }
+
+  const now = new Date()
+  const restrictedUntil = durationDays > 0 ? new Date(now.getTime() + durationDays * 86400000) : null
+
+  user.moderationStatus = "restricted"
+  user.restrictedAt = now
+  user.restrictedUntil = restrictedUntil
+  user.restrictionReason = reason
+  user.restrictionCategory = category
+  user.restrictionRelatedTicket = relatedTicketNumber
+  user.restrictedBy = req.user._id
+  user.restrictedByName = req.user.fullName || "Administrator"
+
+  const durationLabel = durationDays > 0 ? `${durationDays} day(s)` : "Indefinite (until lifted by Admin)"
+  if (!Array.isArray(user.moderationLogs)) user.moderationLogs = []
+  user.moderationLogs.push({
+    action: "restricted",
+    summary: `Account restricted (${durationLabel})`,
+    details: reason,
+    relatedTicketNumber,
+    actorId: req.user._id,
+    actorName: req.user.fullName || "Administrator",
+    createdAt: now,
+  })
+
+  await user.save({ validateBeforeSave: false })
+
+  if (linkedComplaintDoc) {
+    linkedComplaintDoc.moderationOutcome = "restricted"
+    if (linkedComplaintDoc.status === "pending" || linkedComplaintDoc.status === "under_investigation") {
+      linkedComplaintDoc.status = "action_taken"
+    }
+    if (!linkedComplaintDoc.adminAction) {
+      linkedComplaintDoc.adminAction = `Account Restricted (${durationLabel})`
+    }
+    linkedComplaintDoc.reviewedBy = req.user._id
+    linkedComplaintDoc.reviewedAt = now
+    await linkedComplaintDoc.save()
+  }
+
+  try {
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: user._id,
+      content:
+        `🚫 [E-Paayos Account Restriction Notice]\n\n` +
+        `Your account has been restricted by E-Paayos Administration.\n` +
+        `• Duration: ${durationLabel}\n` +
+        (relatedTicketNumber ? `• Related Ticket: #${relatedTicketNumber}\n` : "") +
+        `• Reason: ${reason}\n` +
+        `\nPlease contact LMD-PESO Administration for appeals or account reinstatement.`,
+    })
+  } catch (err) {
+    console.warn("Could not send direct message for restriction:", err?.message || err)
+  }
+
+  return res.json({
+    success: true,
+    message: `Account for ${user.fullName} has been restricted (${durationLabel}).`,
+    moderationStatus: user.moderationStatus,
+    restrictedAt: user.restrictedAt,
+    restrictedUntil: user.restrictedUntil,
+    restrictionReason: user.restrictionReason,
+  })
+})
+
+/**
+ * @desc    Admin lifts restriction on a user account
+ * @route   POST /api/users/admin/:id/unrestrict
+ * @access  Admin
+ */
+export const unrestrictUserForAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400)
+    throw new Error("Invalid user id")
+  }
+
+  const reason = trimStr(req.body?.reason) || "Restriction lifted by Administrator."
+  const clearWarnings = Boolean(req.body?.clearWarnings)
+
+  const user = await User.findById(id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+  if (user.role === "admin") {
+    res.status(403)
+    throw new Error("Cannot change this account")
+  }
+
+  if (clearWarnings) {
+    user.warningCount = 0
+    if (Array.isArray(user.warnings)) {
+      user.warnings = user.warnings.map((w) => ({
+        ...(w.toObject ? w.toObject() : w),
+        acknowledged: true,
+        acknowledgedAt: w.acknowledgedAt || new Date(),
+      }))
+    }
+  }
+
+  const nextStatus = clearWarnings ? "active" : Number(user.warningCount || 0) > 0 ? "warned" : "active"
+  user.moderationStatus = nextStatus
+  user.restrictedAt = null
+  user.restrictedUntil = null
+  user.restrictionReason = ""
+  user.restrictionCategory = ""
+  user.restrictionRelatedTicket = ""
+  user.restrictedBy = null
+  user.restrictedByName = ""
+
+  if (!Array.isArray(user.moderationLogs)) user.moderationLogs = []
+  user.moderationLogs.push({
+    action: clearWarnings ? "standing_cleared" : "restriction_lifted",
+    summary: clearWarnings
+      ? "Account restriction lifted & warning strikes cleared."
+      : `Account restriction lifted (standing: ${nextStatus}).`,
+    details: reason,
+    actorId: req.user._id,
+    actorName: req.user.fullName || "Administrator",
+    createdAt: new Date(),
+  })
+
+  await user.save({ validateBeforeSave: false })
+
+  try {
+    await sendDirectMessage({
+      fromUserId: req.user._id,
+      toUserId: user._id,
+      content:
+        `✅ [E-Paayos Account Reinstated]\n\n` +
+        `Your account restriction has been lifted by the Administrator.\n` +
+        `• Notes: ${reason}\n` +
+        `\nPlease continue observing E-Paayos platform guidelines.`,
+    })
+  } catch (err) {
+    console.warn("Could not send direct message for unrestrict:", err?.message || err)
+  }
+
+  return res.json({
+    success: true,
+    message: `Restriction lifted for ${user.fullName}. Standing is now "${nextStatus}".`,
+    moderationStatus: user.moderationStatus,
+    warningCount: user.warningCount,
+  })
+})
+
+/**
+ * @desc    Logged-in user fetches their moderation standing & unacknowledged warnings
+ * @route   GET /api/users/me/moderation
+ * @access  Private
+ */
+export const getMyModerationStatus = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select(
+    "role fullName email moderationStatus warningCount warnings restrictedAt restrictedUntil restrictionReason restrictionCategory restrictionRelatedTicket moderationLogs"
+  )
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+
+  if (user.moderationStatus === "restricted") {
+    await syncExpiredRestrictionIfNeeded(user)
+  }
+
+  const warnings = Array.isArray(user.warnings) ? user.warnings : []
+  const unacknowledgedWarnings = warnings
+    .filter((w) => !w.acknowledged)
+    .sort((a, b) => new Date(a.issuedAt || 0) - new Date(b.issuedAt || 0))
+
+  return res.json({
+    success: true,
+    moderationStatus: user.moderationStatus || "active",
+    warningCount: Number(user.warningCount ?? warnings.length ?? 0),
+    warnings: [...warnings].sort((a, b) => new Date(b.issuedAt || 0) - new Date(a.issuedAt || 0)),
+    unacknowledgedWarnings,
+    restrictedAt: user.restrictedAt,
+    restrictedUntil: user.restrictedUntil,
+    restrictionReason: user.restrictionReason || "",
+    restrictionCategory: user.restrictionCategory || "",
+    restrictionRelatedTicket: user.restrictionRelatedTicket || "",
+    moderationLogs: [...(user.moderationLogs || [])].sort(
+      (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+    ),
+  })
+})
+
+/**
+ * @desc    Warned user acknowledges a formal warning notice
+ * @route   POST /api/users/me/warnings/:warningId/acknowledge
+ * @access  Private
+ */
+export const acknowledgeMyWarning = asyncHandler(async (req, res) => {
+  const { warningId } = req.params
+  const note = trimStr(req.body?.note) || ""
+
+  const user = await User.findById(req.user._id)
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+
+  const target = (user.warnings || []).find(
+    (w) => String(w._id) === String(warningId) || String(w.referenceCode) === String(warningId)
+  )
+  if (!target) {
+    res.status(404)
+    throw new Error("Warning notice not found")
+  }
+
+  if (!target.acknowledged) {
+    target.acknowledged = true
+    target.acknowledgedAt = new Date()
+    if (note) target.acknowledgmentNote = note
+
+    if (!Array.isArray(user.moderationLogs)) user.moderationLogs = []
+    user.moderationLogs.push({
+      action: "warning_acknowledged",
+      summary: `User acknowledged Warning #${target.warningNumber} (${target.referenceCode})`,
+      details: note || "User confirmed reading and agreed to comply with platform rules.",
+      relatedTicketNumber: target.relatedTicketNumber || "",
+      actorId: user._id,
+      actorName: user.fullName || user.email,
+      createdAt: new Date(),
+    })
+
+    await user.save({ validateBeforeSave: false })
+  }
+
+  const remainingUnacknowledged = (user.warnings || []).filter((w) => !w.acknowledged)
+  return res.json({
+    success: true,
+    message: "Warning notice acknowledged.",
+    acknowledgedWarning: target,
+    remainingCount: remainingUnacknowledged.length,
   })
 })
 

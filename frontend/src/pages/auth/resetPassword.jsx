@@ -407,7 +407,7 @@ function ResetPassword() {
                       <Input
                         id="reset-page-new-pwd"
                         type={showNewPassword ? 'text' : 'password'}
-                        placeholder="Enter new password"
+                        placeholder="New password"
                         value={newPassword}
                         onChange={(e) => {
                           setNewPassword(e.target.value)
@@ -437,7 +437,7 @@ function ResetPassword() {
                       <Input
                         id="reset-page-confirm-pwd"
                         type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Retype new password"
+                        placeholder="Confirm password"
                         value={confirmPassword}
                         onChange={(e) => {
                           setConfirmPassword(e.target.value)

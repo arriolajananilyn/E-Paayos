@@ -734,7 +734,7 @@ export default function CustomerViewWarranty() {
             <div className="relative w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Search warranty ref, service, shop..."
+                placeholder="Search ref, service, shop"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-none border-0 bg-white px-4 py-2.5 pr-10 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none shadow-[0_4px_20px_-4px_rgba(15,23,42,0.16)] font-medium"
@@ -1077,7 +1077,7 @@ export default function CustomerViewWarranty() {
           <DialogContent className="flex max-h-[calc(100vh-3rem)] flex-col overflow-hidden sm:max-w-2xl rounded-none" showCloseButton>
             {viewing ? (
               <>
-                <DialogHeader className="border-b border-slate-100 pb-3">
+                <DialogHeader className="shrink-0 pr-8 border-b border-slate-100 pb-3">
                   <DialogTitle className="text-lg font-black text-slate-900">
                     Warranty &amp; Service Summary
                   </DialogTitle>
@@ -1165,18 +1165,38 @@ export default function CustomerViewWarranty() {
 
         {/* Free Refix / Re-repair (Warranty Claim) Dialog */}
         <Dialog open={Boolean(refixBooking)} onOpenChange={(open) => !open && setRefixBooking(null)}>
-          <DialogContent className="flex max-h-[calc(100vh-3rem)] flex-col overflow-hidden sm:max-w-lg rounded-none" showCloseButton>
-            <DialogHeader className="border-b border-slate-100 pb-3">
-              <DialogTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <RotateCcw className="size-5 text-indigo-600" />
-                <span>Request Free Warranty Re-repair</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs">
-                Submit a free warranty labor rework claim if the same repair problem recurs.
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent
+            showCloseButton={false}
+            className="flex max-h-[calc(100vh-3rem)] w-[calc(100vw-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg rounded-none border border-slate-200 bg-white shadow-2xl"
+          >
+            <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="size-8 bg-white/15 flex items-center justify-center border border-white/20 shrink-0">
+                    <RotateCcw className="size-4 text-white" />
+                  </div>
+                  <div className="min-w-0">
+                    <DialogTitle className="text-sm sm:text-base font-bold tracking-tight text-white leading-tight">
+                      Request Free Warranty Re-repair
+                    </DialogTitle>
+                    <DialogDescription className="text-[11px] text-blue-100/85 mt-0.5">
+                      Request a free re-repair if the same problem came back.
+                    </DialogDescription>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isSubmittingRefix}
+                  onClick={() => setRefixBooking(null)}
+                  className="size-8 flex items-center justify-center text-white/75 hover:text-white hover:bg-white/15 transition-colors shrink-0 cursor-pointer disabled:opacity-40"
+                  aria-label="Close dialog"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            </div>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 text-xs sm:text-sm">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4 sm:p-5 text-xs sm:text-sm">
               {refixBooking && (
                 <div className="bg-indigo-50/70 p-3 border border-indigo-200 space-y-1 text-xs">
                   <p className="font-bold text-indigo-950">{refixBooking.serviceName}</p>
@@ -1200,30 +1220,30 @@ export default function CustomerViewWarranty() {
                   onChange={(e) => setRefixReason(e.target.value)}
                   className="w-full border border-slate-300 bg-white p-2 text-xs font-medium rounded-none focus:outline-none focus:border-indigo-600"
                 >
-                  <option value="Same issue persists (problem returned after repair)">Same issue persists (problem returned after repair)</option>
-                  <option value="Repaired part malfunctioned / became loose">Repaired part malfunctioned / became loose</option>
-                  <option value="Performance degradation after service">Performance degradation after service</option>
-                  <option value="Incomplete or defective assembly workmanship">Incomplete or defective assembly workmanship</option>
-                  <option value="Other recurring symptom under repair scope">Other recurring symptom under repair scope</option>
+                  <option value="Same issue persists (problem returned after repair)">Same issue came back</option>
+                  <option value="Repaired part malfunctioned / became loose">Repaired part failed</option>
+                  <option value="Performance degradation after service">Worse after service</option>
+                  <option value="Incomplete or defective assembly workmanship">Incomplete repair</option>
+                  <option value="Other recurring symptom under repair scope">Other warranty issue</option>
                 </select>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                  Detailed Explanation (Min 10 characters) *
+                  Details *
                 </label>
                 <textarea
                   rows={4}
                   value={refixDetails}
                   onChange={(e) => setRefixDetails(e.target.value)}
-                  placeholder="Describe in detail what symptoms you are experiencing..."
+                  placeholder="What symptoms do you see?"
                   className="w-full border border-slate-300 bg-white p-2 text-xs text-slate-800 rounded-none focus:outline-none focus:border-indigo-600"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                  Upload Photos of the Issue (Optional)
+                  Photos (optional)
                 </label>
                 <Input
                   type="file"
@@ -1261,7 +1281,7 @@ export default function CustomerViewWarranty() {
               </div>
             </div>
 
-            <DialogFooter className="m-0 border-t border-slate-200 pt-3 gap-2 flex flex-col-reverse sm:flex-row sm:justify-end">
+            <DialogFooter className="m-0 mx-0 mb-0 shrink-0 border-t border-slate-200 bg-slate-50/70 px-4 sm:px-5 py-3.5 gap-2 flex flex-col-reverse sm:flex-row sm:justify-end">
               <Button type="button" variant="outline" className="rounded-none text-xs font-bold" onClick={() => setRefixBooking(null)}>
                 Cancel
               </Button>
@@ -1298,8 +1318,8 @@ export default function CustomerViewWarranty() {
 
         {/* Customer Complaints & Damage Reports Portal Modal */}
         <CustomerComplaintsModal
-          isOpen={showComplaintsModal}
-          onClose={() => setShowComplaintsModal(false)}
+          open={showComplaintsModal}
+          onOpenChange={setShowComplaintsModal}
         />
 
         {/* Direct Complaint Filing Dialog from Warranty */}

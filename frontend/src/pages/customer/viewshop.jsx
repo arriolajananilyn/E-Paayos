@@ -169,19 +169,13 @@ function resolveReviewMediaSrc(src) {
 }
 
 function initialsFromName(name) {
-  const parts = String(name ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  if (!parts.length) return '?'
-  const first = parts[0]?.[0] ?? ''
-  const second = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? '' : ''
-  return `${first}${second}`.toUpperCase()
+  const letter = String(name ?? '').trim().charAt(0)
+  return letter ? letter.toUpperCase() : '?'
 }
 
 function resolveOwnerThumbSrc(detail) {
   if (!detail || typeof detail !== 'object') return ''
-  const candidates = [detail.shopPlacePhoto, detail.shopOwnerProfileImage, detail.shopOwnerSelfieImage]
+  const candidates = [detail.shopPlacePhoto]
   for (const raw of candidates) {
     const value = String(raw ?? '').trim()
     if (!value) continue
@@ -202,7 +196,7 @@ function OwnerThumb({ src, ownerName, className = 'h-9 w-9' }) {
       {showImage ? (
         <img src={src} alt="" className="h-full w-full object-cover" onError={() => setImageFailed(true)} />
       ) : (
-        <span className="text-xs font-bold text-white">{initialsFromName(ownerName) || '?'}</span>
+        <span className="text-xs font-bold text-white">{String(ownerName ?? '').trim().charAt(0).toUpperCase() || '?'}</span>
       )}
     </span>
   )

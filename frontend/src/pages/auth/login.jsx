@@ -42,6 +42,7 @@ function Login() {
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [rejectionNotice, setRejectionNotice] = useState(null)
+  const [restrictionNotice, setRestrictionNotice] = useState(null)
 
   // Floating Reset Password Modal State (3-step OTP flow)
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false)
@@ -73,6 +74,7 @@ function Login() {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }))
     if (rejectionNotice) setRejectionNotice(null)
+    if (restrictionNotice) setRestrictionNotice(null)
   }
 
   const validateForm = () => {
@@ -95,6 +97,7 @@ function Login() {
     e.preventDefault()
     if (!validateForm()) return
     setRejectionNotice(null)
+    setRestrictionNotice(null)
     setIsLoading(true)
     try {
       const loginUrl = `${getApiBaseUrl()}/api/users/login`
@@ -105,6 +108,28 @@ function Login() {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
+        if (res.status === 403 && err?.code === 'ACCOUNT_RESTRICTED') {
+          setErrors({})
+          setRestrictionNotice({
+            title: 'Account Restricted',
+            message:
+              typeof err?.message === 'string' && err.message.trim()
+                ? err.message.trim()
+                : 'Your account is currently restricted due to rule violations.',
+            reason:
+              typeof err?.reason === 'string' && err.reason.trim()
+                ? err.reason.trim()
+                : 'Repeated or severe violation of E-Paayos platform rules.',
+            restrictedUntil: err?.restrictedUntil || null,
+            warningCount: Number(err?.warningCount || 0),
+            relatedTicket: err?.relatedTicket || '',
+            action:
+              typeof err?.action === 'string' && err.action.trim()
+                ? err.action.trim()
+                : 'Please contact E-Paayos / LMD-PESO Administration for appeal or reinstatement.',
+          })
+          return
+        }
         if (res.status === 403 && err?.code === 'ACCOUNT_REJECTED') {
           setErrors({})
           setRejectionNotice({
@@ -363,6 +388,48 @@ function Login() {
           </CardHeader>
           <CardContent className="px-6 pb-8 pt-2 sm:p-6 sm:pt-0 flex-1 sm:flex-initial flex flex-col justify-center">
             <form onSubmit={handleSubmit} className="space-y-4">
+              {restrictionNotice && (
+                <div className="relative overflow-hidden rounded-none border-2 border-rose-400 bg-linear-to-br from-rose-50 via-white to-amber-50 p-4 shadow-sm">
+                  <div className="relative space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-black tracking-wide text-rose-800 uppercase">
+                        Access Restricted
+                      </p>
+                      {restrictionNotice.warningCount > 0 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase bg-rose-700 text-white">
+                          {restrictionNotice.warningCount} Strike{restrictionNotice.warningCount > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-base font-black text-rose-950">{restrictionNotice.title}</h3>
+                    <p className="text-xs text-rose-900 leading-relaxed">{restrictionNotice.message}</p>
+                    <div className="rounded-none border border-rose-200 bg-white/95 p-3 space-y-1">
+                      <p className="text-[10px] font-bold text-rose-700 uppercase">Restriction Reason</p>
+                      <p className="text-xs font-semibold text-rose-950 whitespace-pre-wrap">{restrictionNotice.reason}</p>
+                      <p className="text-[11px] text-slate-600 pt-1">
+                        Duration:{' '}
+                        <span className="font-bold text-slate-900">
+                          {restrictionNotice.restrictedUntil
+                            ? `Until ${new Date(restrictionNotice.restrictedUntil).toLocaleString('en-PH', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}`
+                            : 'Indefinite (Until Lifted by Administrator)'}
+                        </span>
+                      </p>
+                      {restrictionNotice.relatedTicket && (
+                        <p className="text-[11px] font-mono text-rose-800">
+                          Ticket: #{restrictionNotice.relatedTicket}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-rose-800">{restrictionNotice.action}</p>
+                  </div>
+                </div>
+              )}
               {rejectionNotice && (
                 <div className="relative overflow-hidden rounded-none border border-rose-300/70 bg-linear-to-br from-rose-50 via-white to-orange-50 p-4 shadow-xs">
                   <div className="absolute -top-10 -right-10 h-28 w-28 bg-rose-200/30 blur-2xl" aria-hidden />
@@ -421,7 +488,7 @@ function Login() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     className={`pl-10 h-11 sm:h-10 text-sm rounded-none ${errors.email ? 'border-red-500 focus:border-red-500' : ''}`}
@@ -438,7 +505,7 @@ function Login() {
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
+                    placeholder="Password"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     className={`pl-10 pr-10 h-11 sm:h-10 text-sm rounded-none ${errors.password ? 'border-red-500 focus:border-red-500' : ''}`}
@@ -706,7 +773,7 @@ function Login() {
                       <Input
                         id="reset-modal-new-pwd"
                         type={showNewPassword ? 'text' : 'password'}
-                        placeholder="Enter new password"
+                        placeholder="New password"
                         value={newPassword}
                         onChange={(e) => {
                           setNewPassword(e.target.value)
@@ -736,7 +803,7 @@ function Login() {
                       <Input
                         id="reset-modal-confirm-pwd"
                         type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Retype new password"
+                        placeholder="Confirm password"
                         value={confirmPassword}
                         onChange={(e) => {
                           setConfirmPassword(e.target.value)

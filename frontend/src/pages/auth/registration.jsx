@@ -6,6 +6,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 import { Textarea } from '../../components/ui/textarea';
 import {
   Dialog,
@@ -19,6 +20,8 @@ import {
   ArrowLeft,
   ArrowLeftCircle,
   ArrowRightCircle,
+  ChevronDown,
+  X,
   Mail,
   Lock,
   User,
@@ -57,6 +60,148 @@ const gradientNavyButton = `linear-gradient(135deg, ${navy} 0%, ${navyMuted} 42%
 const gradientLightBlueViolet = `linear-gradient(155deg, #ffffff 0%, ${bvIce} 28%, ${bvPeriwinkle} 55%, ${bvLilac} 100%)`;
 const gradientLightBlueVioletAlt = `linear-gradient(135deg, #ffffff 0%, ${bvIce} 40%, #f5f3ff 100%)`;
 const gradientBlueVioletButton = `linear-gradient(135deg, ${bvPeriwinkle} 0%, ${bvSoft} 45%, ${bvViolet} 100%)`;
+
+// Dropdown with checkboxes + an "Other" option that lets the user type their own item.
+// Custom entries are stored as plain strings in the same array as the predefined options.
+const CheckboxDropdown = ({
+  options,
+  value,
+  onChange,
+  max = null,
+  placeholder = 'Select',
+  otherPlaceholder = 'Type here',
+  hasError = false,
+}) => {
+  const [open, setOpen] = useState(false);
+  const [otherChecked, setOtherChecked] = useState(false);
+  const [otherText, setOtherText] = useState('');
+
+  const selected = Array.isArray(value) ? value : [];
+  const customItems = selected.filter((v) => !options.includes(v));
+  const atMax = typeof max === 'number' && selected.length >= max;
+
+  const toggleOption = (opt) => {
+    if (selected.includes(opt)) {
+      onChange(selected.filter((v) => v !== opt));
+    } else if (!atMax) {
+      onChange([...selected, opt]);
+    }
+  };
+
+  const addOther = () => {
+    const text = otherText.trim().replace(/\s+/g, ' ');
+    if (!text || atMax) return;
+    const exists = selected.some((v) => v.toLowerCase() === text.toLowerCase());
+    if (!exists) onChange([...selected, text]);
+    setOtherText('');
+  };
+
+  const removeItem = (item) => onChange(selected.filter((v) => v !== item));
+
+  const rowClass = 'flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer';
+
+  return (
+    <div className="space-y-2">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={`flex h-10 w-full items-center justify-between border bg-white px-3 text-sm text-left rounded-none ${hasError ? 'border-red-500' : 'border-gray-200'}`}
+          >
+            <span className={selected.length ? 'text-gray-900' : 'text-gray-500'}>
+              {selected.length ? `${selected.length} selected` : placeholder}
+            </span>
+            <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-(--radix-popover-trigger-width) max-h-72 overflow-y-auto rounded-none bg-white p-1 gap-0"
+        >
+          {options.map((opt) => {
+            const checked = selected.includes(opt);
+            const disabled = !checked && atMax;
+            return (
+              <label key={opt} className={`${rowClass} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-blue-600"
+                  checked={checked}
+                  disabled={disabled}
+                  onChange={() => toggleOption(opt)}
+                />
+                <span>{opt}</span>
+              </label>
+            );
+          })}
+
+          {customItems.map((item) => (
+            <label key={item} className={rowClass}>
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-blue-600"
+                checked
+                onChange={() => removeItem(item)}
+              />
+              <span>{item}</span>
+            </label>
+          ))}
+
+          <label className={rowClass}>
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-blue-600"
+              checked={otherChecked}
+              onChange={(e) => setOtherChecked(e.target.checked)}
+            />
+            <span>Other</span>
+          </label>
+          {otherChecked && (
+            <div className="flex items-center gap-2 px-2 pb-2 pt-1">
+              <Input
+                value={otherText}
+                onChange={(e) => setOtherText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addOther();
+                  }
+                }}
+                placeholder={otherPlaceholder}
+                maxLength={60}
+                className="h-9 rounded-none"
+              />
+              <Button
+                type="button"
+                onClick={addOther}
+                disabled={!otherText.trim() || atMax}
+                className="h-9 rounded-none px-3"
+              >
+                Add
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selected.map((item) => (
+            <span
+              key={item}
+              className="inline-flex items-center gap-1 border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-800"
+            >
+              {item}
+              <button type="button" onClick={() => removeItem(item)} aria-label={`Remove ${item}`} className="hover:text-red-600">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Register = () => {
   const registrationContentRef = useRef(null);
@@ -189,7 +334,7 @@ const Register = () => {
     {
       value: 'shop-owner',
       label: 'Shop Owner',
-      description: 'Manage your shop, services, and appointments.',
+      description: 'Run your shop and bookings.',
       Icon: Store,
       iconColor: '#0f766e',
       iconBgIdle: 'linear-gradient(145deg, rgba(15,118,110,0.16) 0%, rgba(45,212,191,0.28) 100%)',
@@ -197,8 +342,8 @@ const Register = () => {
     },
     {
       value: 'oncall-mechanic-technician',
-      label: 'On-call Mechanic/Technician',
-      description: 'No shop of your own—work independently and offer services like a shop owner.',
+      label: 'On-call Mechanic',
+      description: 'Work on your own, without a shop.',
       Icon: HardHat,
       iconColor: '#b45309',
       iconBgIdle: 'linear-gradient(145deg, rgba(180,83,9,0.14) 0%, rgba(251,191,36,0.28) 100%)',
@@ -207,7 +352,7 @@ const Register = () => {
     {
       value: 'mechanic-technician',
       label: 'Mechanic / Technician',
-      description: 'Offer repair services and accept jobs.',
+      description: 'Take repair jobs from a shop.',
       Icon: Wrench,
       iconColor: '#c2410c',
       iconBgIdle: 'linear-gradient(145deg, rgba(194,65,12,0.14) 0%, rgba(251,146,60,0.3) 100%)',
@@ -216,7 +361,7 @@ const Register = () => {
     {
       value: 'customer',
       label: 'Customer',
-      description: 'Book services and track your requests.',
+      description: 'Book and track services.',
       Icon: UserRound,
       iconColor: '#6d28d9',
       iconBgIdle: 'linear-gradient(145deg, rgba(109,40,217,0.14) 0%, rgba(167,139,250,0.32) 100%)',
@@ -1075,7 +1220,7 @@ const Register = () => {
               <Input
                 id="middleName"
                 type="text"
-                placeholder="Middle name (optional)"
+                placeholder="Middle name"
                 value={formData.middleName}
                 onChange={(e) => handleInputChange('middleName', e.target.value)}
                 className="h-10 rounded-none"
@@ -1121,7 +1266,7 @@ const Register = () => {
             <Label className="text-sm font-medium text-gray-700">Civil Status *</Label>
             <Select value={formData.civilStatus} onValueChange={(value) => handleInputChange('civilStatus', value)}>
               <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.civilStatus ? 'border-red-500' : ''}`}>
-                <SelectValue placeholder="Select civil status" />
+                <SelectValue placeholder="Civil status" />
               </SelectTrigger>
               <SelectContent>
                 {['single', 'married', 'widowed', 'separated'].map(v => (
@@ -1178,7 +1323,7 @@ const Register = () => {
               <Label htmlFor="detailedAddress" className="text-sm font-medium text-gray-700">Detailed present address (optional)</Label>
               <Textarea
                 id="detailedAddress"
-                placeholder="Unit No., Building, Street, etc."
+                placeholder="Unit, building, street"
                 value={formData.detailedAddress}
                 onChange={(e) => handleInputChange('detailedAddress', e.target.value)}
                 className={`w-full h-20 resize-none rounded-none ${validationAttempted && errors.detailedAddress ? 'border-red-500' : ''}`}
@@ -1239,7 +1384,7 @@ const Register = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className={`h-10 rounded-none ${validationAttempted && errors.email ? 'border-red-500' : ''}`}
@@ -1306,7 +1451,7 @@ const Register = () => {
               <Input
                 id="fullName"
                 type="text"
-                placeholder="Enter your full name"
+                placeholder="Full name"
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className={`h-10 pl-10 rounded-none ${validationAttempted && errors.fullName ? 'border-red-500' : ''}`}
@@ -1364,7 +1509,7 @@ const Register = () => {
         {...addressSelectorCommonProps}
         label="Region/Province/City/Barangay"
         hideLabel
-        placeholder="Please Select : Region/Province/City/Barangay"
+        placeholder="Region, city, barangay"
         regionKey="region"
         provinceKey="province"
         cityKey="cityMunicipality"
@@ -1379,7 +1524,7 @@ const Register = () => {
         <Label htmlFor="detailedAddress" className="text-sm font-medium text-gray-700">Detailed address (optional)</Label>
         <Textarea
           id="detailedAddress"
-          placeholder="Unit No., Building, Street, etc."
+          placeholder="Unit, building, street"
           value={formData.detailedAddress}
           onChange={(e) => handleInputChange('detailedAddress', e.target.value)}
           className={`w-full h-20 resize-none rounded-none ${errors.detailedAddress ? 'border-red-500' : ''}`}
@@ -1433,7 +1578,7 @@ const Register = () => {
           onValueChange={(value) => handleInputChange('highestEducationalLevel', value)}
         >
           <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.highestEducationalLevel ? 'border-red-500' : ''}`}>
-            <SelectValue placeholder="Select highest educational level" />
+            <SelectValue placeholder="Education level" />
           </SelectTrigger>
           <SelectContent>
             {[
@@ -1475,7 +1620,7 @@ const Register = () => {
           <Input
             id="schoolUniversity"
             type="text"
-            placeholder="Enter school/university"
+            placeholder="School or university"
             value={formData.schoolUniversity}
             onChange={(e) => handleInputChange('schoolUniversity', e.target.value)}
             className={`h-10 rounded-none ${validationAttempted && errors.schoolUniversity ? 'border-red-500' : ''}`}
@@ -1489,7 +1634,7 @@ const Register = () => {
         <Input
           id="courseProgram"
           type="text"
-          placeholder="Enter course/program"
+          placeholder="Course or program"
           value={formData.courseProgram}
           onChange={(e) => handleInputChange('courseProgram', e.target.value)}
           className={`h-10 rounded-none ${validationAttempted && errors.courseProgram ? 'border-red-500' : ''}`}
@@ -1521,7 +1666,7 @@ const Register = () => {
           {...addressSelectorCommonProps}
           label="Region/Province/City/Barangay"
           hideLabel
-          placeholder="Please Select : Region/Province/City/Barangay"
+          placeholder="Region, city, barangay"
           regionKey="shopRegion"
           provinceKey="shopProvince"
           cityKey="shopCityMunicipality"
@@ -1537,7 +1682,7 @@ const Register = () => {
         <Label htmlFor="shopDetailedAddress" className="text-sm font-medium text-gray-700">Detailed address (optional)</Label>
         <Textarea
           id="shopDetailedAddress"
-          placeholder="Unit No., Building, Street, etc."
+          placeholder="Unit, building, street"
           value={formData.shopDetailedAddress}
           onChange={(e) => handleInputChange('shopDetailedAddress', e.target.value)}
           className={`w-full h-20 resize-none rounded-none ${validationAttempted && errors.shopDetailedAddress ? 'border-red-500' : ''}`}
@@ -1601,7 +1746,7 @@ const Register = () => {
         <Input
           id="shopName"
           type="text"
-          placeholder={isOnCallMechanic ? 'Enter business name' : 'Enter shop name'}
+          placeholder={isOnCallMechanic ? 'Business name' : 'Shop name'}
           value={formData.shopName}
           onChange={(e) => handleInputChange('shopName', e.target.value)}
           className={`h-10 rounded-none ${validationAttempted && errors.shopName ? 'border-red-500' : ''}`}
@@ -1613,7 +1758,7 @@ const Register = () => {
         <Label className="text-sm font-medium text-gray-700">Type of Business *</Label>
         <Select value={formData.businessType} onValueChange={(v) => handleInputChange('businessType', v)}>
           <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.businessType ? 'border-red-500' : ''}`}>
-            <SelectValue placeholder="Select type of business" />
+            <SelectValue placeholder="Business type" />
           </SelectTrigger>
           <SelectContent>
             {BUSINESS_TYPES.map((opt) => (
@@ -1649,7 +1794,7 @@ const Register = () => {
         <Label className="text-sm font-medium text-gray-700">Service Type *</Label>
         <Select value={formData.serviceType} onValueChange={(v) => handleInputChange('serviceType', v)}>
           <SelectTrigger className={`h-10 rounded-none ${validationAttempted && errors.serviceType ? 'border-red-500' : ''}`}>
-            <SelectValue placeholder="Select service type" />
+            <SelectValue placeholder="Service type" />
           </SelectTrigger>
           <SelectContent>
             {isOnCallMechanic
@@ -1828,7 +1973,7 @@ const Register = () => {
         </Label>
         <Textarea
           id="shopDescription"
-          placeholder={isOnCallMechanic ? 'Tell customers about you Business.' : 'Tell customers about your shop (optional)'}
+          placeholder={isOnCallMechanic ? 'About your business' : 'About your shop'}
           value={formData.shopDescription}
           onChange={(e) => handleInputChange('shopDescription', e.target.value)}
           className="w-full h-24 resize-none rounded-none"
@@ -1844,7 +1989,7 @@ const Register = () => {
         <Input
           id="dtiSecRegistrationNumber"
           type="text"
-          placeholder="Enter DTI/SEC registration number"
+          placeholder="DTI/SEC number"
           value={formData.dtiSecRegistrationNumber}
           onChange={(e) => handleInputChange('dtiSecRegistrationNumber', e.target.value)}
           className={`h-10 rounded-none ${validationAttempted && errors.dtiSecRegistrationNumber ? 'border-red-500' : ''}`}
@@ -1857,7 +2002,7 @@ const Register = () => {
         <Input
           id="businessPermitNumber"
           type="text"
-          placeholder="Enter business permit number"
+          placeholder="Permit number"
           value={formData.businessPermitNumber}
           onChange={(e) => handleInputChange('businessPermitNumber', e.target.value)}
           className={`h-10 rounded-none ${validationAttempted && errors.businessPermitNumber ? 'border-red-500' : ''}`}
@@ -1870,7 +2015,7 @@ const Register = () => {
         <Input
           id="tinNumber"
           type="text"
-          placeholder="Enter TIN number"
+          placeholder="TIN"
           value={formData.tinNumber}
           onChange={(e) => handleInputChange('tinNumber', e.target.value)}
           className={`h-10 rounded-none ${validationAttempted && errors.tinNumber ? 'border-red-500' : ''}`}
@@ -1906,7 +2051,7 @@ const Register = () => {
         <Input
           id="workCompanyName"
           type="text"
-          placeholder="Enter office/company name"
+          placeholder="Company name"
           value={formData.workCompanyName}
           onChange={(e) => handleInputChange('workCompanyName', e.target.value)}
           className={`h-10 rounded-none ${validationAttempted && errors.workCompanyName ? 'border-red-500' : ''}`}
@@ -1920,7 +2065,7 @@ const Register = () => {
           {...addressSelectorCommonProps}
           label="Region/Province/City/Barangay"
           hideLabel
-          placeholder="Please Select : Region/Province/City/Barangay"
+          placeholder="Region, city, barangay"
           regionKey="workRegion"
           provinceKey="workProvince"
           cityKey="workCityMunicipality"
@@ -1938,7 +2083,7 @@ const Register = () => {
           <Input
             id="workPositionHeld"
             type="text"
-            placeholder="Enter position held"
+            placeholder="Position"
             value={formData.workPositionHeld}
             onChange={(e) => handleInputChange('workPositionHeld', e.target.value)}
             className={`h-10 rounded-none ${validationAttempted && errors.workPositionHeld ? 'border-red-500' : ''}`}
@@ -1951,7 +2096,7 @@ const Register = () => {
           <Input
             id="workAppointmentStatus"
             type="text"
-            placeholder="e.g., Regular, Contractual"
+            placeholder="e.g. Regular"
             value={formData.workAppointmentStatus}
             onChange={(e) => handleInputChange('workAppointmentStatus', e.target.value)}
             className={`h-10 rounded-none ${validationAttempted && errors.workAppointmentStatus ? 'border-red-500' : ''}`}
@@ -2025,34 +2170,44 @@ const Register = () => {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
   };
 
+  const setArrayField = (field, next) => {
+    setFormData((prev) => ({ ...prev, [field]: next }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }));
+  };
+
   const renderMechanicStep4Skills = () => (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">Select five (5) Skills you possess (self-assessment) *</Label>
-        <div className="flex flex-wrap gap-2">
-          {SKILLS_21ST.map((skill) => {
-            const selected = (formData.skillsSelfAssessment || []).includes(skill);
-            return (
-              <button
-                key={skill}
-                type="button"
-                onClick={() => toggleArrayValue('skillsSelfAssessment', skill, 5)}
-                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-              >
-                {skill}
-              </button>
-            );
-          })}
-        </div>
+        <CheckboxDropdown
+          options={SKILLS_21ST}
+          value={formData.skillsSelfAssessment || []}
+          onChange={(next) => setArrayField('skillsSelfAssessment', next)}
+          max={5}
+          placeholder="Select skills"
+          otherPlaceholder="Type your skill"
+          hasError={validationAttempted && !!errors.skillsSelfAssessment}
+        />
         <p className="text-xs text-gray-500">Selected: {(formData.skillsSelfAssessment || []).length}/5</p>
         {validationAttempted && errors.skillsSelfAssessment && <p className="text-sm text-red-600">{errors.skillsSelfAssessment}</p>}
       </div>
 
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700">Technical Skills Acquired Without Formal Training *</Label>
-        <div className="flex flex-wrap gap-2">
-          {[
+        <CheckboxDropdown
+          options={TECHNICAL_SKILLS_NO_FORMAL_TRAINING}
+          value={formData.technicalSkillsNoFormalTraining || []}
+          onChange={(next) => setArrayField('technicalSkillsNoFormalTraining', next)}
+          placeholder="Technical skills"
+          otherPlaceholder="Type your technical skill"
+          hasError={validationAttempted && !!errors.technicalSkillsNoFormalTraining}
+        />
+        {validationAttempted && errors.technicalSkillsNoFormalTraining && <p className="text-sm text-red-600">{errors.technicalSkillsNoFormalTraining}</p>}
+      </div>
+    </div>
+  );
+
+  const TECHNICAL_SKILLS_NO_FORMAL_TRAINING = [
             'Troubleshooting',
             'Engine Repair',
             'Maintenance',
@@ -2070,25 +2225,7 @@ const Register = () => {
             'Aircon Servicing',
             'Battery Testing',
             'Safety Practices',
-          ].map((s) => {
-            const selected = (formData.technicalSkillsNoFormalTraining || []).includes(s);
-            return (
-              <button
-                key={s}
-                type="button"
-                onClick={() => toggleArrayValue('technicalSkillsNoFormalTraining', s)}
-                className={`px-3 py-2 rounded-none text-sm border transition-colors ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
-                  }`}
-              >
-                {s}
-              </button>
-            );
-          })}
-        </div>
-        {validationAttempted && errors.technicalSkillsNoFormalTraining && <p className="text-sm text-red-600">{errors.technicalSkillsNoFormalTraining}</p>}
-      </div>
-    </div>
-  );
+  ];
 
   const renderStep3 = () => (
     <div className="space-y-4">
@@ -2099,7 +2236,7 @@ const Register = () => {
           <Input
             id="email"
             type="email"
-            placeholder="Enter your email address"
+            placeholder="Email"
             value={formData.email}
             onChange={(e) => handleInputChange('email', e.target.value)}
             className={`h-10 pl-10 rounded-none ${errors.email ? 'border-red-500' : ''}`}
@@ -2116,7 +2253,7 @@ const Register = () => {
           <Input
             id="password"
             type={showPassword ? 'text' : 'password'}
-            placeholder="Create a strong password"
+            placeholder="Password"
             value={formData.password}
             onChange={(e) => handleInputChange('password', e.target.value)}
             className={`h-10 pl-10 pr-10 rounded-none ${errors.password ? 'border-red-500' : ''}`}
@@ -2141,7 +2278,7 @@ const Register = () => {
           <Input
             id="confirmPassword"
             type={showConfirmPassword ? 'text' : 'password'}
-            placeholder="Confirm your password"
+            placeholder="Confirm password"
             value={formData.confirmPassword}
             onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
             className={`h-10 pl-10 pr-10 rounded-none ${errors.confirmPassword ? 'border-red-500' : ''}`}
@@ -2593,7 +2730,7 @@ const Register = () => {
                           <Input
                             id="mechanicShopSearch"
                             className="h-10 pl-10 rounded-none text-sm"
-                            placeholder="Type shop name or owner name"
+                            placeholder="Shop or owner name"
                             value={shopOwnerListSearch}
                             onChange={(e) => setShopOwnerListSearch(e.target.value)}
                           />

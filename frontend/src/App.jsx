@@ -1,5 +1,7 @@
 import './App.css'
 import { useEffect, useState } from 'react'
+import { Toaster } from './components/ui/sonner'
+import UserModerationGuard from './components/moderation/UserModerationGuard.jsx'
 import Register from './pages/auth/registration.jsx'
 import LandingPage from './pages/landingpage.jsx'
 import Login from './pages/auth/login.jsx'
@@ -155,6 +157,7 @@ function App() {
       case '#/provider/complaint-reports':
       case '#/mechanic/technician/complaints':
       case '#/independent/technician/complaints':
+      case '#/oncallmechanic/technician/complaints':
         return <ProviderComplaintsPage />
       case '#/provider/manage-warranty':
       case '#/provider/warranty':
@@ -210,6 +213,8 @@ function App() {
   return (
     <>
       {renderRoute()}
+      <UserModerationGuard currentRoute={route} />
+      <Toaster position="top-right" richColors closeButton />
     </>
   )
 }

@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
 import ShopOwnerDashboard from "./dashboard.jsx"
+import OnCallMechanicLayout from "../oncallmechanic/technician/OnCallMechanicLayout.jsx"
+import ProviderReportDialog from "../../components/complaints/ProviderReportDialog.jsx"
 import { getApiBaseUrl } from "@/lib/apiBaseUrl"
 import { cn } from "@/lib/utils"
 
@@ -72,11 +74,27 @@ const CATEGORY_META = {
   late_no_show: { label: "Delay / No-Show", color: "bg-blue-100 text-blue-800 border-blue-300" },
   unprofessional_behavior: { label: "Conduct", color: "bg-pink-100 text-pink-800 border-pink-300" },
   scam_fraud: { label: "Platform Violation", color: "bg-red-100 text-red-900 border-red-400" },
+  fake_booking: { label: "Bogus Booking", color: "bg-rose-100 text-rose-900 border-rose-300" },
+  non_payment: { label: "Non-Payment", color: "bg-amber-100 text-amber-900 border-amber-300" },
+  abusive_customer: { label: "Abusive Customer", color: "bg-pink-100 text-pink-900 border-pink-300" },
+  harassment: { label: "Harassment", color: "bg-red-200 text-red-950 border-red-400" },
+  policy_violation: { label: "Policy Violation", color: "bg-indigo-100 text-indigo-900 border-indigo-300" },
   other: { label: "General", color: "bg-slate-100 text-slate-800 border-slate-300" },
+}
+
+const PROVIDER_STATUS_META = {
+  pending: { label: "Pending Review", cls: "bg-amber-50 text-amber-800 border-amber-300" },
+  under_investigation: { label: "Under Investigation", cls: "bg-blue-50 text-blue-800 border-blue-300" },
+  action_taken: { label: "Action Taken", cls: "bg-indigo-50 text-indigo-800 border-indigo-300" },
+  resolved: { label: "Resolved", cls: "bg-emerald-50 text-emerald-800 border-emerald-300" },
+  dismissed: { label: "Dismissed", cls: "bg-slate-100 text-slate-700 border-slate-300" },
 }
 
 export function ProviderComplaintsContent() {
   const [complaints, setComplaints] = useState([])
+  const [filedReports, setFiledReports] = useState([])
+  const [activeTab, setActiveTab] = useState("incoming") // "incoming" | "filed"
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
@@ -96,12 +114,16 @@ export function ProviderComplaintsContent() {
     if (!quiet) setLoading(true)
     else setIsRefreshing(true)
     try {
-      const res = await fetch(`${API_URL}/api/users/complaints/provider`, {
-        headers: authHeaders(),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.message || "Failed to load complaints.")
+      const [incomingRes, filedRes] = await Promise.all([
+        fetch(`${API_URL}/api/users/complaints/provider`, { headers: authHeaders() }),
+        fetch(`${API_URL}/api/users/complaints/provider/filed`, { headers: authHeaders() }),
+      ])
+      const data = await incomingRes.json().catch(() => ({}))
+      const filedData = await filedRes.json().catch(() => ({}))
+      if (!incomingRes.ok) throw new Error(data?.message || "Failed to load complaints.")
       setComplaints(Array.isArray(data?.data) ? data.data : [])
+      setFiledReports(Array.isArray(filedData?.data) ? filedData.data : [])
+      window.dispatchEvent(new CustomEvent("epaayos:provider-complaints-updated"))
     } catch (err) {
       toast.error(err?.message || "Failed to load complaints")
     } finally {
@@ -178,7 +200,8 @@ export function ProviderComplaintsContent() {
 
       toast.success("Official explanation and counter-evidence submitted for LMD-PESO review!")
       setIsRespondOpen(false)
-      fetchProviderComplaints(true)
+      await fetchProviderComplaints(true)
+      window.dispatchEvent(new CustomEvent("epaayos:provider-complaints-updated"))
     } catch (err) {
       toast.error(err?.message || "Failed to submit response")
     } finally {
@@ -189,22 +212,25 @@ export function ProviderComplaintsContent() {
   const stats = useMemo(() => {
     const total = complaints.length
     let pendingExplanation = 0
+    let adminRequested = 0
     let underInvestigation = 0
     let resolved = 0
 
     complaints.forEach((c) => {
       if (!c.providerExplanation) pendingExplanation++
+      if (c.explanationRequestedAt && !c.providerExplanation) adminRequested++
       if (c.status === "under_investigation") underInvestigation++
-      if (c.status === "resolved" || c.status === "action_taken") resolved++
+      if (c.status === "resolved" || c.status === "action_taken" || c.status === "dismissed") resolved++
     })
 
-    return { total, pendingExplanation, underInvestigation, resolved }
+    return { total, pendingExplanation, adminRequested, underInvestigation, resolved }
   }, [complaints])
 
   const filtered = complaints.filter((c) => {
+    if (statusFilter === "admin_requested" && !(c.explanationRequestedAt && !c.providerExplanation)) return false
     if (statusFilter === "pending_explanation" && c.providerExplanation) return false
     if (statusFilter === "explained" && !c.providerExplanation) return false
-    if (statusFilter === "resolved" && c.status !== "resolved") return false
+    if (statusFilter === "resolved" && !["resolved", "action_taken", "dismissed"].includes(c.status)) return false
 
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -237,6 +263,15 @@ export function ProviderComplaintsContent() {
           <div className="flex items-center gap-2 shrink-0">
             <Button
               type="button"
+              size="sm"
+              onClick={() => setIsReportDialogOpen(true)}
+              className="h-8 rounded-none bg-amber-400 hover:bg-amber-300 text-[#04133d] text-xs font-black cursor-pointer shadow-xs"
+            >
+              <ShieldAlert className="size-3.5 mr-1.5" />
+              Report Customer / Incident
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => fetchProviderComplaints(true)}
@@ -250,6 +285,98 @@ export function ProviderComplaintsContent() {
         </div>
       </div>
 
+      {/* Mode Switcher: Complaints Against You vs Reports You Filed */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("incoming")}
+          className={cn(
+            "px-3.5 py-2 text-xs font-black uppercase tracking-wider border transition-colors cursor-pointer",
+            activeTab === "incoming"
+              ? "bg-[#081F5C] text-white border-[#081F5C]"
+              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+          )}
+        >
+          Complaints Against You ({complaints.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("filed")}
+          className={cn(
+            "px-3.5 py-2 text-xs font-black uppercase tracking-wider border transition-colors cursor-pointer",
+            activeTab === "filed"
+              ? "bg-[#081F5C] text-white border-[#081F5C]"
+              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+          )}
+        >
+          Reports You Filed ({filedReports.length})
+        </button>
+      </div>
+
+      {activeTab === "filed" ? (
+        <div className="space-y-3">
+          {loading ? (
+            <div className="py-12 text-center text-slate-500 bg-white border border-slate-200 space-y-2">
+              <Spinner className="size-6 mx-auto animate-spin text-[#081F5C]" />
+              <p className="text-xs">Loading filed reports...</p>
+            </div>
+          ) : filedReports.length === 0 ? (
+            <div className="py-12 text-center bg-white border border-slate-200 space-y-2">
+              <ShieldCheck className="size-10 mx-auto text-emerald-500 stroke-[1.5]" />
+              <p className="text-sm font-bold text-slate-900">No reports filed against customers yet</p>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Use the &ldquo;Report Customer / Incident&rdquo; button above if you encounter bogus bookings, non-payment, or abusive conduct.
+              </p>
+            </div>
+          ) : (
+            filedReports.map((item) => {
+              const cat = CATEGORY_META[item.category] || CATEGORY_META.other
+              const statusMeta = PROVIDER_STATUS_META[item.status] || PROVIDER_STATUS_META.pending
+              return (
+                <div key={item._id} className="p-4 bg-white border border-slate-200 space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-black bg-slate-900 text-white px-2 py-0.5">
+                        {item.ticketNumber}
+                      </span>
+                      <Badge className={cn("text-[10px] font-bold uppercase px-2 py-0.5 border rounded-none", statusMeta.cls)}>
+                        {statusMeta.label}
+                      </Badge>
+                      <Badge className={cn("text-[10px] font-bold uppercase px-2 py-0.5 border rounded-none", cat.color)}>
+                        {cat.label}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-slate-500 flex items-center gap-1">
+                      <Clock className="size-3.5" />
+                      {formatDateDisplay(item.createdAt)}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-black text-slate-900">{item.subject}</h4>
+                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{item.description}</p>
+                    <p className="text-[11px] text-slate-500 pt-1">
+                      Reported Customer:{" "}
+                      <span className="font-bold text-slate-800">
+                        {item.reportedUserName || item.customerName || "Customer"}
+                      </span>
+                    </p>
+                  </div>
+                  {(item.adminAction || item.resolutionRemarks) && (
+                    <div className="p-2.5 bg-indigo-50 border border-indigo-200 text-xs text-indigo-950 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-indigo-800 block">
+                        Admin Investigation Outcome
+                      </span>
+                      {item.adminAction && <p className="font-bold">{item.adminAction}</p>}
+                      {item.resolutionRemarks && <p>{item.resolutionRemarks}</p>}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </div>
+      ) : (
+        <>
       {/* KPI Stats Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 space-y-1">
@@ -277,6 +404,7 @@ export function ProviderComplaintsContent() {
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
           {[
             { id: "all", label: `All Reports (${complaints.length})` },
+            { id: "admin_requested", label: `Admin Inquiry (${stats.adminRequested})` },
             { id: "pending_explanation", label: `Requires Statement (${stats.pendingExplanation})` },
             { id: "explained", label: "Statement Submitted" },
             { id: "resolved", label: `Settled (${stats.resolved})` },
@@ -301,7 +429,7 @@ export function ProviderComplaintsContent() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search ticket # or customer..."
+            placeholder="Search ticket or customer"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-8.5 pl-8 pr-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-none focus:outline-none focus:border-[#081F5C]"
@@ -329,23 +457,48 @@ export function ProviderComplaintsContent() {
         ) : (
           filtered.map((item) => {
             const cat = CATEGORY_META[item.category] || CATEGORY_META.other
+            const statusMeta = PROVIDER_STATUS_META[item.status] || PROVIDER_STATUS_META.pending
             const hasResponded = Boolean(item.providerExplanation)
+            const hasAdminInquiry = Boolean(item.explanationRequestedAt) && !hasResponded
+            const isCaseClosed = item.status === "resolved" || item.status === "dismissed"
             return (
               <div
                 key={item._id}
                 className={cn(
                   "p-4 bg-white dark:bg-slate-900 border transition-all space-y-3",
-                  !hasResponded
-                    ? "border-amber-400/80 shadow-xs dark:border-amber-700/80"
-                    : "border-slate-200 dark:border-slate-800"
+                  hasAdminInquiry
+                    ? "border-rose-400 shadow-xs dark:border-rose-700"
+                    : !hasResponded
+                      ? "border-amber-400/80 shadow-xs dark:border-amber-700/80"
+                      : "border-slate-200 dark:border-slate-800"
                 )}
               >
+                {/* Official LMD-PESO Inquiry Alert Banner */}
+                {hasAdminInquiry && (
+                  <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="flex items-start sm:items-center gap-2 text-rose-900 dark:text-rose-200">
+                      <AlertCircle className="size-4 text-rose-600 shrink-0 mt-0.5 sm:mt-0" />
+                      <div>
+                        <span className="font-extrabold uppercase tracking-wider text-[10px] block sm:inline sm:mr-1.5 text-rose-700 dark:text-rose-300">
+                          LMD-PESO Official Inquiry:
+                        </span>
+                        <span className="font-medium">
+                          Notice sent on {formatDateDisplay(item.explanationRequestedAt)}. Admin is awaiting your official statement and supporting proof.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Top Row */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-xs font-black bg-slate-900 text-white px-2 py-0.5 rounded-none">
                       {item.ticketNumber}
                     </span>
+                    <Badge className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border rounded-none", statusMeta.cls)}>
+                      {statusMeta.label}
+                    </Badge>
                     <Badge className={cn("text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 border rounded-none", cat.color)}>
                       {cat.label}
                     </Badge>
@@ -393,7 +546,7 @@ export function ProviderComplaintsContent() {
 
                     {/* Provider's Submitted Response if present */}
                     {hasResponded && (
-                      <div className="mt-2.5 p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-xs space-y-1">
+                      <div className="mt-2.5 p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-xs space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-blue-950 dark:text-blue-200 uppercase text-[10px] flex items-center gap-1">
                             <CheckCircle className="size-3 text-blue-600" /> Your Submitted Statement
@@ -405,6 +558,22 @@ export function ProviderComplaintsContent() {
                         <p className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
                           {item.providerExplanation}
                         </p>
+                        {Array.isArray(item.providerExplanationPhotos) && item.providerExplanationPhotos.length > 0 && (
+                          <div className="flex items-center gap-2 pt-1 overflow-x-auto">
+                            <span className="text-[10px] font-bold text-blue-800 dark:text-blue-300 uppercase shrink-0">
+                              Your Proof ({item.providerExplanationPhotos.length}):
+                            </span>
+                            {item.providerExplanationPhotos.map((img, i) => (
+                              <div
+                                key={i}
+                                onClick={() => setPreviewPhoto(img)}
+                                className="size-12 overflow-hidden border border-blue-300 bg-black cursor-pointer group shrink-0"
+                              >
+                                <img src={img} alt="Provider Proof" className="size-full object-cover group-hover:scale-105 transition-transform" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -425,30 +594,46 @@ export function ProviderComplaintsContent() {
                         </div>
                       )}
 
-                      {item.adminAction && (
-                        <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+                      {(item.adminAction || item.resolutionRemarks) && (
+                        <div className="pt-1 border-t border-slate-100 dark:border-slate-800 space-y-1">
                           <span className="text-[10px] font-bold text-slate-400 uppercase block">LMD-PESO Ruling</span>
-                          <Badge className="text-[10px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-900 mt-0.5">
-                            {item.adminAction}
-                          </Badge>
+                          {item.adminAction && (
+                            <Badge className="text-[10px] font-bold bg-indigo-50 border border-indigo-200 text-indigo-900 mt-0.5">
+                              {item.adminAction}
+                            </Badge>
+                          )}
+                          {item.resolutionRemarks && (
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
+                              {item.resolutionRemarks}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
 
                     <div>
-                      <Button
-                        type="button"
-                        onClick={() => openRespondModal(item)}
-                        className={cn(
-                          "w-full h-8.5 rounded-none text-xs font-bold cursor-pointer shadow-xs flex items-center justify-center gap-1.5",
-                          !hasResponded
-                            ? "bg-amber-600 hover:bg-amber-700 text-white"
-                            : "bg-[#081F5C] hover:bg-[#1447a6] text-white"
-                        )}
-                      >
-                        <MessageSquare className="size-3.5" />
-                        <span>{hasResponded ? "Update Statement" : "Provide Official Response"}</span>
-                      </Button>
+                      {isCaseClosed ? (
+                        <div className="w-full h-8.5 px-3 rounded-none border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5">
+                          <ShieldCheck className="size-3.5" />
+                          <span>Case Closed</span>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={() => openRespondModal(item)}
+                          className={cn(
+                            "w-full h-8.5 rounded-none text-xs font-bold cursor-pointer shadow-xs flex items-center justify-center gap-1.5",
+                            !hasResponded
+                              ? hasAdminInquiry
+                                ? "bg-rose-600 hover:bg-rose-700 text-white"
+                                : "bg-amber-600 hover:bg-amber-700 text-white"
+                              : "bg-[#081F5C] hover:bg-[#1447a6] text-white"
+                          )}
+                        >
+                          <MessageSquare className="size-3.5" />
+                          <span>{hasResponded ? "Update Statement" : "Provide Official Response"}</span>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -457,6 +642,8 @@ export function ProviderComplaintsContent() {
           })
         )}
       </div>
+        </>
+      )}
 
       {/* Provider Explanation Response Dialog */}
       <Dialog open={isRespondOpen} onOpenChange={setIsRespondOpen}>
@@ -465,7 +652,7 @@ export function ProviderComplaintsContent() {
           showCloseButton
         >
           {selectedComplaint ? (
-            <form onSubmit={handleSubmitResponse} className="flex flex-col">
+            <form onSubmit={handleSubmitResponse} className="flex flex-col flex-1 min-h-0 overflow-hidden">
               {/* Header */}
               <div className="bg-gradient-to-r from-[#04133d] via-[#081F5C] to-[#1447a6] px-4 py-3 sm:px-5 sm:py-3.5 text-white shrink-0 border-b border-white/10">
                 <div className="flex items-center gap-2.5">
@@ -477,7 +664,7 @@ export function ProviderComplaintsContent() {
                       Service Provider Official Statement
                     </DialogTitle>
                     <DialogDescription className="text-[10px] sm:text-[11px] text-blue-100/80 font-normal">
-                      Ticket #{selectedComplaint.ticketNumber} · Transmitted directly to LMD-PESO dispute arbitration
+                      Ticket #{selectedComplaint.ticketNumber}
                     </DialogDescription>
                   </div>
                 </div>
@@ -502,12 +689,12 @@ export function ProviderComplaintsContent() {
                 {/* Explanation Textarea */}
                 <div className="space-y-1">
                   <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                    Your Official Explanation / Defense <span className="text-rose-500">*</span>:
+                    Your explanation <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     rows={4}
                     required
-                    placeholder="Provide detailed facts regarding the service performed, diagnostic findings, agreements made, parts installed, or propose an amicable settlement/free refix..."
+                    placeholder="What was done, and your proposed fix"
                     value={explanationText}
                     onChange={(e) => setExplanationText(e.target.value)}
                     className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-none text-xs leading-relaxed focus:outline-none focus:border-[#081F5C]"
@@ -618,6 +805,15 @@ export function ProviderComplaintsContent() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ProviderReportDialog
+        open={isReportDialogOpen}
+        onOpenChange={setIsReportDialogOpen}
+        onSuccess={() => {
+          setActiveTab("filed")
+          void fetchProviderComplaints(true)
+        }}
+      />
     </div>
   )
 }
@@ -625,6 +821,28 @@ export function ProviderComplaintsContent() {
 export default function ProviderComplaintsPage({ isEmbedded = false }) {
   if (isEmbedded) {
     return <ProviderComplaintsContent />
+  }
+
+  let role = ""
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem("user") : null
+    role = raw ? JSON.parse(raw)?.role || "" : ""
+  } catch {
+    role = ""
+  }
+
+  if (role === "oncall-mechanic-technician") {
+    return (
+      <OnCallMechanicLayout
+        activeSection="complaints"
+        pageMeta={{
+          title: "Complaints & Reports",
+          description: "Review customer reports, respond to LMD-PESO inquiries, and submit your official statement.",
+        }}
+      >
+        <ProviderComplaintsContent />
+      </OnCallMechanicLayout>
+    )
   }
 
   return (

@@ -20,7 +20,6 @@ import {
   Calendar,
   CheckCircle,
   ChevronDown,
-  ChevronRight,
   ClipboardList,
   DollarSign,
   Download,
@@ -85,49 +84,40 @@ function normalizeStatus(s) {
 }
 
 const STAT_CARD_GRADIENT = {
-  platformGMV: "from-emerald-600 via-teal-700 to-slate-950 border-emerald-400/30",
-  totalBookings: "from-blue-600 via-indigo-700 to-slate-950 border-blue-400/30",
-  users: "from-purple-600 via-violet-700 to-slate-950 border-purple-400/30",
-  satisfaction: "from-amber-600 via-orange-700 to-slate-950 border-amber-400/30",
+  platformGMV: 'text-emerald-600',
+  totalBookings: 'text-sky-600',
+  users: 'text-purple-600',
+  satisfaction: 'text-amber-500',
 }
 
 function StatGradientCard({ label, value, icon: Icon, variant, helper, onClick, className }) {
-  const gradient = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.totalBookings
+  const iconTone = STAT_CARD_GRADIENT[variant] ?? STAT_CARD_GRADIENT.totalBookings ?? 'text-[#224d84]'
+  const helperText = helper
   return (
     <div
       onClick={onClick}
       className={cn(
-        "group relative overflow-hidden bg-gradient-to-br p-3 sm:p-4 text-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md rounded-none border cursor-pointer",
-        gradient,
+        'group relative overflow-hidden rounded-none border border-[#c9e8fd] bg-white p-3 sm:p-4 shadow-[0_10px_28px_-18px_rgba(1,30,72,0.45)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#8fc8f3] hover:shadow-[0_16px_32px_-18px_rgba(1,30,72,0.5)]',
+        onClick ? 'cursor-pointer' : '',
         className
       )}
     >
-      <div className="pointer-events-none absolute -right-3 -top-3 size-20 sm:size-24 bg-gradient-to-br from-white/20 to-transparent rounded-full blur-lg group-hover:scale-125 transition-transform duration-500" />
-      <Icon className="pointer-events-none absolute -right-1 -top-1 size-14 sm:size-16 text-white/15 stroke-[1.2] rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 group-hover:text-white/25" />
-
-      <div className="relative z-10 space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-black/30 backdrop-blur-md border border-white/20 text-white rounded-none">
-            <Icon className="size-2.5 sm:size-3 text-white/90 shrink-0" />
-            <span className="truncate">{label}</span>
-          </span>
-          <div className="size-5 rounded-none bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/30 text-white group-hover:bg-white group-hover:text-slate-900 transition-colors shrink-0">
-            <ChevronRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xl sm:text-2xl font-black text-white tracking-tight tabular-nums">
-              {value}
-            </span>
-          </div>
-          {helper ? (
-            <p className="text-[10px] sm:text-[11px] text-white/80 font-medium mt-0.5 truncate">
-              {helper}
+      <Icon className={cn('pointer-events-none absolute -right-2 -bottom-3 size-16 sm:size-20 rotate-12 stroke-[1.15] opacity-[0.12] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6', iconTone)} />
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl sm:text-3xl font-black tracking-tight text-[#011e48] tabular-nums">
+            {value}
+          </p>
+          {helperText ? (
+            <p className="mt-1 truncate text-[10px] sm:text-[11px] font-medium text-slate-500">
+              {helperText}
             </p>
           ) : null}
         </div>
+        <Icon className={cn('size-5 sm:size-6 shrink-0', iconTone)} />
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowUpDown,
+  Ban,
   Building2,
   Calendar,
   Check,
@@ -34,6 +35,11 @@ import {
   Wrench,
   X,
 } from "lucide-react"
+import {
+  IssueWarningDialog,
+  LiftRestrictionDialog,
+  RestrictUserDialog,
+} from "@/components/admin/UserModerationDialogs.jsx"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Spinner } from "@/components/ui/spinner"
@@ -130,6 +136,26 @@ const CATEGORY_META = {
     label: "Safety Concern / Harassment",
     badgeClass: "bg-red-200 text-red-950 border-red-500 dark:bg-red-950 dark:text-red-100",
     icon: AlertCircle,
+  },
+  fake_booking: {
+    label: "Bogus / Fake Booking",
+    badgeClass: "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950 dark:text-rose-200",
+    icon: AlertTriangle,
+  },
+  non_payment: {
+    label: "Non-Payment / Fee Refusal",
+    badgeClass: "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-200",
+    icon: AlertTriangle,
+  },
+  abusive_customer: {
+    label: "Abusive Customer Conduct",
+    badgeClass: "bg-pink-100 text-pink-900 border-pink-300 dark:bg-pink-950 dark:text-pink-200",
+    icon: Users,
+  },
+  policy_violation: {
+    label: "Platform Policy Violation",
+    badgeClass: "bg-indigo-100 text-indigo-900 border-indigo-300 dark:bg-indigo-950 dark:text-indigo-200",
+    icon: ShieldAlert,
   },
   other: {
     label: "General Platform Concern",
@@ -324,8 +350,15 @@ export function AdminComplaintReportContent() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [priorityFilter, setPriorityFilter] = useState("all")
+  const [reporterRoleFilter, setReporterRoleFilter] = useState("all")
   const [dateRange, setDateRange] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
+
+  // User Moderation Dialogs linked from Complaint Investigation
+  const [modTargetUser, setModTargetUser] = useState(null)
+  const [warnDialogOpen, setWarnDialogOpen] = useState(false)
+  const [restrictDialogOpen, setRestrictDialogOpen] = useState(false)
+  const [liftDialogOpen, setLiftDialogOpen] = useState(false)
 
   const filteredComplaints = useMemo(() => {
     let list = complaints
@@ -389,8 +422,9 @@ export function AdminComplaintReportContent() {
       toast.success(data?.message || "Official explanation request sent to service provider!")
       setSelectedComplaint((prev) => ({
         ...prev,
-        explanationRequestedAt: new Date(),
-        status: prev.status === "pending" ? "under_investigation" : prev.status,
+        ...(data?.data || {}),
+        explanationRequestedAt: data?.data?.explanationRequestedAt || new Date().toISOString(),
+        status: data?.data?.status || (prev.status === "pending" ? "under_investigation" : prev.status),
       }))
       fetchComplaints(true)
     } catch (err) {
@@ -413,6 +447,7 @@ export function AdminComplaintReportContent() {
       if (statusFilter !== "all") queryParams.set("status", statusFilter)
       if (categoryFilter !== "all") queryParams.set("category", categoryFilter)
       if (priorityFilter !== "all") queryParams.set("priority", priorityFilter)
+      if (reporterRoleFilter !== "all") queryParams.set("reporterRole", reporterRoleFilter)
       if (searchQuery.trim()) queryParams.set("search", searchQuery.trim())
 
       const [listRes, statsRes] = await Promise.all([
@@ -440,13 +475,13 @@ export function AdminComplaintReportContent() {
       setLoading(false)
       setIsRefreshing(false)
     }
-  }, [statusFilter, categoryFilter, priorityFilter, searchQuery])
+  }, [statusFilter, categoryFilter, priorityFilter, reporterRoleFilter, searchQuery])
 
   useEffect(() => {
     fetchComplaints()
   }, [fetchComplaints])
 
-  const openComplaintModal = (comp) => {
+  const openComplaintModal = async (comp) => {
     setSelectedComplaint(comp)
     setResolveForm({
       status: comp.status || "pending",
@@ -457,6 +492,25 @@ export function AdminComplaintReportContent() {
       notifyCustomer: true,
     })
     setIsDetailOpen(true)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/complaints/${comp._id}`, {
+        headers: authHeaders(),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.data) {
+        setSelectedComplaint(json.data)
+        setResolveForm((prev) => ({
+          ...prev,
+          status: json.data.status || prev.status,
+          priority: json.data.priority || prev.priority,
+          adminAction: json.data.adminAction || "",
+          resolutionRemarks: json.data.resolutionRemarks || "",
+          adminNotes: json.data.adminNotes || "",
+        }))
+      }
+    } catch {
+      // keep initial row data on network error
+    }
   }
 
   const handleSaveResolution = async () => {
@@ -642,7 +696,7 @@ export function AdminComplaintReportContent() {
           </div>
 
           {/* Category */}
-          <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[220px]">
+          <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[150px] sm:flex-1 sm:max-w-[210px]">
             <select
               className={selectShell}
               value={categoryFilter}
@@ -655,9 +709,27 @@ export function AdminComplaintReportContent() {
               <option value="damage_property">Property damage</option>
               <option value="late_no_show">Late / no-show</option>
               <option value="unprofessional_behavior">Unprofessional conduct</option>
+              <option value="fake_booking">Bogus / fake booking</option>
+              <option value="non_payment">Non-payment</option>
+              <option value="abusive_customer">Abusive customer</option>
               <option value="scam_fraud">Scam / fraud</option>
               <option value="harassment">Safety concern</option>
+              <option value="policy_violation">Policy violation</option>
               <option value="other">General concern</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
+          </div>
+
+          {/* Reporter Source */}
+          <div className="relative min-w-0 w-full sm:w-auto sm:min-w-[140px] sm:flex-1 sm:max-w-[200px]">
+            <select
+              className={selectShell}
+              value={reporterRoleFilter}
+              onChange={(e) => setReporterRoleFilter(e.target.value)}
+            >
+              <option value="all">All reporters</option>
+              <option value="customer">Customer reports</option>
+              <option value="provider">Shop / Tech reports</option>
             </select>
             <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
@@ -695,7 +767,7 @@ export function AdminComplaintReportContent() {
             <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-slate-400" />
           </div>
 
-          {(statusFilter !== "all" || categoryFilter !== "all" || priorityFilter !== "all" || dateRange !== "all" || searchQuery) && (
+          {(statusFilter !== "all" || categoryFilter !== "all" || priorityFilter !== "all" || reporterRoleFilter !== "all" || dateRange !== "all" || searchQuery) && (
             <Button
               variant="ghost"
               size="sm"
@@ -703,6 +775,7 @@ export function AdminComplaintReportContent() {
                 setStatusFilter("all")
                 setCategoryFilter("all")
                 setPriorityFilter("all")
+                setReporterRoleFilter("all")
                 setDateRange("all")
                 setSearchQuery("")
               }}
@@ -718,7 +791,7 @@ export function AdminComplaintReportContent() {
           <div className="relative w-full min-w-0 max-w-full">
             <Input
               className="h-9 w-full min-w-0 rounded-none border border-slate-200 bg-white pr-12 pl-3.5 text-xs font-medium text-slate-800 shadow-xs focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
-              placeholder="Search by ticket #, customer, shop, role, or issue…"
+              placeholder="Search ticket, customer, shop"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Search complaints"
@@ -909,40 +982,80 @@ export function AdminComplaintReportContent() {
                       )}
                     </div>
 
-                    {/* Right Column (4 cols): Complainant & Target Provider info */}
+                    {/* Right Column (4 cols): Complainant & Target Party info */}
                     <div className="lg:col-span-4 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-100 dark:border-slate-800 pt-3 lg:pt-0 lg:pl-4 space-y-3">
                       <div className="space-y-2 text-xs">
-                        {/* Customer */}
-                        <div className="flex items-start gap-2">
-                          <div className="size-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 shrink-0 text-xs">
-                            {comp.customerName?.charAt(0).toUpperCase() || "C"}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase block">Complainant (Customer)</span>
-                            <p className="font-bold text-slate-900 dark:text-white truncate">
-                              {comp.customerName}
-                            </p>
-                            <p className="text-[11px] text-slate-500 truncate">{comp.customerEmail || comp.customerPhone || "—"}</p>
-                          </div>
-                        </div>
+                        {/* Reporter */}
+                        {(() => {
+                          const isProviderReporter =
+                            comp.reporterRole && comp.reporterRole !== "customer"
+                          const repName =
+                            comp.reporterName || comp.reporter?.fullName || comp.customerName || "User"
+                          const repContact =
+                            comp.reporterEmail || comp.reporter?.email || comp.customerEmail || comp.customerPhone || "—"
+                          return (
+                            <div className="flex items-start gap-2">
+                              <div className="size-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 shrink-0 text-xs">
+                                {repName.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                                  {isProviderReporter ? "Reporter (Service Provider)" : "Complainant (Customer)"}
+                                </span>
+                                <p className="font-bold text-slate-900 dark:text-white truncate">{repName}</p>
+                                <p className="text-[11px] text-slate-500 truncate">{repContact}</p>
+                              </div>
+                            </div>
+                          )
+                        })()}
 
-                        {/* Target Shop / Provider */}
-                        <div className="flex items-start gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-                          <div className="size-7 rounded-none bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-700 dark:text-blue-300 shrink-0">
-                            <Store className="size-3.5" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase block">Reported Party / Entity</span>
-                            <p className="font-bold text-blue-900 dark:text-blue-300 truncate">
-                              {comp.targetShopName || comp.targetTechnicianName || "Platform General"}
-                            </p>
-                            {comp.bookingServiceTitle && (
-                              <p className="text-[10px] text-slate-500 truncate">
-                                Job: {comp.bookingServiceTitle}
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                        {/* Target Reported Party */}
+                        {(() => {
+                          const isCustomerTarget = comp.targetType === "customer"
+                          const targetObj = isCustomerTarget
+                            ? comp.reportedUser || comp.customer
+                            : comp.reportedUser || comp.targetShop || comp.targetTechnician
+                          const targetName = isCustomerTarget
+                            ? comp.reportedUserName || comp.customerName || targetObj?.fullName || "Customer"
+                            : comp.targetShopName || comp.targetTechnicianName || comp.reportedUserName || "Platform General"
+                          const targetStatus = targetObj?.moderationStatus || "active"
+                          const targetStrikes = Number(targetObj?.warningCount || 0)
+
+                          return (
+                            <div className="flex items-start gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                              <div className="size-7 rounded-none bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-700 dark:text-blue-300 shrink-0">
+                                {isCustomerTarget ? <User className="size-3.5" /> : <Store className="size-3.5" />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase block">
+                                  {isCustomerTarget ? "Reported Customer" : "Reported Shop / Provider"}
+                                </span>
+                                <p className="font-bold text-blue-900 dark:text-blue-300 truncate">{targetName}</p>
+                                <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                  {targetStatus === "restricted" ? (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                                      Restricted
+                                    </span>
+                                  ) : targetStrikes > 0 ? (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                                      {targetStrikes} Strike{targetStrikes === 1 ? "" : "s"}
+                                    </span>
+                                  ) : null}
+                                  {comp.moderationOutcome && comp.moderationOutcome !== "none" && (
+                                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-indigo-50 text-indigo-800 border border-indigo-200">
+                                      {comp.moderationOutcome === "warned" ? `Warned (${comp.linkedWarningRef || "WRN"})` : "Account Restricted"}
+                                    </span>
+                                  )}
+                                </div>
+                                {comp.bookingServiceTitle && (
+                                  <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                                    Job: {comp.bookingServiceTitle}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })()}
                       </div>
 
                       {/* Action Button */}
@@ -1019,63 +1132,218 @@ export function AdminComplaintReportContent() {
               {/* Scrollable Content Body */}
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 text-xs sm:text-sm">
                 {/* 1. Complainant & Reported Entity Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {/* Complainant Card */}
-                  <div className="border border-slate-200 bg-slate-50/70 p-3.5 space-y-2 dark:border-slate-800 dark:bg-slate-800/40">
-                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-200 dark:border-slate-700">
-                      <User className="size-3.5 text-[#1447a6] dark:text-blue-400 shrink-0" />
-                      <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800 dark:text-slate-200">
-                        Complainant (Customer)
-                      </span>
-                    </div>
-                    <div className="space-y-1 text-xs">
-                      <p className="font-bold text-slate-900 dark:text-white text-sm">
-                        {selectedComplaint.customerName || "Anonymous Customer"}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                        <Mail className="size-3 text-slate-400 shrink-0" />
-                        <span className="truncate">{selectedComplaint.customerEmail || "No email provided"}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                        <Phone className="size-3 text-slate-400 shrink-0" />
-                        <span>{selectedComplaint.customerPhone || "No phone provided"}</span>
-                      </div>
-                    </div>
-                  </div>
+                {(() => {
+                  const isProviderReporter =
+                    selectedComplaint.reporterRole && selectedComplaint.reporterRole !== "customer"
+                  const repName =
+                    selectedComplaint.reporterName ||
+                    selectedComplaint.reporter?.fullName ||
+                    selectedComplaint.customerName ||
+                    "Anonymous"
+                  const repEmail =
+                    selectedComplaint.reporterEmail ||
+                    selectedComplaint.reporter?.email ||
+                    selectedComplaint.customerEmail ||
+                    "No email provided"
+                  const repPhone =
+                    selectedComplaint.reporterPhone ||
+                    selectedComplaint.reporter?.phoneNumber ||
+                    selectedComplaint.customerPhone ||
+                    "No phone provided"
 
-                  {/* Reported Party Card */}
-                  <div className="border border-slate-200 bg-slate-50/70 p-3.5 space-y-2 dark:border-slate-800 dark:bg-slate-800/40">
-                    <div className="flex items-center gap-1.5 pb-1 border-b border-slate-200 dark:border-slate-700">
-                      <Store className="size-3.5 text-[#1447a6] dark:text-blue-400 shrink-0" />
-                      <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800 dark:text-slate-200">
-                        Reported Party / Entity
-                      </span>
-                    </div>
-                    <div className="space-y-1 text-xs">
-                      <p className="font-bold text-blue-900 dark:text-blue-300 text-sm">
-                        {selectedComplaint.targetShopName || selectedComplaint.targetTechnicianName || "Platform General Entity"}
-                      </p>
-                      {selectedComplaint.targetShop?.shopAddress ? (
-                        <p className="text-slate-600 dark:text-slate-300 text-[11px] line-clamp-1">
-                          {selectedComplaint.targetShop.shopAddress}
-                        </p>
-                      ) : null}
-                      {selectedComplaint.booking ? (
-                        <div className="pt-0.5 flex items-center gap-1.5 text-[11px]">
-                          <span className="text-slate-500">Booking Ref:</span>
-                          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-200/60 dark:bg-slate-700 px-1 py-0.5">
-                            #{String(selectedComplaint.booking?.ref || selectedComplaint.booking?._id || selectedComplaint.booking).slice(-8)}
-                          </span>
+                  const isCustomerTarget = selectedComplaint.targetType === "customer"
+                  const targetUserObj = isCustomerTarget
+                    ? selectedComplaint.reportedUser || selectedComplaint.customer
+                    : selectedComplaint.reportedUser || selectedComplaint.targetShop || selectedComplaint.targetTechnician
+                  const targetDisplayName = isCustomerTarget
+                    ? selectedComplaint.reportedUserName ||
+                      selectedComplaint.customerName ||
+                      targetUserObj?.fullName ||
+                      "Customer"
+                    : selectedComplaint.targetShopName ||
+                      selectedComplaint.targetTechnicianName ||
+                      selectedComplaint.reportedUserName ||
+                      "Platform General Entity"
+
+                  const targetId =
+                    targetUserObj?._id ||
+                    (typeof targetUserObj === "string" ? targetUserObj : null)
+                  const targetModStatus = targetUserObj?.moderationStatus || "active"
+                  const targetWarnings = Number(targetUserObj?.warningCount || 0)
+
+                  const normalizedModTarget = targetId
+                    ? {
+                        id: String(targetId),
+                        _id: String(targetId),
+                        fullName: targetDisplayName,
+                        email: targetUserObj?.email || "",
+                        role: targetUserObj?.role || (isCustomerTarget ? "customer" : "shop-owner"),
+                        warningCount: targetWarnings,
+                        moderationStatus: targetModStatus,
+                      }
+                    : null
+
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        {/* Reporter Card */}
+                        <div className="border border-slate-200 bg-slate-50/70 p-3.5 space-y-2 dark:border-slate-800 dark:bg-slate-800/40">
+                          <div className="flex items-center gap-1.5 pb-1 border-b border-slate-200 dark:border-slate-700">
+                            <User className="size-3.5 text-[#1447a6] dark:text-blue-400 shrink-0" />
+                            <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800 dark:text-slate-200">
+                              {isProviderReporter ? "Reporter (Service Provider)" : "Complainant (Customer)"}
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">{repName}</p>
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                              <Mail className="size-3 text-slate-400 shrink-0" />
+                              <span className="truncate">{repEmail}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                              <Phone className="size-3 text-slate-400 shrink-0" />
+                              <span>{repPhone}</span>
+                            </div>
+                          </div>
                         </div>
-                      ) : null}
-                      {selectedComplaint.bookingServiceTitle ? (
-                        <p className="text-[11px] text-slate-500">
-                          Service: <span className="text-slate-700 dark:text-slate-300 font-semibold">{selectedComplaint.bookingServiceTitle}</span>
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
+
+                        {/* Reported Party Card */}
+                        <div className="border border-slate-200 bg-slate-50/70 p-3.5 space-y-2 dark:border-slate-800 dark:bg-slate-800/40">
+                          <div className="flex items-center justify-between gap-1.5 pb-1 border-b border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center gap-1.5">
+                              {isCustomerTarget ? (
+                                <User className="size-3.5 text-rose-600 shrink-0" />
+                              ) : (
+                                <Store className="size-3.5 text-[#1447a6] dark:text-blue-400 shrink-0" />
+                              )}
+                              <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-800 dark:text-slate-200">
+                                {isCustomerTarget ? "Reported Customer" : "Reported Party / Entity"}
+                              </span>
+                            </div>
+                            {targetModStatus === "restricted" ? (
+                              <span className="px-1.5 py-0.5 text-[9px] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                                Restricted
+                              </span>
+                            ) : targetWarnings > 0 ? (
+                              <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                                {targetWarnings} Strike{targetWarnings === 1 ? "" : "s"}
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.5 text-[9px] font-semibold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Clean Standing
+                              </span>
+                            )}
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-bold text-blue-900 dark:text-blue-300 text-sm">
+                                {targetDisplayName}
+                              </p>
+                              {(selectedComplaint.targetShop?.role === "oncall-mechanic-technician" ||
+                                selectedComplaint.targetTechnician?.role === "oncall-mechanic-technician" ||
+                                selectedComplaint.targetType === "technician") && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-800 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">
+                                  On-call Mechanic
+                                </span>
+                              )}
+                            </div>
+                            {selectedComplaint.targetShop?.shopAddress ? (
+                              <p className="text-slate-600 dark:text-slate-300 text-[11px] line-clamp-1">
+                                {selectedComplaint.targetShop.shopAddress}
+                              </p>
+                            ) : null}
+                            {selectedComplaint.booking ? (
+                              <div className="pt-0.5 flex items-center gap-1.5 text-[11px]">
+                                <span className="text-slate-500">Booking Ref:</span>
+                                <span className="font-mono font-bold text-slate-800 dark:text-slate-200 bg-slate-200/60 dark:bg-slate-700 px-1 py-0.5">
+                                  #{String(selectedComplaint.booking?.ref || selectedComplaint.booking?._id || selectedComplaint.booking).slice(-8)}
+                                </span>
+                              </div>
+                            ) : null}
+                            {selectedComplaint.bookingServiceTitle ? (
+                              <p className="text-[11px] text-slate-500">
+                                Service: <span className="text-slate-700 dark:text-slate-300 font-semibold">{selectedComplaint.bookingServiceTitle}</span>
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Progressive Discipline Action Bar for Reported User */}
+                      {normalizedModTarget && (
+                        <div className="border-2 border-amber-200 bg-amber-50/60 p-3.5 space-y-2.5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] font-black uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                                  <ShieldAlert className="size-3.5 text-amber-600" />
+                                  User Discipline &amp; Account Action
+                                </span>
+                                {selectedComplaint.moderationOutcome && selectedComplaint.moderationOutcome !== "none" && (
+                                  <Badge className="rounded-none text-[10px] font-bold uppercase bg-indigo-100 text-indigo-900 border border-indigo-300">
+                                    {selectedComplaint.moderationOutcome === "warned"
+                                      ? `Warning Issued (${selectedComplaint.linkedWarningRef || "WRN"})`
+                                      : "Account Restricted"}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-700">
+                                {targetModStatus === "restricted"
+                                  ? `${targetDisplayName} is currently RESTRICTED (${targetWarnings} prior strike${targetWarnings === 1 ? "" : "s"}).`
+                                  : targetWarnings > 0
+                                    ? `${targetDisplayName} already has ${targetWarnings} warning strike(s) on record — repeat violations qualify for account restriction.`
+                                    : `Issue a formal warning form (pops up on user's screen) or restrict account if severe.`}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 shrink-0">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => {
+                                  setModTargetUser(normalizedModTarget)
+                                  setWarnDialogOpen(true)
+                                }}
+                                className="h-8 px-3 rounded-none bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold cursor-pointer"
+                              >
+                                <ShieldAlert className="size-3.5 mr-1.5" />
+                                Issue Warning Form
+                              </Button>
+
+                              {targetModStatus === "restricted" ? (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => {
+                                    setModTargetUser(normalizedModTarget)
+                                    setLiftDialogOpen(true)
+                                  }}
+                                  className="h-8 px-3 rounded-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+                                >
+                                  <ShieldCheck className="size-3.5 mr-1.5" />
+                                  Lift Restriction
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={() => {
+                                    setModTargetUser(normalizedModTarget)
+                                    setRestrictDialogOpen(true)
+                                  }}
+                                  className="h-8 px-3 rounded-none bg-rose-700 hover:bg-rose-800 text-white text-xs font-bold cursor-pointer"
+                                >
+                                  <Ban className="size-3.5 mr-1.5" />
+                                  Restrict Account
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
 
                 {/* 2. Dispute Claim & Evidence */}
                 <div className="border border-slate-200 bg-slate-50/70 p-3.5 space-y-2.5 dark:border-slate-800 dark:bg-slate-800/40">
@@ -1294,7 +1562,7 @@ export function AdminComplaintReportContent() {
                   {/* Quick Ruling Presets */}
                   <div className="space-y-1.5 pt-1">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                      Quick Ruling Presets (1-Click Action):
+                      Quick rulings
                     </span>
                     <div className="flex flex-wrap gap-1.5">
                       {QUICK_RULINGS.map((preset) => (
@@ -1314,11 +1582,11 @@ export function AdminComplaintReportContent() {
                   {/* Action Taken input */}
                   <div className="space-y-1 pt-1">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                      Action Taken / Moderation Ruling:
+                      Action taken
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Mandatory Free Labor Re-fix Ordered under Warranty"
+                      placeholder="e.g. Free re-fix ordered"
                       value={resolveForm.adminAction}
                       onChange={(e) => setResolveForm((prev) => ({ ...prev, adminAction: e.target.value }))}
                       className="w-full h-8 px-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-none text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-[#1447a6]"
@@ -1328,11 +1596,11 @@ export function AdminComplaintReportContent() {
                   {/* Remarks to Customer */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                      Official Remarks / Explanation Sent to Complainant:
+                      Remarks to customer
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Official explanation or instructions visible to the customer..."
+                      placeholder="Message for the customer"
                       value={resolveForm.resolutionRemarks}
                       onChange={(e) => setResolveForm((prev) => ({ ...prev, resolutionRemarks: e.target.value }))}
                       className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-none text-xs text-slate-800 dark:text-slate-200 leading-relaxed focus:outline-none focus:border-[#1447a6]"
@@ -1342,11 +1610,11 @@ export function AdminComplaintReportContent() {
                   {/* Internal Admin Notes */}
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
-                      Internal Admin Notes (Confidential platform audit log):
+                      Internal notes
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Private investigation notes, coordination details with shop owner..."
+                      placeholder="Private notes"
                       value={resolveForm.adminNotes}
                       onChange={(e) => setResolveForm((prev) => ({ ...prev, adminNotes: e.target.value }))}
                       className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-none text-xs text-slate-800 dark:text-slate-200 leading-relaxed focus:outline-none focus:border-[#1447a6]"
@@ -1432,6 +1700,57 @@ export function AdminComplaintReportContent() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Linked User Moderation Dialogs */}
+      <IssueWarningDialog
+        open={warnDialogOpen}
+        onOpenChange={setWarnDialogOpen}
+        targetUser={modTargetUser}
+        defaultTicket={selectedComplaint?.ticketNumber || ""}
+        defaultComplaintId={selectedComplaint?._id || null}
+        defaultCategory={selectedComplaint?.category || "policy_violation"}
+        defaultSubject={selectedComplaint?.subject || ""}
+        onSuccess={async (resData) => {
+          if (selectedComplaint?._id) {
+            await openComplaintModal(selectedComplaint)
+          }
+          if (resData?.warning?.referenceCode) {
+            setResolveForm((prev) => ({
+              ...prev,
+              status: "action_taken",
+              adminAction: prev.adminAction || `Formal Warning (${resData.warning.referenceCode}) Issued`,
+            }))
+          }
+          fetchComplaints(true)
+        }}
+      />
+
+      <RestrictUserDialog
+        open={restrictDialogOpen}
+        onOpenChange={setRestrictDialogOpen}
+        targetUser={modTargetUser}
+        defaultTicket={selectedComplaint?.ticketNumber || ""}
+        defaultComplaintId={selectedComplaint?._id || null}
+        defaultCategory={selectedComplaint?.category || "repeat_violation"}
+        onSuccess={async () => {
+          if (selectedComplaint?._id) {
+            await openComplaintModal(selectedComplaint)
+          }
+          fetchComplaints(true)
+        }}
+      />
+
+      <LiftRestrictionDialog
+        open={liftDialogOpen}
+        onOpenChange={setLiftDialogOpen}
+        targetUser={modTargetUser}
+        onSuccess={async () => {
+          if (selectedComplaint?._id) {
+            await openComplaintModal(selectedComplaint)
+          }
+          fetchComplaints(true)
+        }}
+      />
     </div>
   )
 }

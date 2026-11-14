@@ -9,23 +9,50 @@ const complaintSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    // Reporter (Customer, Shop Owner, On-Call Mechanic, or Technician)
+    reporter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    reporterRole: {
+      type: String,
+      default: "customer",
+      trim: true,
+      index: true,
+    },
+    reporterName: { type: String, default: "", trim: true },
+    reporterEmail: { type: String, default: "", trim: true },
+    reporterPhone: { type: String, default: "", trim: true },
+
+    // Legacy customer field (kept populated for customer-filed complaints or customer targets)
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
       index: true,
     },
-    customerName: { type: String, required: true, trim: true },
+    customerName: { type: String, default: "", trim: true },
     customerEmail: { type: String, default: "", trim: true },
     customerPhone: { type: String, default: "", trim: true },
 
     // Target party being reported
     targetType: {
       type: String,
-      enum: ["shop", "technician", "booking", "platform", "other"],
+      enum: ["shop", "technician", "customer", "booking", "platform", "other"],
       default: "shop",
       index: true,
     },
+    reportedUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    reportedUserRole: { type: String, default: "", trim: true },
+    reportedUserName: { type: String, default: "", trim: true },
+
     targetShop: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -60,6 +87,10 @@ const complaintSchema = new mongoose.Schema(
         "late_no_show",
         "scam_fraud",
         "harassment",
+        "fake_booking",
+        "non_payment",
+        "abusive_customer",
+        "policy_violation",
         "other",
       ],
       default: "poor_service",
@@ -91,6 +122,12 @@ const complaintSchema = new mongoose.Schema(
     adminNotes: { type: String, default: "", trim: true, maxlength: 5000 },
     adminAction: { type: String, default: "", trim: true, maxlength: 250 },
     resolutionRemarks: { type: String, default: "", trim: true, maxlength: 5000 },
+    linkedWarningRef: { type: String, default: "", trim: true, maxlength: 60 },
+    moderationOutcome: {
+      type: String,
+      enum: ["none", "warned", "restricted"],
+      default: "none",
+    },
 
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,

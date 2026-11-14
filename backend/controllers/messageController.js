@@ -49,9 +49,13 @@ function buildParticipantPayload(u) {
   const shopName = typeof u.shopName === "string" ? u.shopName.trim() : ""
   const fullName = typeof u.fullName === "string" ? u.fullName.trim() : ""
   const name =
-    u.role === "shop-owner" && shopName
-      ? shopName
-      : fullName || shopName || (typeof u.email === "string" ? u.email : "User")
+    u.role === "admin"
+      ? fullName
+        ? `${fullName} (LMD-PESO Admin)`
+        : "LMD-PESO Admin"
+      : u.role === "shop-owner" && shopName
+        ? shopName
+        : fullName || shopName || (typeof u.email === "string" ? u.email : "User")
   return {
     shopName,
     ownerName: u.role === "shop-owner" ? fullName : "",
@@ -155,7 +159,7 @@ export const listConversations = asyncHandler(async (req, res) => {
 
     const otherId = String(c.userA) === String(me) ? c.userB : c.userA
     const other = await User.findById(otherId).select(participantSelect).lean()
-    if (!other || other.role === "admin") continue
+    if (!other) continue
 
     const lastRead = getReadAt(c, me)
     const unread = await unreadCountFor(c._id, me, lastRead)

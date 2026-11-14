@@ -831,34 +831,12 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl, onApprove, on
     }
   }, [profile])
 
-  if (!profile) {
-    return <p className="py-8 text-center text-sm text-slate-500 font-medium">No data available.</p>
-  }
+  const idTypeLabel = formatIdTypeLabel(profile?.idType)
 
-  const GEO_PRESENT = ['region', 'province', 'cityMunicipality', 'barangay']
-  const GEO_POB = ['pobRegion', 'pobProvince', 'pobCityMunicipality', 'pobBarangay']
-  const GEO_PERMANENT = ['permanentRegion', 'permanentProvince', 'permanentCityMunicipality', 'permanentBarangay']
-  const GEO_SHOP = ['shopRegion', 'shopProvince', 'shopCityMunicipality', 'shopBarangay']
-
-  const placeOfBirthLine = formatGeoLine(geoLabels, profile, GEO_POB)
-  const presentAddressLine = formatGeoLine(geoLabels, profile, GEO_PRESENT)
-  const permanentAddressLine = formatGeoLine(geoLabels, profile, GEO_PERMANENT)
-  const shopLocationLine = formatGeoLine(geoLabels, profile, GEO_SHOP)
-
-  const isCustomer = profile.role === 'customer'
-  const isMech = profile.role === 'mechanic-technician'
-  const isOnCall = profile.role === 'oncall-mechanic-technician'
-
-  const genderLabel = GENDER_LABELS[profile.gender] || scalar(profile.gender)
-  const civilLabel = CIVIL_LABELS[profile.civilStatus] || scalar(profile.civilStatus)
-  const empCatLabel = EMPLOYMENT_CAT_LABELS[profile.employmentStatusCategory] || scalar(profile.employmentStatusCategory)
-  const roleLabel = ROLE_LABELS[profile.role] || scalar(profile.role)
-  const age = calculateAge(profile.birthdate)
-  const idTypeLabel = formatIdTypeLabel(profile.idType)
-  const phoneDisplay = [profile.phoneCode, profile.phoneNumber].filter(Boolean).join(' ').trim() || '—'
-
-  // Aggregate all uploaded documents for quick gallery navigation
+  // Aggregate all uploaded documents for quick gallery navigation.
+  // Kept above any early return so hook order stays stable when the dialog closes and profile becomes null.
   const allDocuments = useMemo(() => {
+    if (!profile) return []
     const list = []
     if (profile.validIdPath || profile.validIdDataUrl) {
       list.push({
@@ -907,6 +885,31 @@ export function AdminRegistrationDetailView({ profile, apiBaseUrl, onApprove, on
     }
     return list
   }, [profile, apiBaseUrl, idTypeLabel])
+
+  if (!profile) {
+    return <p className="py-8 text-center text-sm text-slate-500 font-medium">No data available.</p>
+  }
+
+  const GEO_PRESENT = ['region', 'province', 'cityMunicipality', 'barangay']
+  const GEO_POB = ['pobRegion', 'pobProvince', 'pobCityMunicipality', 'pobBarangay']
+  const GEO_PERMANENT = ['permanentRegion', 'permanentProvince', 'permanentCityMunicipality', 'permanentBarangay']
+  const GEO_SHOP = ['shopRegion', 'shopProvince', 'shopCityMunicipality', 'shopBarangay']
+
+  const placeOfBirthLine = formatGeoLine(geoLabels, profile, GEO_POB)
+  const presentAddressLine = formatGeoLine(geoLabels, profile, GEO_PRESENT)
+  const permanentAddressLine = formatGeoLine(geoLabels, profile, GEO_PERMANENT)
+  const shopLocationLine = formatGeoLine(geoLabels, profile, GEO_SHOP)
+
+  const isCustomer = profile.role === 'customer'
+  const isMech = profile.role === 'mechanic-technician'
+  const isOnCall = profile.role === 'oncall-mechanic-technician'
+
+  const genderLabel = GENDER_LABELS[profile.gender] || scalar(profile.gender)
+  const civilLabel = CIVIL_LABELS[profile.civilStatus] || scalar(profile.civilStatus)
+  const empCatLabel = EMPLOYMENT_CAT_LABELS[profile.employmentStatusCategory] || scalar(profile.employmentStatusCategory)
+  const roleLabel = ROLE_LABELS[profile.role] || scalar(profile.role)
+  const age = calculateAge(profile.birthdate)
+  const phoneDisplay = [profile.phoneCode, profile.phoneNumber].filter(Boolean).join(' ').trim() || '—'
 
   const handleOpenFullscreen = (docObj) => {
     setFullscreenDoc(docObj)

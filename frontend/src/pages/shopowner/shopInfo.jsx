@@ -828,7 +828,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                   id="shopName"
                   value={form.shopName}
                   onChange={(e) => update('shopName', e.target.value)}
-                  placeholder={isOnCallProvider ? 'Enter business name' : 'Enter shop name'}
+                  placeholder={isOnCallProvider ? 'Business name' : 'Shop name'}
                   className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-[#081F5C] focus:ring-1 focus:ring-[#081F5C]"
                 />
               </div>
@@ -1058,7 +1058,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                   onChange={(e) => update('shopDescription', e.target.value)}
                   rows={3}
                   className="rounded-none border-slate-300 text-xs font-medium min-h-[70px] sm:min-h-[80px] resize-y shadow-2xs focus:border-[#081F5C]"
-                  placeholder="Tell customers about your shop history, specializations, and services..."
+                  placeholder="About your shop"
                 />
               </div>
             </CardContent>
@@ -1089,7 +1089,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                     {...addressSelectorCommonProps}
                     label="Region/Province/City/Barangay"
                     hideLabel
-                    placeholder="Please Select : Region/Province/City/Barangay"
+                    placeholder="Region, city, barangay"
                     regionKey="shopRegion"
                     provinceKey="shopProvince"
                     cityKey="shopCityMunicipality"
@@ -1108,7 +1108,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                 </Label>
                 <Textarea
                   id="shopDetailedAddress"
-                  placeholder="e.g. Unit 2B, Building Name, Street Address"
+                  placeholder="Unit, building, street"
                   value={form.shopDetailedAddress}
                   onChange={(e) => update('shopDetailedAddress', e.target.value)}
                   className="rounded-none border-slate-300 text-xs font-medium h-16 w-full resize-none shadow-2xs focus:border-[#081F5C]"
@@ -1124,7 +1124,7 @@ export function ShopInfoInner({ variant = 'shop' }) {
                   type="text"
                   value={form.shopLandmark}
                   onChange={(e) => update('shopLandmark', e.target.value)}
-                  placeholder="e.g. Across Barangay Hall, beside Shell station"
+                  placeholder="Nearby landmark"
                   className="rounded-none border-slate-300 text-xs font-semibold shadow-2xs focus:border-[#081F5C]"
                 />
               </div>
